@@ -88,26 +88,7 @@ export default function SetPasswordPage() {
 
       setSuccess(true)
       setTimeout(() => {
-        // Redirigir según el rol
-        switch (roleName) {
-          case 'admin':
-            router.push('/admin')
-            break
-          case 'pm':
-            router.push('/pm')
-            break
-          case 'tech_lead':
-            router.push('/tech-lead')
-            break
-          case 'developer':
-            router.push('/developer')
-            break
-          case 'stakeholder':
-            router.push('/stakeholder')
-            break
-          default:
-            router.push('/')
-        }
+        router.push('/dashboard')
         router.refresh()
       }, 2000)
     } else {
