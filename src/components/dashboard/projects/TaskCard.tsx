@@ -1,0 +1,191 @@
+'use client'
+
+import { useState } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Badge } from '@/components/ui/badge'
+import { AvatarStack } from '@/components/ui/avatar-stack'
+import { Calendar, GripVertical } from 'lucide-react'
+import { TaskDetailDialog } from './TaskDetailDialog'
+
+interface Task {
+  id: string
+  task_number: number | null
+  title: string
+  description: string | null
+  status: string
+  priority: string
+  category?: string
+  position: number
+  due_date: string | null
+  assignees: { id: string; full_name: string; avatar_url: string | null }[]
+}
+
+interface Member {
+  id: string
+  full_name: string
+  avatar_url: string | null
+}
+
+interface TaskCardProps {
+  task: Task
+  projectId: string
+  projectName: string
+  members: Member[]
+  allUsers: Member[]
+  currentUserId: string
+  onUpdate: () => void
+  isDragging?: boolean
+}
+
+const priorityColors: Record<string, string> = {
+  low: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  medium: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  high: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+  urgent: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+}
+
+const priorityLabels: Record<string, string> = {
+  low: 'Baja',
+  medium: 'Media',
+  high: 'Alta',
+  urgent: 'Urgente',
+}
+
+const categoryIcons: Record<string, string> = {
+  task: '📋',
+  bug: '🐛',
+  feature: '✨',
+  hotfix: '🔥',
+  fix: '🔧',
+  improvement: '📈',
+  refactor: '♻️',
+  docs: '📝',
+  test: '🧪',
+  chore: '🔨',
+}
+
+const categoryLabels: Record<string, string> = {
+  task: 'Tarea',
+  bug: 'Bug',
+  feature: 'Feature',
+  hotfix: 'Hotfix',
+  fix: 'Fix',
+  improvement: 'Mejora',
+  refactor: 'Refactor',
+  docs: 'Docs',
+  test: 'Test',
+  chore: 'Chore',
+}
+
+const categoryColors: Record<string, string> = {
+  task: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  bug: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+  feature: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+  hotfix: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+  fix: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  improvement: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',
+  refactor: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
+  docs: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  test: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400',
+  chore: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+}
+
+export function TaskCard({ task, projectId, projectName, members, allUsers, currentUserId, onUpdate, isDragging }: TaskCardProps) {
+  const [showDetail, setShowDetail] = useState(false)
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging: isSortableDragging,
+  } = useSortable({ id: task.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  const formatDate = (date: string | null) => {
+    if (!date) return null
+    return new Date(date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
+  }
+
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done'
+
+  return (
+    <>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`bg-card rounded-lg border border-border p-3 cursor-pointer hover:shadow-md transition-shadow ${
+          isDragging || isSortableDragging ? 'opacity-50 shadow-lg' : ''
+        }`}
+        onClick={() => setShowDetail(true)}
+      >
+        <div className="flex items-start gap-2">
+          <button
+            {...attributes}
+            {...listeners}
+            className="mt-0.5 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              {task.task_number && (
+                <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                  #{task.task_number}
+                </span>
+              )}
+              <p className="font-medium text-foreground text-sm truncate">{task.title}</p>
+            </div>
+            {task.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
+            )}
+            
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary" className={`text-xs ${priorityColors[task.priority]}`}>
+                {priorityLabels[task.priority]}
+              </Badge>
+              
+              {task.category && (
+                <Badge variant="secondary" className={`text-xs ${categoryColors[task.category] || categoryColors.task}`}>
+                  {categoryIcons[task.category]} {categoryLabels[task.category] || 'Tarea'}
+                </Badge>
+              )}
+              
+              {task.due_date && (
+                <span className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                  <Calendar className="w-3 h-3" />
+                  {formatDate(task.due_date)}
+                </span>
+              )}
+            </div>
+
+            {task.assignees.length > 0 && (
+              <div className="mt-2">
+                <AvatarStack assignees={task.assignees} maxVisible={3} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <TaskDetailDialog
+        taskId={task.id}
+        projectId={projectId}
+        projectName={projectName}
+        open={showDetail}
+        onOpenChange={setShowDetail}
+        members={members}
+        allUsers={allUsers}
+        currentUserId={currentUserId}
+        onUpdate={onUpdate}
+      />
+    </>
+  )
+}
