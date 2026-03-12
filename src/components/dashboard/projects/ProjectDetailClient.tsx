@@ -416,7 +416,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
       {/* Kanban Board */}
       <KanbanBoard
-        tasks={project.tasks}
+        tasks={project.tasks.map(t => ({
+          ...t,
+          assignees: t.assignee ? [t.assignee] : [],
+        }))}
         projectId={project.id}
         projectName={project.name}
         members={projectMembers}
