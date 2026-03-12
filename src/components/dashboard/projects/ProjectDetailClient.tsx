@@ -44,7 +44,8 @@ interface Task {
   category?: string
   position: number
   due_date: string | null
-  assignee: { id: string; full_name: string; avatar_url: string | null } | null
+  assignees: { id: string; full_name: string; avatar_url: string | null }[]
+  assignee?: { id: string; full_name: string; avatar_url: string | null } | null
 }
 
 interface User {
