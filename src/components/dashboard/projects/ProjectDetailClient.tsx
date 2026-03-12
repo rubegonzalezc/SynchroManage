@@ -163,16 +163,16 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   }
 
   // Obtener todos los miembros del proyecto para asignar tareas (sin duplicados)
-  const projectMembersMap = new Map<string, { id: string; full_name: string; avatar_url: string | null }>()
+  const projectMembersMap = new Map<string, { id: string; full_name: string; avatar_url: string | null; roles?: string[] }>()
   
   if (project.pm) {
-    projectMembersMap.set(project.pm.id, { id: project.pm.id, full_name: project.pm.full_name, avatar_url: project.pm.avatar_url })
+    projectMembersMap.set(project.pm.id, { id: project.pm.id, full_name: project.pm.full_name, avatar_url: project.pm.avatar_url, roles: ['pm'] })
   }
   if (project.tech_lead) {
-    projectMembersMap.set(project.tech_lead.id, { id: project.tech_lead.id, full_name: project.tech_lead.full_name, avatar_url: project.tech_lead.avatar_url })
+    projectMembersMap.set(project.tech_lead.id, { id: project.tech_lead.id, full_name: project.tech_lead.full_name, avatar_url: project.tech_lead.avatar_url, roles: ['tech_lead'] })
   }
   project.members.filter(m => m.role === 'developer').forEach(m => {
-    projectMembersMap.set(m.user.id, { id: m.user.id, full_name: m.user.full_name, avatar_url: m.user.avatar_url })
+    projectMembersMap.set(m.user.id, { id: m.user.id, full_name: m.user.full_name, avatar_url: m.user.avatar_url, roles: ['developer'] })
   })
   
   const projectMembers = Array.from(projectMembersMap.values())
