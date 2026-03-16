@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle, Clock, RefreshCw } from 'lucide-react'
 
 // Generar partículas una sola vez fuera del componente
 const generateParticles = () => {
@@ -31,6 +31,7 @@ export default function LoginPage() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [linkExpired, setLinkExpired] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -40,6 +41,14 @@ export default function LoginPage() {
     // Verificar si hay un token de invitación en el hash
     const handleInviteToken = async () => {
       const hash = window.location.hash
+
+      // Detectar enlace expirado o inválido
+      if (hash && (hash.includes('error_code=otp_expired') || hash.includes('error=access_denied'))) {
+        setLinkExpired(true)
+        setCheckingSession(false)
+        return
+      }
+
       if (hash && hash.includes('access_token') && hash.includes('type=invite')) {
         // Hay un token de invitación, redirigir a establecer contraseña
         router.push(`/auth/set-password${hash}`)
@@ -118,6 +127,59 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-gray-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Mostrar página de enlace expirado
+  if (linkExpired) {
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-gray-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute top-0 -left-40 w-[500px] h-[500px] bg-amber-100/50 dark:bg-amber-900/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 -right-40 w-[500px] h-[500px] bg-orange-100/50 dark:bg-orange-900/20 rounded-full blur-[100px]" />
+
+        <div className="relative z-10 w-full max-w-md mx-4">
+          <div className="absolute -inset-[1px] bg-gradient-to-r from-amber-200 via-orange-300 to-amber-200 dark:from-amber-700 dark:via-orange-600 dark:to-amber-700 rounded-2xl opacity-50 blur-sm" />
+          <Card className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 shadow-xl">
+            <CardHeader className="text-center pt-8 pb-4">
+              <div className="relative w-44 h-44 mx-auto mb-4">
+                <Image
+                  src="/logo/logotipo-v2.png"
+                  alt="SynchroManage"
+                  fill
+                  className="object-contain drop-shadow-sm"
+                />
+              </div>
+              <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <Clock className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-foreground">
+                Enlace Expirado
+              </CardTitle>
+              <CardDescription className="text-muted-foreground mt-2">
+                El enlace de invitación ha expirado o ya no es válido. Los enlaces de invitación expiran después de 24 horas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pb-8">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-700 dark:text-amber-300">
+                <p className="font-medium mb-1">¿Qué puedes hacer?</p>
+                <p>Contacta al administrador de tu equipo para que te reenvíe la invitación desde el panel de gestión de usuarios.</p>
+              </div>
+              <Button
+                onClick={() => {
+                  window.location.hash = ''
+                  setLinkExpired(false)
+                }}
+                className="w-full"
+                variant="outline"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Ir al inicio de sesión
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }

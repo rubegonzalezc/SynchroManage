@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 import { EditUserDialog } from './EditUserDialog'
 import { DeleteUserDialog } from './DeleteUserDialog'
 import { CreateUserDialog } from './CreateUserDialog'
-import { Loader2, Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Loader2, Search, ChevronLeft, ChevronRight, X, RefreshCw } from 'lucide-react'
 
 interface Role {
   id: number
@@ -77,6 +77,9 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [resendingUserId, setResendingUserId] = useState<string | null>(null)
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null)
+  const [resendError, setResendError] = useState<string | null>(null)
   
   // Filtros
   const [search, setSearch] = useState('')
@@ -108,6 +111,33 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
   }
 
   const refreshUsers = () => setRefreshKey(k => k + 1)
+
+  const handleResendInvite = async (userId: string) => {
+    setResendingUserId(userId)
+    setResendSuccess(null)
+    setResendError(null)
+
+    try {
+      const response = await fetch('/api/dashboard/resend-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al reenviar invitación')
+      }
+
+      setResendSuccess('Invitación reenviada correctamente')
+      setTimeout(() => setResendSuccess(null), 3000)
+    } catch (err) {
+      setResendError(err instanceof Error ? err.message : 'Error al reenviar invitación')
+      setTimeout(() => setResendError(null), 5000)
+    } finally {
+      setResendingUserId(null)
+    }
+  }
 
   useEffect(() => {
     fetchUsers()
@@ -241,6 +271,18 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
         )}
       </div>
 
+      {/* Notificaciones de reenvío */}
+      {resendSuccess && (
+        <div className="bg-green-50 border border-green-200 text-green-600 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 px-4 py-3 rounded-lg text-sm">
+          {resendSuccess}
+        </div>
+      )}
+      {resendError && (
+        <div className="bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+          {resendError}
+        </div>
+      )}
+
       {/* Tabla */}
       <div className="rounded-lg border bg-card">
         <Table>
@@ -306,6 +348,21 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
                   <TableCell className="text-muted-foreground">{formatDate(user.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {!user.email_confirmed && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleResendInvite(user.id)}
+                          disabled={resendingUserId === user.id}
+                          title="Reenviar invitación"
+                        >
+                          {resendingUserId === user.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </Button>
+                      )}
                       <EditUserDialog user={user} roles={roles} onSuccess={refreshUsers} />
                       <DeleteUserDialog user={user} onSuccess={refreshUsers} />
                     </div>

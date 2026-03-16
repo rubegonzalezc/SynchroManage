@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const primaryRoleName = getPrimaryRole(roleNames)
     const primaryRoleId = rolesData?.find(r => r.name === primaryRoleName)?.id || resolvedRoleIds[0]
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://produccion.d10wccaqn7i0qo.amplifyapp.com'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://synchrodev.cl'
 
     // generateLink con type 'invite' crea el usuario Y genera el link en un solo paso
     // No envía correo de Supabase, solo retorna el link
@@ -89,6 +89,7 @@ export async function POST(request: Request) {
           recipientName: full_name,
           inviteUrl,
           roles: roleNames,
+          expiresInHours: 24,
         },
       },
     })

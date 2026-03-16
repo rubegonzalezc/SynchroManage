@@ -30,6 +30,7 @@ export interface UserInvitedData {
   recipientName: string
   inviteUrl: string
   roles: string[]
+  expiresInHours?: number
 }
 
 export type EmailType = 'project_assigned' | 'task_assigned' | 'password_reset' | 'user_invited'
@@ -196,6 +197,7 @@ export function renderUserInvitedEmail(data: UserInvitedData, baseSiteUrl?: stri
     </td>
   </tr>
 </table>
+<p style="margin:0 0 16px 0;font-size:13px;color:#64748b;line-height:1.6;font-family:'Segoe UI',Roboto,Arial,sans-serif;">Este enlace de invitación expira en <strong style="color:#0f172a;">${data.expiresInHours ?? 24} horas</strong>.</p>
 <p style="margin:0;font-size:13px;color:#334155;line-height:1.6;font-family:'Segoe UI',Roboto,Arial,sans-serif;">Si no esperabas esta invitación, puedes ignorar este correo.</p>`
 
   return wrapInLayout(content, baseSiteUrl)
