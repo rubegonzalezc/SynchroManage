@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { MultiSelectDeveloper } from '@/components/ui/multi-select-developer'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Plus, Loader2, CheckCircle } from 'lucide-react'
 
@@ -140,12 +141,13 @@ export function CreateTaskDialog({ projectId, projectName, members, onTaskCreate
 
           <div className="space-y-2">
             <Label htmlFor="description">Descripción</Label>
-            <Input
+            <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descripción opcional"
+              placeholder="Describe la tarea en detalle..."
               disabled={loading || success}
+              className="min-h-[100px] resize-y"
             />
           </div>
 
