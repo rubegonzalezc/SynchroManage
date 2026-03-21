@@ -1,7 +1,6 @@
-import { SidebarProvider } from '@/components/ui/sidebar'
-import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { DashboardLayoutClient } from '@/components/dashboard/DashboardLayoutClient'
 
 export default async function MyTasksLayout({
   children,
@@ -21,22 +20,18 @@ export default async function MyTasksLayout({
     .eq('id', user.id)
     .single()
 
-  const userData = {
-    email: user.email || '',
-    full_name: profile?.full_name || null,
-    avatar_url: profile?.avatar_url || null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    role: (profile?.role as any)?.name || 'developer',
-  }
+  const roleName = profile?.role?.name
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <DashboardSidebar user={userData} />
-        <main className="flex-1 overflow-auto bg-background">
-          {children}
-        </main>
-      </div>
-    </SidebarProvider>
+    <DashboardLayoutClient
+      user={{
+        email: user.email || '',
+        full_name: profile?.full_name || null,
+        avatar_url: profile?.avatar_url || null,
+        role: roleName,
+      }}
+    >
+      {children}
+    </DashboardLayoutClient>
   )
 }

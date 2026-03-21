@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MentionInput, renderMentions, extractMentionedUserIds } from '@/components/ui/mention-input'
@@ -337,10 +338,11 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
 
               <div className="space-y-2">
                 <Label>Descripción</Label>
-                <Input
+                <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Descripción opcional"
+                  placeholder="Describe la tarea en detalle..."
+                  className="min-h-[100px] resize-y"
                 />
               </div>
 
