@@ -8,7 +8,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { MentionInput, renderMentions, extractMentionedUserIds } from '@/components/ui/mention-input'
+import { MentionInput, renderMentions, extractMentionedUserIds, extractMentionAll } from '@/components/ui/mention-input'
 import { Loader2, Send, MessageSquare, Trash2, RefreshCw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -136,10 +136,9 @@ export function ProjectComments({ projectId, projectName, users, currentUserId }
         const data = await response.json()
         setComments([...comments, data.comment])
         
-        // Crear notificaciones para usuarios mencionados
+        // Crear notificaciones para usuarios mencionados individualmente
         const mentionedUserIds = extractMentionedUserIds(newComment, users)
         for (const userId of mentionedUserIds) {
-          const mentionedUser = users.find(u => u.id === userId)
           await fetch('/api/dashboard/notifications', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -153,6 +152,26 @@ export function ProjectComments({ projectId, projectName, users, currentUserId }
               comment_id: data.comment.id,
             }),
           })
+        }
+
+        // Si se usó @Todos, notificar a todos los integrantes del proyecto
+        if (extractMentionAll(newComment)) {
+          const allMembersToNotify = users.filter(u => u.id !== currentUserId && !mentionedUserIds.includes(u.id))
+          for (const member of allMembersToNotify) {
+            await fetch('/api/dashboard/notifications', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: member.id,
+                type: 'mention',
+                title: 'Te mencionaron en un comentario',
+                message: `Mencionaron a @Todos en el proyecto "${projectName}"`,
+                link: `/projects/${projectId}`,
+                project_id: projectId,
+                comment_id: data.comment.id,
+              }),
+            })
+          }
         }
         
         setNewComment('')
