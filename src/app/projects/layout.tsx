@@ -23,7 +23,7 @@ export default async function ProjectsLayout({
     .eq('id', user.id)
     .single()
 
-  const roleName = profile?.role?.name
+  const roleName = (profile?.role as unknown as { name: string } | null)?.name
 
   // Todos los roles pueden acceder a proyectos (con diferentes vistas)
   if (!['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'].includes(roleName)) {

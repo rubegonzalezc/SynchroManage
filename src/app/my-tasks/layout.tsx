@@ -20,7 +20,7 @@ export default async function MyTasksLayout({
     .eq('id', user.id)
     .single()
 
-  const roleName = profile?.role?.name
+  const roleName = (profile?.role as unknown as { name: string } | null)?.name
 
   return (
     <DashboardLayoutClient

@@ -24,7 +24,7 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
-  const roleName = profile?.role?.name
+  const roleName = (profile?.role as unknown as { name: string } | null)?.name
 
   // Verificar que tenga un rol válido con acceso al panel
   if (!['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'].includes(roleName)) {
