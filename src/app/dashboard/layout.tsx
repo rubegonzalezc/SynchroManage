@@ -27,7 +27,7 @@ export default async function DashboardLayout({
   const roleName = (profile?.role as unknown as { name: string } | null)?.name
 
   // Verificar que tenga un rol válido con acceso al panel
-  if (!['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'].includes(roleName)) {
+  if (!roleName || !['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'].includes(roleName)) {
     redirect('/')
   }
 

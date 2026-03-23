@@ -26,7 +26,7 @@ export default async function ProjectsLayout({
   const roleName = (profile?.role as unknown as { name: string } | null)?.name
 
   // Todos los roles pueden acceder a proyectos (con diferentes vistas)
-  if (!['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'].includes(roleName)) {
+  if (!roleName || !['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'].includes(roleName)) {
     redirect('/')
   }
 
