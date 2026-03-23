@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { MentionInput, renderMentions, extractMentionedUserIds } from '@/components/ui/mention-input'
+import { MentionInput, renderMentions, extractMentionedUserIds, extractMentionAll } from '@/components/ui/mention-input'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Loader2, Trash2, Send, RefreshCw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -247,7 +247,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
       if (response.ok) {
         const data = await response.json()
         
-        // Crear notificaciones para usuarios mencionados
+        // Crear notificaciones para usuarios mencionados individualmente
         const mentionedUserIds = extractMentionedUserIds(newComment, allUsers)
         for (const userId of mentionedUserIds) {
           await fetch('/api/dashboard/notifications', {
@@ -264,6 +264,27 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
               comment_id: data.comment?.id,
             }),
           })
+        }
+
+        // Si se usó @Todos, notificar a todos los integrantes del proyecto
+        if (extractMentionAll(newComment)) {
+          const allMembersToNotify = allUsers.filter(u => u.id !== currentUserId && !mentionedUserIds.includes(u.id))
+          for (const member of allMembersToNotify) {
+            await fetch('/api/dashboard/notifications', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: member.id,
+                type: 'mention',
+                title: 'Te mencionaron en un comentario',
+                message: `Mencionaron a @Todos en la tarea "${task?.title}" del proyecto "${projectName}"`,
+                link: `/projects/${projectId}`,
+                task_id: taskId,
+                project_id: projectId,
+                comment_id: data.comment?.id,
+              }),
+            })
+          }
         }
       }
       

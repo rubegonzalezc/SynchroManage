@@ -2,12 +2,16 @@
 
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Users } from 'lucide-react'
 
 interface User {
   id: string
   full_name: string
   avatar_url: string | null
 }
+
+// Usuario virtual que representa @Todos
+const TODOS_USER: User = { id: 'all', full_name: 'Todos', avatar_url: null }
 
 interface MentionInputProps {
   value: string
@@ -48,11 +52,18 @@ export function MentionInput({ value, onChange, onSubmit, users, placeholder, di
       const filtered = users.filter(u => 
         u.full_name.toLowerCase().startsWith(searchTerm) ||
         u.full_name.toLowerCase().includes(searchTerm)
-      ).slice(0, 5)
+      ).slice(0, 4)
+
+      // Agregar @Todos si el término de búsqueda coincide
+      const suggestions: User[] = []
+      if ('todos'.startsWith(searchTerm) || searchTerm === '') {
+        suggestions.push(TODOS_USER)
+      }
+      suggestions.push(...filtered)
       
-      if (filtered.length > 0) {
+      if (suggestions.length > 0) {
         setMentionStart(lastAtIndex)
-        setFilteredUsers(filtered)
+        setFilteredUsers(suggestions)
         setShowSuggestions(true)
         setSelectedIndex(0)
         return
@@ -146,13 +157,28 @@ export function MentionInput({ value, onChange, onSubmit, users, placeholder, di
                 index === selectedIndex ? 'bg-accent' : ''
               }`}
             >
-              <Avatar className="w-6 h-6">
-                <AvatarImage src={user.avatar_url || undefined} />
-                <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                  {getInitials(user.full_name)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm text-foreground">{user.full_name}</span>
+              {user.id === 'all' ? (
+                <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-3 h-3 text-green-600 dark:text-green-400" />
+                </div>
+              ) : (
+                <Avatar className="w-6 h-6">
+                  <AvatarImage src={user.avatar_url || undefined} />
+                  <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                    {getInitials(user.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              <span className={`text-sm ${
+                user.id === 'all'
+                  ? 'font-semibold text-green-700 dark:text-green-400'
+                  : 'text-foreground'
+              }`}>
+                {user.id === 'all' ? '@Todos' : user.full_name}
+              </span>
+              {user.id === 'all' && (
+                <span className="ml-auto text-xs text-muted-foreground">todos</span>
+              )}
             </button>
           ))}
         </div>
@@ -161,9 +187,16 @@ export function MentionInput({ value, onChange, onSubmit, users, placeholder, di
   )
 }
 
+// Función para detectar si el texto contiene @Todos
+export function extractMentionAll(text: string): boolean {
+  if (!text) return false
+  // Buscar @Todos como palabra completa (seguida de espacio, fin, o @)
+  return /@Todos(?:\s|$|@)/i.test(text) || text.endsWith('@Todos')
+}
+
 // Función para renderizar texto con menciones resaltadas
 export function renderMentions(text: string, users: User[], currentUserId?: string): React.ReactNode {
-  if (!text || users.length === 0) return text
+  if (!text) return text
   
   const parts: React.ReactNode[] = []
   let remainingText = text
@@ -188,6 +221,23 @@ export function renderMentions(text: string, users: User[], currentUserId?: stri
     const textAfterAt = remainingText.slice(atIndex + 1)
     let foundUser: User | null = null
     let matchLength = 0
+
+    // Verificar primero @Todos (especial)
+    if (textAfterAt.toLowerCase().startsWith('todos')) {
+      const charAfterTodos = textAfterAt[5]
+      if (!charAfterTodos || charAfterTodos === ' ' || charAfterTodos === '@' || charAfterTodos === '\n') {
+        parts.push(
+          <span
+            key={`mention-${keyIndex++}`}
+            className="font-semibold px-1 rounded text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/30"
+          >
+            @Todos
+          </span>
+        )
+        remainingText = remainingText.slice(atIndex + 1 + 5)
+        continue
+      }
+    }
 
     // Ordenar usuarios por longitud de nombre (más largo primero) para evitar coincidencias parciales
     const sortedUsers = [...users].sort((a, b) => b.full_name.length - a.full_name.length)
