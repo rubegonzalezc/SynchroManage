@@ -14,6 +14,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
+  SidebarTrigger,
 } from '@/components/ui/sidebar'
 import {
   DropdownMenu,
@@ -38,6 +40,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { NotificationsDropdown } from './NotificationsDropdown'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { useTheme } from '@/components/theme-provider'
 
 interface MenuItem {
   title: string
@@ -106,6 +109,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const router = useRouter()
   const supabase = createClient()
   const userRole = user.role || 'admin'
+  const { resolvedTheme } = useTheme()
 
   // Filtrar items del menú según el rol del usuario
   const filteredMenuItems = menuItems.filter(item => {
@@ -128,26 +132,27 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
 
   return (
     <Sidebar className="border-r border-border">
-      <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10">
-              <Image
-                src="/logo/logotipo-v2.png"
-                alt="SynchroManage"
-                fill
-                className="object-contain"
-              />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-foreground">SynchroManage</span>
-              <span className="text-xs text-muted-foreground">Panel</span>
-            </div>
+      <SidebarHeader className="border-b border-border">
+        <div className="flex items-center gap-3 p-4">
+          <div className="relative w-10 h-10 flex-shrink-0 transition-opacity duration-300">
+            <Image
+              src={resolvedTheme === 'dark' ? '/logo/isotipo-blanco.png' : '/logo/isotipo-negro.png'}
+              alt="SynchroManage"
+              fill
+              className="object-contain"
+            />
           </div>
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <NotificationsDropdown />
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="font-semibold text-foreground">SynchroManage</span>
+            <span className="text-xs text-muted-foreground">Panel</span>
           </div>
+        </div>
+        
+        {/* Controles del sidebar */}
+        <div className="flex items-center justify-center gap-1 px-4 pb-4 pt-2">
+          <ThemeToggle />
+          <NotificationsDropdown />
+          <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 h-9 w-9" />
         </div>
       </SidebarHeader>
 
@@ -187,15 +192,15 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                       {getInitials(user.full_name, user.email)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-medium text-foreground truncate max-w-[140px]">
+                  <div className="flex flex-col items-start text-left flex-1 min-w-0">
+                    <span className="text-sm font-medium text-foreground truncate max-w-full">
                       {user.full_name || user.email}
                     </span>
-                    <span className="text-xs text-muted-foreground truncate max-w-[140px]">
+                    <span className="text-xs text-muted-foreground truncate max-w-full">
                       {roleLabels[userRole] || userRole}
                     </span>
                   </div>
-                  <ChevronUp className="ml-auto w-4 h-4 text-muted-foreground" />
+                  <ChevronUp className="ml-auto w-4 h-4 text-muted-foreground flex-shrink-0" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56">
@@ -215,6 +220,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }
