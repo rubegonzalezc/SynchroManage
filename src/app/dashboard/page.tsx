@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -413,29 +413,29 @@ export default async function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 w-full overflow-x-hidden">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {isStakeholder ? 'Resumen de tus proyectos' : isDeveloper ? 'Resumen de tus tareas asignadas' : isTechLead ? 'Resumen de tus proyectos técnicos' : isPM ? 'Resumen de tus proyectos' : 'Bienvenido al panel de administración'}
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className={`grid gap-4 md:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : isStakeholder ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
+      <div className={`grid gap-3 grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : isStakeholder ? 'lg:grid-cols-2' : 'md:grid-cols-3'}`}>
         {stats.map((stat) => (
           <Link key={stat.title} href={stat.href}>
-            <Card className="hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer h-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground leading-tight">
                   {stat.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg ${stat.bg}`}>
-                  <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                <div className={`p-1.5 md:p-2 rounded-lg flex-shrink-0 ${stat.bg}`}>
+                  <stat.icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${stat.color}`} />
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+              <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                <div className="text-xl md:text-2xl font-bold text-foreground">{stat.value}</div>
                 <p className="text-xs text-muted-foreground">{stat.description}</p>
               </CardContent>
             </Card>
@@ -447,10 +447,10 @@ export default async function AdminDashboard() {
       <div className={`grid gap-4 ${isStakeholder ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {/* Actividad Reciente - No para Stakeholder */}
         {!isStakeholder && (
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5" /> Actividad Reciente
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Activity className="w-4 h-4 flex-shrink-0" /> Actividad Reciente
               </CardTitle>
               <CardDescription>Últimas acciones en el sistema</CardDescription>
             </CardHeader>
@@ -465,15 +465,15 @@ export default async function AdminDashboard() {
                     const userData = activity.user as { avatar_url: string | null; full_name: string | null } | { avatar_url: string | null; full_name: string | null }[] | null
                     const user = Array.isArray(userData) ? userData[0] : userData
                     return (
-                    <div key={activity.id} className="flex items-start gap-3">
-                      <Avatar className="w-8 h-8 flex-shrink-0">
+                    <div key={activity.id} className="flex items-start gap-2 min-w-0">
+                      <Avatar className="w-7 h-7 flex-shrink-0 mt-0.5">
                         <AvatarImage src={user?.avatar_url || undefined} />
                         <AvatarFallback className="bg-muted text-muted-foreground text-xs">
                           {getInitials(user?.full_name || null)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground">
+                        <p className="text-xs text-foreground leading-snug break-words">
                           <span className="font-medium">{user?.full_name || 'Usuario'}</span>
                           {' '}
                           <span className={actionColors[activity.action] || 'text-muted-foreground'}>
@@ -482,10 +482,10 @@ export default async function AdminDashboard() {
                           {' '}
                           {entityLabels[activity.entity_type] || activity.entity_type}
                           {activity.entity_name && (
-                            <span className="font-medium"> "{activity.entity_name}"</span>
+                            <span className="font-medium"> &quot;{activity.entity_name}&quot;</span>
                           )}
                         </p>
-                        <p className="text-xs text-muted-foreground">{formatTimeAgo(activity.created_at)}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{formatTimeAgo(activity.created_at)}</p>
                       </div>
                     </div>
                   )})}
@@ -496,10 +496,10 @@ export default async function AdminDashboard() {
         )}
 
         {/* Proyectos Recientes */}
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
-              <FolderKanban className="w-5 h-5" /> Proyectos Recientes
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FolderKanban className="w-4 h-4 flex-shrink-0" /> Proyectos Recientes
             </CardTitle>
             <CardDescription>Últimos proyectos creados</CardDescription>
           </CardHeader>
@@ -509,21 +509,21 @@ export default async function AdminDashboard() {
                 No hay proyectos registrados
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {recentProjects.map((project) => (
                   <Link
                     key={project.id}
                     href={`/projects/${project.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground truncate">{project.name}</p>
-                      <p className="text-xs text-muted-foreground">{(() => {
+                      <p className="text-sm font-medium text-foreground truncate">{project.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{(() => {
                         const companyData = project.company as { name: string } | { name: string }[] | null
                         return Array.isArray(companyData) ? companyData[0]?.name : companyData?.name || 'Sin empresa'
                       })()}</p>
                     </div>
-                    <Badge variant="outline" className={statusColors[project.status]}>
+                    <Badge variant="outline" className={`text-xs flex-shrink-0 ${statusColors[project.status]}`}>
                       {statusLabels[project.status]}
                     </Badge>
                   </Link>
@@ -535,13 +535,13 @@ export default async function AdminDashboard() {
 
         {/* Tareas Urgentes / Mis Tareas - No para Stakeholder */}
         {!isStakeholder && (
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 {isDeveloper ? (
-                  <><ListTodo className="w-5 h-5 text-blue-500" /> Mis Tareas</>
+                  <><ListTodo className="w-4 h-4 text-blue-500 flex-shrink-0" /> Mis Tareas</>
                 ) : (
-                  <><AlertCircle className="w-5 h-5 text-amber-500" /> Tareas Prioritarias</>
+                  <><AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" /> Tareas Prioritarias</>
                 )}
               </CardTitle>
               <CardDescription>
@@ -554,7 +554,7 @@ export default async function AdminDashboard() {
                   No hay tareas urgentes pendientes
                 </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {urgentTasks.map((task) => {
                     const projectData = task.project as { id: string; name: string } | { id: string; name: string }[] | null
                     const project = Array.isArray(projectData) ? projectData[0] : projectData
@@ -562,24 +562,26 @@ export default async function AdminDashboard() {
                     <Link
                       key={task.id}
                       href={`/projects/${project?.id}`}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      className="block p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">#{task.task_number}</span>
-                          <p className="font-medium text-foreground truncate">{task.title}</p>
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs text-muted-foreground flex-shrink-0">#{task.task_number}</span>
+                            <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{project?.name}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">{project?.name}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {task.due_date && (
-                          <span className={`text-xs ${isOverdue(task.due_date) ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>
-                            {formatDate(task.due_date)}
-                          </span>
-                        )}
-                        <Badge variant="outline" className={task.priority === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}>
-                          {task.priority === 'urgent' ? 'Urgente' : 'Alta'}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          {task.due_date && (
+                            <span className={`text-xs ${isOverdue(task.due_date) ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>
+                              {formatDate(task.due_date)}
+                            </span>
+                          )}
+                          <Badge variant="outline" className={`text-xs ${task.priority === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}>
+                            {task.priority === 'urgent' ? 'Urgente' : 'Alta'}
+                          </Badge>
+                        </div>
                       </div>
                     </Link>
                   )})}
@@ -597,8 +599,8 @@ export default async function AdminDashboard() {
           {isAdmin && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" /> Usuarios por Rol
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Users className="w-4 h-4 flex-shrink-0" /> Usuarios por Rol
                 </CardTitle>
                 <CardDescription>Distribución de roles en el sistema</CardDescription>
               </CardHeader>
@@ -607,7 +609,7 @@ export default async function AdminDashboard() {
                   {Object.entries(roleCounts).map(([role, count]) => (
                     <div key={role} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${roleColors[role]?.split(' ')[0] || 'bg-muted'}`} />
+                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${roleColors[role]?.split(' ')[0] || 'bg-muted'}`} />
                         <span className="text-sm text-foreground">{roleLabels[role] || role}</span>
                       </div>
                       <span className="text-sm font-medium text-foreground">{count}</span>
@@ -621,72 +623,70 @@ export default async function AdminDashboard() {
           {/* Resumen de Tareas */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2">
-              <ListTodo className="w-5 h-5" /> {isDeveloper ? 'Mi Progreso' : 'Resumen de Tareas'}
-            </CardTitle>
-            <CardDescription>
-              {isDeveloper ? 'Estado de tus tareas asignadas' : isTechLead ? 'Estado de tareas en tus proyectos' : isPM ? 'Estado de tareas en tus proyectos' : 'Estado general de las tareas'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Completadas</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 rounded-full" 
-                      style={{ width: `${isDeveloper 
-                        ? ((myTasksCount || 0) + (myTasksCompletedCount || 0)) > 0 
-                          ? ((myTasksCompletedCount || 0) / ((myTasksCount || 0) + (myTasksCompletedCount || 0))) * 100 
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ListTodo className="w-4 h-4 flex-shrink-0" /> {isDeveloper ? 'Mi Progreso' : 'Resumen de Tareas'}
+              </CardTitle>
+              <CardDescription>
+                {isDeveloper ? 'Estado de tus tareas asignadas' : isTechLead ? 'Estado de tareas en tus proyectos' : isPM ? 'Estado de tareas en tus proyectos' : 'Estado general de las tareas'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground flex-shrink-0">Completadas</span>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-green-500 rounded-full"
+                        style={{ width: `${isDeveloper
+                          ? ((myTasksCount || 0) + (myTasksCompletedCount || 0)) > 0
+                            ? ((myTasksCompletedCount || 0) / ((myTasksCount || 0) + (myTasksCompletedCount || 0))) * 100
+                            : 0
+                          : tasksTotalCount
+                            ? ((tasksCompletedCount || 0) / tasksTotalCount) * 100
+                            : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-foreground w-10 text-right flex-shrink-0">
+                      {isDeveloper
+                        ? ((myTasksCount || 0) + (myTasksCompletedCount || 0)) > 0
+                          ? Math.round(((myTasksCompletedCount || 0) / ((myTasksCount || 0) + (myTasksCompletedCount || 0))) * 100)
                           : 0
-                        : tasksTotalCount 
-                          ? ((tasksCompletedCount || 0) / tasksTotalCount) * 100 
-                          : 0}%` }}
-                    />
+                        : tasksTotalCount
+                          ? Math.round(((tasksCompletedCount || 0) / tasksTotalCount) * 100)
+                          : 0}%
+                    </span>
                   </div>
-                  <span className="text-sm font-medium text-foreground w-12 text-right">
-                    {isDeveloper 
-                      ? ((myTasksCount || 0) + (myTasksCompletedCount || 0)) > 0 
-                        ? Math.round(((myTasksCompletedCount || 0) / ((myTasksCount || 0) + (myTasksCompletedCount || 0))) * 100) 
-                        : 0
-                      : tasksTotalCount 
-                        ? Math.round(((tasksCompletedCount || 0) / tasksTotalCount) * 100) 
-                        : 0}%
-                  </span>
+                </div>
+                <div className={`grid gap-3 pt-1 ${isTechLead ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+                      {isDeveloper ? (myTasksCompletedCount || 0) : (tasksCompletedCount || 0)}
+                    </p>
+                    <p className="text-xs text-green-600 dark:text-green-500">Completadas</p>
+                  </div>
+                  {isTechLead && (
+                    <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{tasksInReviewCount || 0}</p>
+                      <p className="text-xs text-purple-600 dark:text-purple-500">En Revisión</p>
+                    </div>
+                  )}
+                  <div className="text-center p-3 bg-muted rounded-lg">
+                    <p className="text-2xl font-bold text-foreground">
+                      {isDeveloper ? (myTasksCount || 0) : (tasksTotalCount || 0) - (tasksCompletedCount || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Pendientes</p>
+                  </div>
                 </div>
               </div>
-              <div className={`grid gap-4 pt-2 ${isTechLead ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-                    {isDeveloper ? (myTasksCompletedCount || 0) : (tasksCompletedCount || 0)}
-                  </p>
-                  <p className="text-xs text-green-600 dark:text-green-500">Completadas</p>
-                </div>
-                {isTechLead && (
-                  <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                    <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{tasksInReviewCount || 0}</p>
-                    <p className="text-xs text-purple-600 dark:text-purple-500">En Revisión</p>
-                  </div>
-                )}
-                <div className="text-center p-3 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold text-foreground">
-                    {isDeveloper ? (myTasksCount || 0) : (tasksTotalCount || 0) - (tasksCompletedCount || 0)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Pendientes</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
+            </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Reuniones Próximas - Para todos excepto Stakeholder */}
+      {/* Reuniones Próximas */}
       {!isStakeholder && (
-        <div className="grid gap-4 md:grid-cols-1">
-          <UpcomingMeetings />
-        </div>
+        <UpcomingMeetings />
       )}
     </div>
   )
