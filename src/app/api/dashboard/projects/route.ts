@@ -29,7 +29,7 @@ async function createNotification(
 }
 
 // GET - Listar proyectos
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabaseServer = await createServerClient()
     const { data: { user } } = await supabaseServer.auth.getUser()
@@ -54,6 +54,10 @@ export async function GET() {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
+    // Leer el tipo de la query string (project o change_control)
+    const url = new URL(request.url)
+    const typeFilter = url.searchParams.get('type') || 'project'
+
     let query = supabaseAdmin
       .from('projects')
       .select(`
@@ -67,6 +71,7 @@ export async function GET() {
           user:profiles(id, full_name, email, role:roles(name))
         )
       `)
+      .eq('type', typeFilter)
       .order('created_at', { ascending: false })
 
     // Si es PM, solo mostrar proyectos donde es PM
@@ -115,7 +120,25 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    return NextResponse.json({ projects })
+    // Resolver parent_project manualmente para evitar problemas con el schema cache de Supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let projectsWithParent: any[] = projects || []
+    if (typeFilter === 'change_control' && projects && projects.length > 0) {
+      const parentIds = [...new Set(projects.map((p: { parent_project_id: string | null }) => p.parent_project_id).filter(Boolean))]
+      if (parentIds.length > 0) {
+        const { data: parentProjects } = await supabaseAdmin
+          .from('projects')
+          .select('id, name')
+          .in('id', parentIds)
+        const parentMap = new Map((parentProjects || []).map((p: { id: string; name: string }) => [p.id, p]))
+        projectsWithParent = projects.map((p: { parent_project_id: string | null }) => ({
+          ...p,
+          parent_project: p.parent_project_id ? (parentMap.get(p.parent_project_id) || null) : null,
+        }))
+      }
+    }
+
+    return NextResponse.json({ projects: projectsWithParent })
   } catch (error) {
     console.error('Error fetching projects:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
@@ -168,6 +191,8 @@ export async function POST(request: Request) {
         status: body.status || 'planning',
         start_date: body.start_date || null,
         end_date: body.end_date || null,
+        type: body.type || 'project',
+        parent_project_id: body.parent_project_id || null,
       })
       .select()
       .single()
@@ -176,7 +201,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    const projectLink = `/projects/${project.id}`
+    const projectLink = body.type === 'change_control' ? `/change-controls/${project.id}` : `/projects/${project.id}`
 
     // Notificar al PM asignado (solo si es diferente al creador)
     if (pmId && pmId !== user.id) {
@@ -235,7 +260,7 @@ export async function POST(request: Request) {
     await supabaseAdmin.from('activity_log').insert({
       user_id: user.id,
       action: 'created',
-      entity_type: 'project',
+      entity_type: body.type === 'change_control' ? 'change_control' : 'project',
       entity_id: project.id,
       entity_name: body.name,
       details: { project_id: project.id },

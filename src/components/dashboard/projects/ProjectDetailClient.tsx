@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Loader2, ArrowLeft, Users, Calendar, Building2, Mail, CheckCircle2, Clock } from 'lucide-react'
+import { Loader2, ArrowLeft, Users, Calendar, Building2, Mail, CheckCircle2, Clock, FolderKanban, GitPullRequest } from 'lucide-react'
 import { KanbanBoard } from './KanbanBoard'
 import { CreateTaskDialog } from './CreateTaskDialog'
 import { ProjectComments } from './ProjectComments'
@@ -15,6 +15,8 @@ import { DeleteProjectDialog } from './DeleteProjectDialog'
 import { StakeholderComments } from './StakeholderComments'
 import { StakeholderMessagesForPM } from './StakeholderMessagesForPM'
 import { FileAttachments } from '@/components/ui/file-attachments'
+import { CreateChangeControlDialog } from '@/components/dashboard/change-controls/CreateChangeControlDialog'
+import { PendingTasksWithCCDialog, PendingTasksNoCCDialog, CreateCCPromptDialog } from './PendingTasksDialog'
 
 interface Project {
   id: string
@@ -23,6 +25,8 @@ interface Project {
   status: string
   start_date: string | null
   end_date: string | null
+  type?: string
+  parent_project?: { id: string; name: string } | null
   company: { id: string; name: string } | null
   pm: { id: string; full_name: string; email: string; avatar_url: string | null } | null
   tech_lead: { id: string; full_name: string; email: string; avatar_url: string | null } | null
@@ -70,13 +74,21 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
 }
 
-export function ProjectDetailClient({ projectId }: { projectId: string }) {
+export function ProjectDetailClient({ projectId, backHref = '/projects', backLabel = 'Volver a proyectos' }: { projectId: string; backHref?: string; backLabel?: string }) {
   const [project, setProject] = useState<Project | null>(null)
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [currentUserRole, setCurrentUserRole] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Post-completion flow state
+  const [pendingTaskIds, setPendingTaskIds] = useState<string[]>([])
+  const [createCCPrompt, setCreateCCPrompt] = useState(false)
+  const [pendingTasksWithCC, setPendingTasksWithCC] = useState(false)
+  const [pendingTasksNoCC, setPendingTasksNoCC] = useState(false)
+  const [migrateTasks, setMigrateTasks] = useState(false)
+  const [showCCDialog, setShowCCDialog] = useState(false)
 
   const fetchProject = async () => {
     try {
@@ -150,7 +162,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   if (error || !project) {
     return (
       <div className="space-y-4">
-        <Link href="/projects">
+        <Link href={backHref}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="w-4 h-4 mr-2" /> Volver
           </Button>
@@ -190,9 +202,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <Link href="/projects">
+            <Link href={backHref}>
               <Button variant="ghost" size="sm" className="mb-2">
-                <ArrowLeft className="w-4 h-4 mr-2" /> Volver a proyectos
+                <ArrowLeft className="w-4 h-4 mr-2" /> {backLabel}
               </Button>
             </Link>
             <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
@@ -319,9 +331,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <Link href="/projects">
+          <Link href={backHref}>
             <Button variant="ghost" size="sm" className="mb-2">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Volver a proyectos
+              <ArrowLeft className="w-4 h-4 mr-2" /> {backLabel}
             </Button>
           </Link>
           <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
@@ -334,10 +346,62 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
             {statusLabels[project.status]}
           </Badge>
           {['admin', 'pm', 'tech_lead'].includes(currentUserRole) && (
-            <EditProjectDialog project={project} onProjectUpdated={fetchProject} />
+            <EditProjectDialog
+              project={project}
+              onProjectUpdated={fetchProject}
+              onCompletedWithPending={(ids) => {
+                fetchProject()
+                setPendingTaskIds(ids)
+                // Step 1: ask about CC first
+                setCreateCCPrompt(true)
+              }}
+              onCompleted={() => {
+                fetchProject()
+                setCreateCCPrompt(true)
+              }}
+            />
+          )}
+          {['admin', 'pm'].includes(currentUserRole) && (!project.type || project.type === 'project') && (
+            project.status === 'completed' ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-900/20"
+                onClick={() => {
+                  // Calcular tareas pendientes en el momento de hacer clic
+                  const pendingStatuses = ['backlog', 'todo', 'in_progress', 'review']
+                  const ids = project.tasks
+                    .filter(t => pendingStatuses.includes(t.status))
+                    .map(t => t.id)
+                  setPendingTaskIds(ids)
+                  // Ir directo al paso de tareas si hay pendientes, sino al formulario CC
+                  if (ids.length > 0) {
+                    setPendingTasksWithCC(true)
+                  } else {
+                    setShowCCDialog(true)
+                  }
+                }}
+              >
+                <GitPullRequest className="w-4 h-4 mr-2" /> Crear CC
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                title="Solo disponible cuando el proyecto está completado"
+                className="border-orange-200 text-orange-400 opacity-50 cursor-not-allowed dark:border-orange-800 dark:text-orange-600"
+              >
+                <GitPullRequest className="w-4 h-4 mr-2" /> Crear CC
+              </Button>
+            )
           )}
           {currentUserRole === 'admin' && (
-            <DeleteProjectDialog projectId={project.id} projectName={project.name} />
+            <DeleteProjectDialog
+              projectId={project.id}
+              projectName={project.name}
+              entityType={project.type === 'change_control' ? 'change_control' : 'project'}
+            />
           )}
         </div>
       </div>
@@ -350,6 +414,17 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               <Building2 className="w-4 h-4" /> Empresa
             </div>
             <p className="font-medium text-foreground">{project.company.name}</p>
+          </div>
+        )}
+
+        {project.parent_project && (
+          <div className="bg-card rounded-lg border border-border p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+              <FolderKanban className="w-4 h-4" /> Proyecto Origen
+            </div>
+            <Link href={`/projects/${project.parent_project.id}`} className="font-medium text-foreground hover:underline" onClick={(e) => e.stopPropagation()}>
+              {project.parent_project.name}
+            </Link>
           </div>
         )}
 
@@ -458,6 +533,91 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
       {/* Activity History */}
       <ProjectActivity projectId={project.id} />
+
+      {/* Post-completion flow dialogs */}
+      {/* Step 1: ¿Crear CC? */}
+      <CreateCCPromptDialog
+        open={createCCPrompt}
+        projectName={project.name}
+        onCreateCC={() => {
+          setCreateCCPrompt(false)
+          if (pendingTaskIds.length > 0) {
+            // Step 2a: hay tareas pendientes y quiere CC
+            setPendingTasksWithCC(true)
+          } else {
+            // No hay tareas pendientes, ir directo al formulario CC
+            setShowCCDialog(true)
+          }
+        }}
+        onSkip={() => {
+          setCreateCCPrompt(false)
+          if (pendingTaskIds.length > 0) {
+            // Step 2b: hay tareas pendientes pero no quiere CC
+            setPendingTasksNoCC(true)
+          }
+          // Si no hay tareas pendientes, no hay nada más que hacer
+        }}
+      />
+
+      {/* Step 2a: tareas pendientes con opción de mudar al CC */}
+      <PendingTasksWithCCDialog
+        open={pendingTasksWithCC}
+        pendingCount={pendingTaskIds.length}
+        onMigrate={() => {
+          setPendingTasksWithCC(false)
+          setMigrateTasks(true)
+          setShowCCDialog(true)
+        }}
+        onKeep={() => {
+          setPendingTasksWithCC(false)
+          setShowCCDialog(true)
+        }}
+        onDelete={async () => {
+          setPendingTasksWithCC(false)
+          await Promise.all(pendingTaskIds.map(id => fetch(`/api/dashboard/tasks/${id}`, { method: 'DELETE' })))
+          setPendingTaskIds([])
+          fetchProject()
+          setShowCCDialog(true)
+        }}
+      />
+
+      {/* Step 2b: tareas pendientes sin opción de mudar (no quiere CC) */}
+      <PendingTasksNoCCDialog
+        open={pendingTasksNoCC}
+        pendingCount={pendingTaskIds.length}
+        onKeep={() => {
+          setPendingTasksNoCC(false)
+          setPendingTaskIds([])
+        }}
+        onDelete={async () => {
+          setPendingTasksNoCC(false)
+          await Promise.all(pendingTaskIds.map(id => fetch(`/api/dashboard/tasks/${id}`, { method: 'DELETE' })))
+          setPendingTaskIds([])
+          fetchProject()
+        }}
+      />
+
+      {showCCDialog && (
+        <CreateChangeControlDialog
+          preselectedProject={{
+            ...project,
+            description: `Control de cambios del proyecto "${project.name}"`,
+          }}
+          pendingTaskIds={migrateTasks ? pendingTaskIds : []}
+          forceOpen={showCCDialog}
+          onCreated={() => {
+            setShowCCDialog(false)
+            setMigrateTasks(false)
+            setPendingTaskIds([])
+            fetchProject()
+          }}
+          onCancelled={() => {
+            setShowCCDialog(false)
+            setMigrateTasks(false)
+            setPendingTaskIds([])
+          }}
+        />
+      )}
     </div>
   )
 }

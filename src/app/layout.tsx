@@ -16,6 +16,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "SynchroManage",
   description: "Gestor de proyectos informáticos",
+  icons: {
+    icon: '/logo/isotipo-blanco.png',
+    apple: '/logo/isotipo-blanco.png',
+  },
 };
 
 export default function RootLayout({

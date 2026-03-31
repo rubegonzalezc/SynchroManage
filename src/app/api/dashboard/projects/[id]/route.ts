@@ -71,7 +71,19 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    return NextResponse.json({ project })
+    // Resolver parent_project manualmente
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let projectWithParent: any = project
+    if (project?.parent_project_id) {
+      const { data: parentProject } = await supabaseAdmin
+        .from('projects')
+        .select('id, name')
+        .eq('id', project.parent_project_id)
+        .single()
+      projectWithParent = { ...project, parent_project: parentProject || null }
+    }
+
+    return NextResponse.json({ project: projectWithParent })
   } catch (error) {
     console.error('Error fetching project:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
