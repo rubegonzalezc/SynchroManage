@@ -53,6 +53,7 @@ const actionLabels: Record<string, string> = {
 
 const entityLabels: Record<string, string> = {
   project: 'el proyecto',
+  change_control: 'el control de cambios',
   task: 'la tarea',
   comment: 'un comentario',
   member: 'un miembro',
@@ -86,7 +87,7 @@ export function ProjectActivity({ projectId }: ProjectActivityProps) {
           }
           
           const isProjectActivity = 
-            (newActivity.entity_type === 'project' && newActivity.entity_id === projectId) ||
+            (['project', 'change_control'].includes(newActivity.entity_type) && newActivity.entity_id === projectId) ||
             (newActivity.details?.project_id === projectId)
           
           if (isProjectActivity) {

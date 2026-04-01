@@ -28,19 +28,24 @@ interface Project {
   pm: { id: string; full_name: string } | null
   tech_lead: { id: string; full_name: string } | null
   members?: Array<{ id: string; role: string; user: { id: string; full_name: string } }>
+  tasks?: Array<{ id: string; status: string }>
 }
 
 interface EditProjectDialogProps {
   project: Project
   onProjectUpdated?: () => void
+  // Called when project is saved as completed and has pending tasks
+  onCompletedWithPending?: (pendingTaskIds: string[]) => void
+  // Called when project is saved as completed with no pending tasks
+  onCompleted?: () => void
 }
 
-export function EditProjectDialog({ project, onProjectUpdated }: EditProjectDialogProps) {
+export function EditProjectDialog({ project, onProjectUpdated, onCompletedWithPending, onCompleted }: EditProjectDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  
+
   const [companies, setCompanies] = useState<Company[]>([])
   const [users, setUsers] = useState<User[]>([])
 
@@ -55,12 +60,9 @@ export function EditProjectDialog({ project, onProjectUpdated }: EditProjectDial
     end_date: project.end_date || '',
   })
 
-  // Inicializar developers seleccionados desde los miembros del proyecto
   const [selectedDevelopers, setSelectedDevelopers] = useState<string[]>(
     project.members?.filter(m => m.role === 'developer').map(m => m.user.id) || []
   )
-  
-  // Inicializar stakeholders seleccionados desde los miembros del proyecto
   const [selectedStakeholders, setSelectedStakeholders] = useState<string[]>(
     project.members?.filter(m => m.role === 'stakeholder').map(m => m.user.id) || []
   )
@@ -77,7 +79,6 @@ export function EditProjectDialog({ project, onProjectUpdated }: EditProjectDial
     }
   }, [open])
 
-  // Actualizar formData cuando cambia el proyecto
   useEffect(() => {
     setFormData({
       name: project.name,
@@ -89,12 +90,8 @@ export function EditProjectDialog({ project, onProjectUpdated }: EditProjectDial
       start_date: project.start_date || '',
       end_date: project.end_date || '',
     })
-    setSelectedDevelopers(
-      project.members?.filter(m => m.role === 'developer').map(m => m.user.id) || []
-    )
-    setSelectedStakeholders(
-      project.members?.filter(m => m.role === 'stakeholder').map(m => m.user.id) || []
-    )
+    setSelectedDevelopers(project.members?.filter(m => m.role === 'developer').map(m => m.user.id) || [])
+    setSelectedStakeholders(project.members?.filter(m => m.role === 'stakeholder').map(m => m.user.id) || [])
   }, [project])
 
   const pms = users.filter(u => u.roles?.includes('pm') || u.roles?.includes('admin'))
@@ -102,70 +99,66 @@ export function EditProjectDialog({ project, onProjectUpdated }: EditProjectDial
   const developers = users.filter(u => u.roles?.includes('developer'))
   const stakeholders = users.filter(u => u.roles?.includes('stakeholder'))
 
-  const addDeveloper = (userId: string) => {
-    if (!selectedDevelopers.includes(userId)) {
-      setSelectedDevelopers([...selectedDevelopers, userId])
-    }
-  }
+  const addDeveloper = (userId: string) => { if (!selectedDevelopers.includes(userId)) setSelectedDevelopers([...selectedDevelopers, userId]) }
+  const removeDeveloper = (userId: string) => setSelectedDevelopers(selectedDevelopers.filter(id => id !== userId))
+  const addStakeholder = (userId: string) => { if (!selectedStakeholders.includes(userId)) setSelectedStakeholders([...selectedStakeholders, userId]) }
+  const removeStakeholder = (userId: string) => setSelectedStakeholders(selectedStakeholders.filter(id => id !== userId))
 
-  const removeDeveloper = (userId: string) => {
-    setSelectedDevelopers(selectedDevelopers.filter(id => id !== userId))
-  }
-
-  const addStakeholder = (userId: string) => {
-    if (!selectedStakeholders.includes(userId)) {
-      setSelectedStakeholders([...selectedStakeholders, userId])
-    }
-  }
-
-  const removeStakeholder = (userId: string) => {
-    setSelectedStakeholders(selectedStakeholders.filter(id => id !== userId))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Guardar cambios en la API
+  const doSave = async (fd: typeof formData, members: Array<{ user_id: string; role: string }>) => {
     setLoading(true)
     setError(null)
-    setSuccess(false)
-
     try {
-      // Preparar miembros (developers + stakeholders)
-      const members = [
-        ...selectedDevelopers.map(userId => ({
-          user_id: userId,
-          role: 'developer',
-        })),
-        ...selectedStakeholders.map(userId => ({
-          user_id: userId,
-          role: 'stakeholder',
-        })),
-      ]
-
       const response = await fetch(`/api/dashboard/projects/${project.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          company_id: formData.company_id || null,
-          pm_id: formData.pm_id || null,
-          tech_lead_id: formData.tech_lead_id || null,
+          ...fd,
+          company_id: fd.company_id || null,
+          pm_id: fd.pm_id || null,
+          tech_lead_id: fd.tech_lead_id || null,
           members,
         }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
-
-      setSuccess(true)
-      setTimeout(() => {
-        setOpen(false)
-        setSuccess(false)
-        onProjectUpdated?.()
-      }, 1500)
+      return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al actualizar proyecto')
+      return false
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    const members = [
+      ...selectedDevelopers.map(userId => ({ user_id: userId, role: 'developer' })),
+      ...selectedStakeholders.map(userId => ({ user_id: userId, role: 'stakeholder' })),
+    ]
+
+    const isBeingCompleted = formData.status === 'completed' && project.status !== 'completed'
+    const pendingStatuses = ['backlog', 'todo', 'in_progress', 'review']
+    const pendingIds = (project.tasks || [])
+      .filter(t => pendingStatuses.includes(t.status))
+      .map(t => t.id)
+
+    const ok = await doSave(formData, members)
+    if (!ok) return
+
+    setSuccess(true)
+    setTimeout(() => {
+      setOpen(false)
+      setSuccess(false)
+      if (isBeingCompleted) {
+        onCompletedWithPending?.(pendingIds) // parent handles both cases (0 or more pending)
+      } else {
+        onProjectUpdated?.()
+      }
+    }, 1000)
   }
 
   return (
@@ -193,50 +186,25 @@ export function EditProjectDialog({ project, onProjectUpdated }: EditProjectDial
 
           <div className="space-y-2">
             <Label htmlFor="edit_name">Nombre *</Label>
-            <Input
-              id="edit_name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              disabled={loading || success}
-            />
+            <Input id="edit_name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required disabled={loading || success} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit_description">Descripción</Label>
-            <Input
-              id="edit_description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descripción del proyecto"
-              disabled={loading || success}
-            />
+            <Input id="edit_description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Descripción del proyecto" disabled={loading || success} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Empresa</Label>
-              <Select
-                value={formData.company_id}
-                onValueChange={(v) => setFormData({ ...formData, company_id: v })}
-                disabled={loading || success}
-              >
+              <Select value={formData.company_id} onValueChange={(v) => setFormData({ ...formData, company_id: v })} disabled={loading || success}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>
-                  {companies.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectContent>{companies.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}</SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label>Estado</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(v) => setFormData({ ...formData, status: v })}
-                disabled={loading || success}
-              >
+              <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })} disabled={loading || success}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="planning">Planificación</SelectItem>
@@ -252,70 +220,34 @@ export function EditProjectDialog({ project, onProjectUpdated }: EditProjectDial
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Project Manager</Label>
-              <Select
-                value={formData.pm_id}
-                onValueChange={(v) => setFormData({ ...formData, pm_id: v })}
-                disabled={loading || success}
-              >
+              <Select value={formData.pm_id} onValueChange={(v) => setFormData({ ...formData, pm_id: v })} disabled={loading || success}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>
-                  {pms.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectContent>{pms.map((u) => (<SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>))}</SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label>Tech Lead</Label>
-              <Select
-                value={formData.tech_lead_id}
-                onValueChange={(v) => setFormData({ ...formData, tech_lead_id: v })}
-                disabled={loading || success}
-              >
+              <Select value={formData.tech_lead_id} onValueChange={(v) => setFormData({ ...formData, tech_lead_id: v })} disabled={loading || success}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>
-                  {techLeads.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectContent>{techLeads.map((u) => (<SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>))}</SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Developers Multi-select */}
           <div className="space-y-2">
             <Label>Desarrolladores</Label>
-            <Select
-              value=""
-              onValueChange={addDeveloper}
-              disabled={loading || success}
-            >
+            <Select value="" onValueChange={addDeveloper} disabled={loading || success}>
               <SelectTrigger><SelectValue placeholder="Agregar desarrollador..." /></SelectTrigger>
-              <SelectContent>
-                {developers
-                  .filter(d => !selectedDevelopers.includes(d.id))
-                  .map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
-                  ))}
-              </SelectContent>
+              <SelectContent>{developers.filter(d => !selectedDevelopers.includes(d.id)).map((u) => (<SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>))}</SelectContent>
             </Select>
             {selectedDevelopers.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {selectedDevelopers.map(devId => {
-                  const dev = developers.find(d => d.id === devId) || 
-                    project.members?.find(m => m.user.id === devId)?.user
+                  const dev = developers.find(d => d.id === devId) || project.members?.find(m => m.user.id === devId)?.user
                   return dev ? (
                     <Badge key={devId} variant="secondary" className="flex items-center gap-1">
                       {dev.full_name}
-                      <button
-                        type="button"
-                        onClick={() => removeDeveloper(devId)}
-                        className="ml-1 hover:text-red-600"
-                        disabled={loading || success}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                      <button type="button" onClick={() => removeDeveloper(devId)} className="ml-1 hover:text-red-600" disabled={loading || success}><X className="w-3 h-3" /></button>
                     </Badge>
                   ) : null
                 })}
@@ -323,39 +255,20 @@ export function EditProjectDialog({ project, onProjectUpdated }: EditProjectDial
             )}
           </div>
 
-          {/* Stakeholders Multi-select */}
           <div className="space-y-2">
             <Label>Stakeholders</Label>
-            <Select
-              value=""
-              onValueChange={addStakeholder}
-              disabled={loading || success}
-            >
+            <Select value="" onValueChange={addStakeholder} disabled={loading || success}>
               <SelectTrigger><SelectValue placeholder="Agregar stakeholder..." /></SelectTrigger>
-              <SelectContent>
-                {stakeholders
-                  .filter(s => !selectedStakeholders.includes(s.id))
-                  .map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
-                  ))}
-              </SelectContent>
+              <SelectContent>{stakeholders.filter(s => !selectedStakeholders.includes(s.id)).map((u) => (<SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>))}</SelectContent>
             </Select>
             {selectedStakeholders.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {selectedStakeholders.map(sId => {
-                  const stakeholder = stakeholders.find(s => s.id === sId) || 
-                    project.members?.find(m => m.user.id === sId)?.user
+                  const stakeholder = stakeholders.find(s => s.id === sId) || project.members?.find(m => m.user.id === sId)?.user
                   return stakeholder ? (
                     <Badge key={sId} variant="secondary" className="flex items-center gap-1 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400">
                       {stakeholder.full_name}
-                      <button
-                        type="button"
-                        onClick={() => removeStakeholder(sId)}
-                        className="ml-1 hover:text-red-600"
-                        disabled={loading || success}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                      <button type="button" onClick={() => removeStakeholder(sId)} className="ml-1 hover:text-red-600" disabled={loading || success}><X className="w-3 h-3" /></button>
                     </Badge>
                   ) : null
                 })}
@@ -366,29 +279,16 @@ export function EditProjectDialog({ project, onProjectUpdated }: EditProjectDial
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Fecha Inicio</Label>
-              <DatePicker
-                value={formData.start_date ? new Date(formData.start_date) : null}
-                onChange={(date) => setFormData({ ...formData, start_date: date ? date.toISOString().split('T')[0] : '' })}
-                placeholder="Seleccionar inicio"
-                disabled={loading || success}
-              />
+              <DatePicker value={formData.start_date ? new Date(formData.start_date) : null} onChange={(date) => setFormData({ ...formData, start_date: date ? date.toISOString().split('T')[0] : '' })} placeholder="Seleccionar inicio" disabled={loading || success} />
             </div>
-
             <div className="space-y-2">
               <Label>Fecha Fin</Label>
-              <DatePicker
-                value={formData.end_date ? new Date(formData.end_date) : null}
-                onChange={(date) => setFormData({ ...formData, end_date: date ? date.toISOString().split('T')[0] : '' })}
-                placeholder="Seleccionar fin"
-                disabled={loading || success}
-              />
+              <DatePicker value={formData.end_date ? new Date(formData.end_date) : null} onChange={(date) => setFormData({ ...formData, end_date: date ? date.toISOString().split('T')[0] : '' })} placeholder="Seleccionar fin" disabled={loading || success} />
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-              Cancelar
-            </Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>Cancelar</Button>
             <Button type="submit" disabled={loading || success} className="bg-primary hover:bg-primary/90">
               {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</> : 'Guardar Cambios'}
             </Button>

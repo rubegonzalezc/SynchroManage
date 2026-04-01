@@ -11,16 +11,20 @@ import { Trash2, Loader2, AlertTriangle, CheckCircle } from 'lucide-react'
 interface DeleteProjectDialogProps {
   projectId: string
   projectName: string
-  onDeleted?: () => void // Callback opcional para cuando se elimina desde la tabla
-  triggerVariant?: 'button' | 'icon' // Tipo de trigger
+  onDeleted?: () => void
+  triggerVariant?: 'button' | 'icon'
+  entityType?: 'project' | 'change_control'
 }
 
-export function DeleteProjectDialog({ projectId, projectName, onDeleted, triggerVariant = 'button' }: DeleteProjectDialogProps) {
+export function DeleteProjectDialog({ projectId, projectName, onDeleted, triggerVariant = 'button', entityType = 'project' }: DeleteProjectDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const router = useRouter()
+
+  const label = entityType === 'change_control' ? 'Control de Cambios' : 'Proyecto'
+  const successRedirect = entityType === 'change_control' ? '/change-controls' : '/projects'
 
   const handleDelete = async () => {
     setLoading(true)
@@ -38,7 +42,7 @@ export function DeleteProjectDialog({ projectId, projectName, onDeleted, trigger
         if (onDeleted) {
           onDeleted()
         } else {
-          router.push('/projects')
+          router.push(successRedirect)
         }
       }, 1500)
     } catch (err) {
@@ -64,7 +68,7 @@ export function DeleteProjectDialog({ projectId, projectName, onDeleted, trigger
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-red-600">
-            <AlertTriangle className="w-5 h-5" /> Eliminar Proyecto
+            <AlertTriangle className="w-5 h-5" /> Eliminar {label}
           </DialogTitle>
           <DialogDescription>
             ¿Estás seguro de eliminar <strong>{projectName}</strong>? Se eliminarán todas las tareas, comentarios y notificaciones asociadas. Esta acción no se puede deshacer.
@@ -77,7 +81,7 @@ export function DeleteProjectDialog({ projectId, projectName, onDeleted, trigger
         
         {success && (
           <div className="bg-green-50 border border-green-200 text-green-600 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" /> Proyecto eliminado correctamente
+            <CheckCircle className="w-4 h-4" /> {label} eliminado correctamente
           </div>
         )}
 
@@ -87,7 +91,7 @@ export function DeleteProjectDialog({ projectId, projectName, onDeleted, trigger
               Cancelar
             </Button>
             <Button onClick={handleDelete} disabled={loading} variant="destructive">
-              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Eliminando...</> : 'Eliminar Proyecto'}
+              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Eliminando...</> : `Eliminar ${label}`}
             </Button>
           </div>
         )}

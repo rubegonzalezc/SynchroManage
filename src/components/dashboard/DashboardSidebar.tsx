@@ -35,6 +35,7 @@ import {
   UserCircle,
   Building2,
   ListTodo,
+  GitPullRequest,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -77,6 +78,12 @@ const menuItems: MenuItem[] = [
     title: 'Proyectos',
     icon: FolderKanban,
     href: '/projects',
+    roles: ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'],
+  },
+  {
+    title: 'Control de Cambios',
+    icon: GitPullRequest,
+    href: '/change-controls',
     roles: ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'],
   },
   {
@@ -165,7 +172,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.href}
+                    isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
                     className="data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
                   >
                     <Link href={item.href}>
