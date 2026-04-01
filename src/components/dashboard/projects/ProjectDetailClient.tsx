@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Loader2, ArrowLeft, Users, Calendar, Building2, Mail, CheckCircle2, Clock, FolderKanban, GitPullRequest } from 'lucide-react'
+import { Loader2, ArrowLeft, Users, Calendar, Building2, Mail, CheckCircle2, Clock, FolderKanban, GitPullRequest, LayoutGrid, List } from 'lucide-react'
 import { KanbanBoard } from './KanbanBoard'
+import { TaskListView } from './TaskListView'
+import { TaskFilters } from './TaskFilters'
 import { CreateTaskDialog } from './CreateTaskDialog'
 import { ProjectComments } from './ProjectComments'
 import { ProjectActivity } from './ProjectActivity'
@@ -90,6 +92,13 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   const [migrateTasks, setMigrateTasks] = useState(false)
   const [showCCDialog, setShowCCDialog] = useState(false)
 
+  // View mode and filters
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban')
+  const [taskSearch, setTaskSearch] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [assigneeFilter, setAssigneeFilter] = useState('all')
+
   const fetchProject = async () => {
     try {
       const response = await fetch(`/api/dashboard/projects/${projectId}`)
@@ -140,6 +149,26 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
     fetchUsers()
     fetchCurrentUser()
   }, [projectId])
+
+  // Filtrar tareas según los filtros activos
+  const filteredTasks = useMemo(() => {
+    if (!project) return []
+    return project.tasks.map(t => ({
+      ...t,
+      assignees: t.assignees?.length ? t.assignees : t.assignee ? [t.assignee] : [],
+    })).filter(task => {
+      const matchesSearch = taskSearch === '' ||
+        task.title.toLowerCase().includes(taskSearch.toLowerCase()) ||
+        (task.description?.toLowerCase().includes(taskSearch.toLowerCase())) ||
+        `#${task.task_number}`.includes(taskSearch)
+      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter
+      const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter
+      const matchesAssignee = assigneeFilter === 'all' ||
+        (assigneeFilter === 'unassigned' && task.assignees.length === 0) ||
+        task.assignees.some(a => a.id === assigneeFilter)
+      return matchesSearch && matchesPriority && matchesCategory && matchesAssignee
+    })
+  }, [project?.tasks, taskSearch, priorityFilter, categoryFilter, assigneeFilter])
 
   const formatDate = (date: string | null) => {
     if (!date) return '-'
@@ -489,19 +518,74 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
         )}
       </div>
 
-      {/* Kanban Board */}
-      <KanbanBoard
-        tasks={project.tasks.map(t => ({
-          ...t,
-          assignees: t.assignee ? [t.assignee] : [],
-        }))}
-        projectId={project.id}
-        projectName={project.name}
-        members={projectMembers}
-        allUsers={allUsers}
-        currentUserId={currentUserId}
-        onTasksChange={fetchProject}
-      />
+      {/* View Toggle + Filters + Board/List */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          {/* View toggle */}
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+              className="gap-1.5"
+            >
+              <LayoutGrid className="w-4 h-4" /> Kanban
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="gap-1.5"
+            >
+              <List className="w-4 h-4" /> Lista
+            </Button>
+          </div>
+
+          {/* Filters */}
+          <div className="flex-1">
+            <TaskFilters
+              search={taskSearch}
+              onSearchChange={setTaskSearch}
+              priorityFilter={priorityFilter}
+              onPriorityFilterChange={setPriorityFilter}
+              categoryFilter={categoryFilter}
+              onCategoryFilterChange={setCategoryFilter}
+              assigneeFilter={assigneeFilter}
+              onAssigneeFilterChange={setAssigneeFilter}
+              members={projectMembers}
+              hasActiveFilters={taskSearch !== '' || priorityFilter !== 'all' || categoryFilter !== 'all' || assigneeFilter !== 'all'}
+              onClearFilters={() => {
+                setTaskSearch('')
+                setPriorityFilter('all')
+                setCategoryFilter('all')
+                setAssigneeFilter('all')
+              }}
+            />
+          </div>
+        </div>
+
+        {viewMode === 'kanban' ? (
+          <KanbanBoard
+            tasks={filteredTasks}
+            projectId={project.id}
+            projectName={project.name}
+            members={projectMembers}
+            allUsers={allUsers}
+            currentUserId={currentUserId}
+            onTasksChange={fetchProject}
+          />
+        ) : (
+          <TaskListView
+            tasks={filteredTasks}
+            projectId={project.id}
+            projectName={project.name}
+            members={projectMembers}
+            allUsers={allUsers}
+            currentUserId={currentUserId}
+            onTasksChange={fetchProject}
+          />
+        )}
+      </div>
 
       {/* Project Attachments */}
       <div className="bg-card rounded-lg border border-border p-6">
