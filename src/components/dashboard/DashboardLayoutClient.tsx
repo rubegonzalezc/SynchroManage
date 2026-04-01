@@ -20,33 +20,24 @@ export function DashboardLayoutClient({ user, children }: DashboardLayoutClientP
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   return (
-    <>
-      {/* Mobile layout — oculto en md+ via CSS, nunca desmontado */}
-      <div className="md:hidden">
-        <MobileNavbar onMenuClick={() => setMobileSidebarOpen(true)} />
-        <MobileSidebar
-          open={mobileSidebarOpen}
-          onClose={() => setMobileSidebarOpen(false)}
-          user={user}
-        />
-        <div className="pt-14 min-h-screen bg-muted/50">
-          <main className="p-4 w-full overflow-x-hidden">
-            {children}
-          </main>
-        </div>
-      </div>
+    <SidebarProvider defaultOpen={true}>
+      {/* Mobile: navbar fija (ya tiene md:hidden y fixed internamente) */}
+      <MobileNavbar onMenuClick={() => setMobileSidebarOpen(true)} />
+      <MobileSidebar
+        open={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
+        user={user}
+      />
 
-      {/* Desktop layout — oculto en mobile via CSS, nunca desmontado */}
-      <div className="hidden md:flex w-full min-h-screen">
-        <SidebarProvider defaultOpen={true}>
-          <DashboardSidebar user={user} />
-          <SidebarInset>
-            <main className="flex-1 bg-muted/50 p-6">
-              {children}
-            </main>
-          </SidebarInset>
-        </SidebarProvider>
-      </div>
-    </>
+      {/* Desktop: sidebar (ya tiene hidden md:block internamente) */}
+      <DashboardSidebar user={user} />
+
+      {/* Contenido — renderizado una sola vez */}
+      <SidebarInset>
+        <main className="flex-1 bg-muted/50 pt-14 md:pt-0 p-4 md:p-6">
+          {children}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

@@ -36,23 +36,24 @@ export function UpcomingMeetings() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchMeetings()
-  }, [])
-
-  const fetchMeetings = async () => {
-    try {
-      const res = await fetch('/api/dashboard/meetings')
-      const data = await res.json()
-      if (res.ok) {
-        // Solo mostrar las próximas 3 reuniones
-        setMeetings((data.meetings || []).slice(0, 3))
+    const controller = new AbortController()
+    const fetchMeetings = async () => {
+      try {
+        const res = await fetch('/api/dashboard/meetings', { signal: controller.signal })
+        const data = await res.json()
+        if (res.ok) {
+          setMeetings((data.meetings || []).slice(0, 3))
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        console.error('Error fetching meetings:', err)
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
       }
-    } catch (err) {
-      console.error('Error fetching meetings:', err)
-    } finally {
-      setLoading(false)
     }
-  }
+    fetchMeetings()
+    return () => controller.abort()
+  }, [])
 
   const formatMeetingDate = (date: string) => {
     const d = new Date(date)

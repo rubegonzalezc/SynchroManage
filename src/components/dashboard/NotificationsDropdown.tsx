@@ -40,18 +40,19 @@ export function NotificationsDropdown() {
     setMounted(true)
   }, [])
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/dashboard/notifications')
+      const response = await fetch('/api/dashboard/notifications', { signal })
       if (response.ok) {
         const data = await response.json()
         setNotifications(data.notifications || [])
         setUnreadCount(data.unreadCount || 0)
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
       console.error('Error fetching notifications:', error)
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }
 
@@ -59,19 +60,22 @@ export function NotificationsDropdown() {
   useEffect(() => {
     if (!mounted) return
 
+    const controller = new AbortController()
     const supabase = createClient()
     
     // Obtener usuario actual
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      if (controller.signal.aborted) return
       if (user) {
         setUserId(user.id)
         // Cargar notificaciones iniciales
-        fetchNotifications()
+        fetchNotifications(controller.signal)
       }
     }
     
     getUser()
+    return () => controller.abort()
   }, [mounted])
 
   // Suscribirse a cambios en tiempo real
