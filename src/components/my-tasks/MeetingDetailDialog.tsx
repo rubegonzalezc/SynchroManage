@@ -173,7 +173,7 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
     
     setSaving(true)
     try {
-      const dateStr = editForm.date.toISOString().split('T')[0]
+      const dateStr = format(editForm.date, 'yyyy-MM-dd')
       const start_time = `${dateStr}T${editForm.start_time}:00`
       const end_time = `${dateStr}T${editForm.end_time}:00`
 

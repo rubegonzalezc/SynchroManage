@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -43,6 +44,12 @@ interface Comment {
   }
 }
 
+interface SprintOption {
+  id: string
+  name: string
+  status: 'planning' | 'active' | 'completed'
+}
+
 interface TaskDetail {
   id: string
   task_number: number | null
@@ -52,6 +59,9 @@ interface TaskDetail {
   priority: string
   category?: string
   due_date: string | null
+  sprint_id: string | null
+  is_carry_over: boolean
+  sprint?: SprintOption | null
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
   comments: Comment[]
@@ -97,6 +107,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
   const [deleteCommentDialogOpen, setDeleteCommentDialogOpen] = useState(false)
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null)
   const [hasNewComments, setHasNewComments] = useState(false)
+  const [projectSprints, setProjectSprints] = useState<SprintOption[]>([])
 
   const [formData, setFormData] = useState({
     title: '',
@@ -106,6 +117,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
     category: 'task',
     assignee_ids: [] as string[],
     due_date: '',
+    sprint_id: '',
   })
 
   const fetchTask = async () => {
@@ -123,6 +135,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
           category: data.task.category || 'task',
           assignee_ids: (data.task.assignees || []).map((a: { id: string }) => a.id),
           due_date: data.task.due_date || '',
+          sprint_id: data.task.sprint_id || '',
         })
         setHasNewComments(false)
       }
@@ -138,6 +151,15 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
       fetchTask()
     }
   }, [open, taskId])
+
+  // Cargar sprints del proyecto al abrir
+  useEffect(() => {
+    if (!open || !projectId) return
+    fetch(`/api/dashboard/projects/${projectId}/sprints`)
+      .then(r => r.json())
+      .then(data => { if (data.sprints) setProjectSprints(data.sprints) })
+      .catch(() => {})
+  }, [open, projectId])
 
   // Suscribirse a cambios en comentarios de esta tarea
   useEffect(() => {
@@ -246,7 +268,14 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
       
       if (response.ok) {
         const data = await response.json()
-        
+
+        // Añadir el comentario al estado local sin recargar la tarea
+        if (data.comment) {
+          setTask(prev => prev ? { ...prev, comments: [...prev.comments, data.comment] } : null)
+        }
+
+        setNewComment('')
+
         // Crear notificaciones para usuarios mencionados individualmente
         const mentionedUserIds = extractMentionedUserIds(newComment, allUsers)
         for (const userId of mentionedUserIds) {
@@ -287,9 +316,6 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
           }
         }
       }
-      
-      setNewComment('')
-      fetchTask()
     } catch (error) {
       console.error('Error sending comment:', error)
     } finally {
@@ -429,12 +455,32 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                 <div className="space-y-2">
                   <Label>Fecha límite</Label>
                   <DatePicker
-                    value={formData.due_date ? new Date(formData.due_date) : null}
-                    onChange={(date) => setFormData({ ...formData, due_date: date ? date.toISOString().split('T')[0] : '' })}
+                    value={formData.due_date ? new Date(formData.due_date + 'T00:00:00') : null}
+                    onChange={(date) => setFormData({ ...formData, due_date: date ? format(date, 'yyyy-MM-dd') : '' })}
                     placeholder="Seleccionar fecha"
                   />
                 </div>
               </div>
+
+              {projectSprints.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Sprint</Label>
+                  <Select
+                    value={formData.sprint_id || 'none'}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, sprint_id: v === 'none' ? '' : v }))}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Sin sprint (Backlog)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin sprint (Backlog)</SelectItem>
+                      {projectSprints.map(s => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}{s.status === 'active' ? ' (Activo)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Assignees display */}

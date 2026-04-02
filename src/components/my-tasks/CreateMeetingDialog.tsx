@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
@@ -93,7 +94,7 @@ export function CreateMeetingDialog({ open, onOpenChange, onCreated, initialDate
 
     setLoading(true)
     try {
-      const dateStr = formData.date.toISOString().split('T')[0]
+      const dateStr = format(formData.date, 'yyyy-MM-dd')
       const start_time = `${dateStr}T${formData.start_time}:00`
       const end_time = `${dateStr}T${formData.end_time}:00`
 

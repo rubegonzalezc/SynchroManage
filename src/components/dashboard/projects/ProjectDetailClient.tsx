@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,13 @@ import { StakeholderMessagesForPM } from './StakeholderMessagesForPM'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { CreateChangeControlDialog } from '@/components/dashboard/change-controls/CreateChangeControlDialog'
 import { PendingTasksWithCCDialog, PendingTasksNoCCDialog, CreateCCPromptDialog } from './PendingTasksDialog'
+import { SprintSelector } from './SprintSelector'
+import { SprintHeader } from './SprintHeader'
+import { CreateSprintDialog } from './CreateSprintDialog'
+import type { Sprint } from './CreateSprintDialog'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { useUsers } from '@/hooks/useUsers'
+import { useProject } from '@/hooks/useProject'
 
 interface Project {
   id: string
@@ -38,6 +45,7 @@ interface Project {
     user: { id: string; full_name: string; email: string; avatar_url: string | null; role: { name: string } | null }
   }>
   tasks: Task[]
+  sprints: Sprint[]
 }
 
 interface Task {
@@ -50,6 +58,8 @@ interface Task {
   category?: string
   position: number
   due_date: string | null
+  sprint_id: string | null
+  is_carry_over: boolean
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
   assignee?: { id: string; full_name: string; avatar_url: string | null } | null
 }
@@ -77,12 +87,12 @@ const statusColors: Record<string, string> = {
 }
 
 export function ProjectDetailClient({ projectId, backHref = '/projects', backLabel = 'Volver a proyectos' }: { projectId: string; backHref?: string; backLabel?: string }) {
-  const [project, setProject] = useState<Project | null>(null)
-  const [allUsers, setAllUsers] = useState<User[]>([])
-  const [currentUserId, setCurrentUserId] = useState<string>('')
-  const [currentUserRole, setCurrentUserRole] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { project, isLoading: loading, error: projectError, mutate: mutateProject } = useProject(projectId)
+  const { users } = useUsers()
+  const { currentUserId, currentUserRole } = useCurrentUser()
+
+  const allUsers: User[] = users.map(u => ({ id: u.id, full_name: u.full_name, avatar_url: u.avatar_url ?? null }))
+  const error = projectError?.message ?? null
 
   // Post-completion flow state
   const [pendingTaskIds, setPendingTaskIds] = useState<string[]>([])
@@ -92,6 +102,10 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   const [migrateTasks, setMigrateTasks] = useState(false)
   const [showCCDialog, setShowCCDialog] = useState(false)
 
+  // Sprint state
+  const [selectedSprintId, setSelectedSprintId] = useState<string | null | 'auto'>('auto')
+  const [createSprintOpen, setCreateSprintOpen] = useState(false)
+
   // View mode and filters
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban')
   const [taskSearch, setTaskSearch] = useState('')
@@ -99,64 +113,25 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [assigneeFilter, setAssigneeFilter] = useState('all')
 
-  const fetchProject = async () => {
-    try {
-      const response = await fetch(`/api/dashboard/projects/${projectId}`)
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error)
-      setProject(data.project)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar proyecto')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Auto-seleccionar sprint activo al cargar el proyecto
+  const resolvedSprintId: string | null = useMemo(() => {
+    if (!project || selectedSprintId !== 'auto') return selectedSprintId as string | null
+    const activeSprint = project.sprints?.find(s => s.status === 'active')
+    return activeSprint?.id ?? null
+  }, [project, selectedSprintId])
 
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('/api/dashboard/users')
-      const data = await response.json()
-      if (response.ok) {
-        setAllUsers(data.users.map((u: { id: string; full_name: string; avatar_url: string | null }) => ({
-          id: u.id,
-          full_name: u.full_name,
-          avatar_url: u.avatar_url
-        })))
-      }
-    } catch (err) {
-      console.error('Error fetching users:', err)
-    }
-  }
-
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/dashboard/me')
-      const data = await response.json()
-      if (response.ok && data.user) {
-        setCurrentUserId(data.user.id)
-        // Obtener el rol del usuario
-        const roleData = data.user.role as { name: string } | { name: string }[] | null
-        const roleName = Array.isArray(roleData) ? roleData[0]?.name : roleData?.name
-        setCurrentUserRole(roleName || '')
-      }
-    } catch (err) {
-      console.error('Error fetching current user:', err)
-    }
-  }
-
-  useEffect(() => { 
-    fetchProject()
-    fetchUsers()
-    fetchCurrentUser()
-  }, [projectId])
-
-  // Filtrar tareas según los filtros activos
+  // Filtrar tareas según sprint seleccionado y filtros activos
   const filteredTasks = useMemo(() => {
     if (!project) return []
     return project.tasks.map(t => ({
       ...t,
       assignees: t.assignees?.length ? t.assignees : t.assignee ? [t.assignee] : [],
     })).filter(task => {
+      // Filtro de sprint
+      const matchesSprint = resolvedSprintId === null
+        ? task.sprint_id === null
+        : task.sprint_id === resolvedSprintId
+
       const matchesSearch = taskSearch === '' ||
         task.title.toLowerCase().includes(taskSearch.toLowerCase()) ||
         (task.description?.toLowerCase().includes(taskSearch.toLowerCase())) ||
@@ -166,9 +141,9 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
       const matchesAssignee = assigneeFilter === 'all' ||
         (assigneeFilter === 'unassigned' && task.assignees.length === 0) ||
         task.assignees.some(a => a.id === assigneeFilter)
-      return matchesSearch && matchesPriority && matchesCategory && matchesAssignee
+      return matchesSprint && matchesSearch && matchesPriority && matchesCategory && matchesAssignee
     })
-  }, [project?.tasks, taskSearch, priorityFilter, categoryFilter, assigneeFilter])
+  }, [project?.tasks, resolvedSprintId, taskSearch, priorityFilter, categoryFilter, assigneeFilter])
 
   const formatDate = (date: string | null) => {
     if (!date) return '-'
@@ -377,15 +352,15 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           {['admin', 'pm', 'tech_lead'].includes(currentUserRole) && (
             <EditProjectDialog
               project={project}
-              onProjectUpdated={fetchProject}
+              onProjectUpdated={mutateProject}
               onCompletedWithPending={(ids) => {
-                fetchProject()
+                mutateProject()
                 setPendingTaskIds(ids)
                 // Step 1: ask about CC first
                 setCreateCCPrompt(true)
               }}
               onCompleted={() => {
-                fetchProject()
+                mutateProject()
                 setCreateCCPrompt(true)
               }}
             />
@@ -512,11 +487,43 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               projectId={project.id}
               projectName={project.name}
               members={projectMembers}
-              onTaskCreated={fetchProject}
+              sprints={project.sprints || []}
+              initialSprintId={resolvedSprintId}
+              onTaskCreated={mutateProject}
             />
           </div>
         )}
       </div>
+
+      {/* Sprint Selector + Header */}
+      {(project.sprints?.length > 0 || ['admin', 'pm'].includes(currentUserRole)) && (
+        <div className="space-y-3">
+          <SprintSelector
+            sprints={project.sprints || []}
+            selectedSprintId={resolvedSprintId}
+            onSelect={(id) => setSelectedSprintId(id)}
+            canManage={['admin', 'pm'].includes(currentUserRole)}
+            onNewSprint={() => setCreateSprintOpen(true)}
+          />
+
+          {resolvedSprintId !== null && (() => {
+            const currentSprint = project.sprints?.find(s => s.id === resolvedSprintId)
+            if (!currentSprint) return null
+            const nextSprint = project.sprints
+              ?.filter(s => s.status === 'planning' && s.order_index > currentSprint.order_index)
+              ?.sort((a, b) => a.order_index - b.order_index)[0] ?? null
+            return (
+              <SprintHeader
+                sprint={{ ...currentSprint, tasks: project.tasks.filter(t => t.sprint_id === currentSprint.id) }}
+                nextSprint={nextSprint ?? null}
+                canManage={['admin', 'pm'].includes(currentUserRole)}
+                onSprintStarted={() => mutateProject()}
+                onSprintCompleted={() => mutateProject()}
+              />
+            )
+          })()}
+        </div>
+      )}
 
       {/* View Toggle + Filters + Board/List */}
       <div className="space-y-4">
@@ -572,7 +579,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             members={projectMembers}
             allUsers={allUsers}
             currentUserId={currentUserId}
-            onTasksChange={fetchProject}
+            onTasksChange={mutateProject}
           />
         ) : (
           <TaskListView
@@ -582,7 +589,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             members={projectMembers}
             allUsers={allUsers}
             currentUserId={currentUserId}
-            onTasksChange={fetchProject}
+            onTasksChange={mutateProject}
           />
         )}
       </div>
@@ -660,7 +667,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           setPendingTasksWithCC(false)
           await Promise.all(pendingTaskIds.map(id => fetch(`/api/dashboard/tasks/${id}`, { method: 'DELETE' })))
           setPendingTaskIds([])
-          fetchProject()
+          mutateProject()
           setShowCCDialog(true)
         }}
       />
@@ -677,7 +684,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           setPendingTasksNoCC(false)
           await Promise.all(pendingTaskIds.map(id => fetch(`/api/dashboard/tasks/${id}`, { method: 'DELETE' })))
           setPendingTaskIds([])
-          fetchProject()
+          mutateProject()
         }}
       />
 
@@ -693,7 +700,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             setShowCCDialog(false)
             setMigrateTasks(false)
             setPendingTaskIds([])
-            fetchProject()
+            mutateProject()
           }}
           onCancelled={() => {
             setShowCCDialog(false)
@@ -702,6 +709,17 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           }}
         />
       )}
+
+      {/* Create Sprint Dialog */}
+      <CreateSprintDialog
+        open={createSprintOpen}
+        onOpenChange={setCreateSprintOpen}
+        projectId={project.id}
+        onCreated={(sprint) => {
+          mutateProject()
+          setSelectedSprintId(sprint.id)
+        }}
+      />
     </div>
   )
 }

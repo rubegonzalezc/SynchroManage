@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
@@ -22,14 +23,22 @@ interface Member {
   roles?: string[]
 }
 
+interface SprintOption {
+  id: string
+  name: string
+  status: string
+}
+
 interface CreateTaskDialogProps {
   projectId: string
   projectName: string
   members: Member[]
+  sprints?: SprintOption[]
+  initialSprintId?: string | null
   onTaskCreated?: () => void
 }
 
-export function CreateTaskDialog({ projectId, projectName, members, onTaskCreated }: CreateTaskDialogProps) {
+export function CreateTaskDialog({ projectId, projectName, members, sprints = [], initialSprintId, onTaskCreated }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,7 +52,13 @@ export function CreateTaskDialog({ projectId, projectName, members, onTaskCreate
     category: 'task',
     assignee_ids: [] as string[],
     due_date: '',
+    sprint_id: initialSprintId ?? '',
   })
+
+  // Actualizar sprint_id cuando cambia initialSprintId (sprint activo seleccionado)
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, sprint_id: initialSprintId ?? '' }))
+  }, [initialSprintId])
 
   const developerMembers = members.filter(u => u.roles?.includes('developer'))
 
@@ -60,6 +75,7 @@ export function CreateTaskDialog({ projectId, projectName, members, onTaskCreate
         body: JSON.stringify({
           project_id: projectId,
           ...formData,
+          sprint_id: formData.sprint_id || null,
           assignee_ids: formData.assignee_ids.length > 0 ? formData.assignee_ids : [],
         }),
       })
@@ -93,6 +109,7 @@ export function CreateTaskDialog({ projectId, projectName, members, onTaskCreate
         setFormData({
           title: '', description: '', status: 'backlog',
           priority: 'medium', category: 'task', assignee_ids: [], due_date: '',
+          sprint_id: initialSprintId ?? '',
         })
         setSuccess(false)
         onTaskCreated?.()
@@ -226,13 +243,37 @@ export function CreateTaskDialog({ projectId, projectName, members, onTaskCreate
             <div className="space-y-2">
               <Label>Fecha límite</Label>
               <DatePicker
-                value={formData.due_date ? new Date(formData.due_date) : null}
-                onChange={(date) => setFormData({ ...formData, due_date: date ? date.toISOString().split('T')[0] : '' })}
+                value={formData.due_date ? new Date(formData.due_date + 'T00:00:00') : null}
+                onChange={(date) => setFormData({ ...formData, due_date: date ? format(date, 'yyyy-MM-dd') : '' })}
                 placeholder="Seleccionar fecha"
                 disabled={loading || success}
               />
             </div>
           </div>
+
+          {sprints.length > 0 && (
+            <div className="space-y-2">
+              <Label>Sprint</Label>
+              <Select
+                value={formData.sprint_id || 'none'}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, sprint_id: v === 'none' ? '' : v }))}
+                disabled={loading || success}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin sprint (Backlog)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin sprint (Backlog)</SelectItem>
+                  {sprints.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                      {s.status === 'active' && ' (Activo)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>

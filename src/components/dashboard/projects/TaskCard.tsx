@@ -5,7 +5,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Badge } from '@/components/ui/badge'
 import { AvatarStack } from '@/components/ui/avatar-stack'
-import { Calendar, GripVertical } from 'lucide-react'
+import { Calendar, GripVertical, RefreshCw } from 'lucide-react'
 import { TaskDetailDialog } from './TaskDetailDialog'
 
 interface Task {
@@ -18,6 +18,8 @@ interface Task {
   category?: string
   position: number
   due_date: string | null
+  sprint_id?: string | null
+  is_carry_over?: boolean
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
 }
 
@@ -148,6 +150,13 @@ export function TaskCard({ task, projectId, projectName, members, allUsers, curr
             )}
             
             <div className="flex items-center gap-2 flex-wrap">
+              {task.is_carry_over && (
+                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 gap-1">
+                  <RefreshCw className="w-3 h-3" />
+                  Carry Over
+                </Badge>
+              )}
+
               <Badge variant="secondary" className={`text-xs ${priorityColors[task.priority]}`}>
                 {priorityLabels[task.priority]}
               </Badge>

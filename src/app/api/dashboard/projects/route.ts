@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
 
@@ -360,6 +361,8 @@ export async function POST(request: Request) {
     } catch (emailError) {
       console.error('Error sending project assignment emails:', emailError)
     }
+
+    revalidateTag('projects')
 
     return NextResponse.json({ project })
   } catch (error) {

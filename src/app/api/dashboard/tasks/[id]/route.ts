@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
 
@@ -54,6 +55,7 @@ export async function GET(
         *,
         assignee:profiles(id, full_name, email, avatar_url),
         project:projects(id, name),
+        sprint:sprints(id, name, status),
         comments(
           id, content, created_at, updated_at,
           user:profiles(id, full_name, avatar_url, role:roles(name))
@@ -153,18 +155,22 @@ export async function PUT(
     const primaryAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : null
 
     // Actualizar la tarea
+    const updatePayload: Record<string, unknown> = {
+      title: body.title,
+      description: body.description || null,
+      status: body.status,
+      priority: body.priority,
+      category: body.category || 'task',
+      assignee_id: primaryAssigneeId,
+      due_date: body.due_date || null,
+      updated_at: new Date().toISOString(),
+    }
+    if ('sprint_id' in body) updatePayload.sprint_id = body.sprint_id ?? null
+    if ('is_carry_over' in body) updatePayload.is_carry_over = body.is_carry_over ?? false
+
     const { data: task, error } = await supabaseAdmin
       .from('tasks')
-      .update({
-        title: body.title,
-        description: body.description || null,
-        status: body.status,
-        priority: body.priority,
-        category: body.category || 'task',
-        assignee_id: primaryAssigneeId,
-        due_date: body.due_date || null,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select(`
         *,
@@ -345,6 +351,10 @@ export async function PUT(
       assignees = assigneesData || []
     }
 
+    if (currentTask?.project_id) {
+      revalidateTag(`project-${currentTask.project_id}`)
+    }
+
     return NextResponse.json({ task: { ...task, assignees } })
   } catch (error) {
     console.error('Error updating task:', error)
@@ -399,6 +409,7 @@ export async function DELETE(
         taskToDelete.title,
         { project_id: taskToDelete.project_id }
       )
+      revalidateTag(`project-${taskToDelete.project_id}`)
     }
 
     return NextResponse.json({ success: true })

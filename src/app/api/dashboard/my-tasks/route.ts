@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-// GET - Obtener tareas asignadas al usuario actual
+// GET - Obtener tareas asignadas al usuario actual (single join, no 2 queries)
 export async function GET() {
   try {
     const supabaseServer = await createServerClient()
@@ -18,44 +18,36 @@ export async function GET() {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Query task_assignees to find all tasks assigned to the current user
-    const { data: assigneeRecords, error: assigneesError } = await supabaseAdmin
+    const { data: assigneeRecords, error } = await supabaseAdmin
       .from('task_assignees')
-      .select('task_id')
-      .eq('user_id', user.id)
-
-    if (assigneesError) {
-      return NextResponse.json({ error: assigneesError.message }, { status: 400 })
-    }
-
-    const taskIds = (assigneeRecords || []).map((r: { task_id: string }) => r.task_id)
-
-    // If no tasks assigned, return empty array
-    if (taskIds.length === 0) {
-      return NextResponse.json({ tasks: [] })
-    }
-
-    // Fetch the full task data for those task IDs
-    const { data: tasks, error } = await supabaseAdmin
-      .from('tasks')
       .select(`
-        id,
-        task_number,
-        title,
-        description,
-        status,
-        priority,
-        category,
-        due_date,
-        created_at,
-        project:projects(id, name, status)
+        task:tasks(
+          id,
+          task_number,
+          title,
+          description,
+          status,
+          priority,
+          category,
+          due_date,
+          created_at,
+          project:projects(id, name, status)
+        )
       `)
-      .in('id', taskIds)
-      .order('created_at', { ascending: false })
+      .eq('user_id', user.id)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
+
+    // Extraer las tareas del join y filtrar nulos
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tasks = (assigneeRecords || [])
+      .map((r: any) => r.task)
+      .filter(Boolean)
+      .sort((a: { created_at: string }, b: { created_at: string }) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
 
     return NextResponse.json({ tasks })
   } catch (error) {

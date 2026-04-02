@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import useSWR from 'swr'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, Search, FolderKanban, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { CreateProjectDialog } from './CreateProjectDialog'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 interface Project {
   id: string
@@ -48,49 +50,17 @@ const statusColors: Record<string, string> = {
 
 export function ProjectsTableClient() {
   const router = useRouter()
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [currentUserRole, setCurrentUserRole] = useState<string>('')
+  const { data: projectsData, error: projectsError, isLoading: loading, mutate: mutateProjects } = useSWR<{ projects: Project[] }>('/api/dashboard/projects')
+  const { currentUserRole } = useCurrentUser()
+
+  const projects = projectsData?.projects ?? []
+  const error = projectsError?.message ?? null
   
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-
-  const fetchProjects = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/dashboard/projects')
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error)
-      setProjects(data.projects)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar proyectos')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/dashboard/me')
-      const data = await response.json()
-      if (response.ok && data.user) {
-        const roleData = data.user.role as { name: string } | { name: string }[] | null
-        const roleName = Array.isArray(roleData) ? roleData[0]?.name : roleData?.name
-        setCurrentUserRole(roleName || '')
-      }
-    } catch (err) {
-      console.error('Error fetching current user:', err)
-    }
-  }
-
-  useEffect(() => { 
-    fetchProjects()
-    fetchCurrentUser()
-  }, [])
 
   const filteredProjects = useMemo(() => {
     return projects.filter(p => {
@@ -134,7 +104,7 @@ export function ProjectsTableClient() {
           <p className="text-muted-foreground">Gestiona los proyectos del sistema</p>
         </div>
         {['admin', 'pm'].includes(currentUserRole) && (
-          <CreateProjectDialog onProjectCreated={fetchProjects} />
+          <CreateProjectDialog onProjectCreated={mutateProjects} />
         )}
       </div>
 
@@ -239,7 +209,7 @@ export function ProjectsTableClient() {
                               <DeleteProjectDialog
                                 projectId={project.id}
                                 projectName={project.name}
-                                onDeleted={fetchProjects}
+                                onDeleted={mutateProjects}
                                 triggerVariant="icon"
                               />
                             </div>

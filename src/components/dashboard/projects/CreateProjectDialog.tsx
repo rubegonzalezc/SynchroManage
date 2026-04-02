@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
@@ -333,8 +334,8 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
             <div className="space-y-2">
               <Label>Fecha Inicio</Label>
               <DatePicker
-                value={formData.start_date ? new Date(formData.start_date) : null}
-                onChange={(date) => setFormData({ ...formData, start_date: date ? date.toISOString().split('T')[0] : '' })}
+                value={formData.start_date ? new Date(formData.start_date + 'T00:00:00') : null}
+                onChange={(date) => setFormData({ ...formData, start_date: date ? format(date, 'yyyy-MM-dd') : '' })}
                 placeholder="Seleccionar inicio"
                 disabled={loading || success}
               />
@@ -343,8 +344,8 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
             <div className="space-y-2">
               <Label>Fecha Fin</Label>
               <DatePicker
-                value={formData.end_date ? new Date(formData.end_date) : null}
-                onChange={(date) => setFormData({ ...formData, end_date: date ? date.toISOString().split('T')[0] : '' })}
+                value={formData.end_date ? new Date(formData.end_date + 'T00:00:00') : null}
+                onChange={(date) => setFormData({ ...formData, end_date: date ? format(date, 'yyyy-MM-dd') : '' })}
                 placeholder="Seleccionar fin"
                 disabled={loading || success}
               />

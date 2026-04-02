@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { format } from 'date-fns'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -42,6 +43,12 @@ interface Comment {
   }
 }
 
+interface SprintOption {
+  id: string
+  name: string
+  status: 'planning' | 'active' | 'completed'
+}
+
 interface TaskDetail {
   id: string
   task_number: number | null
@@ -51,6 +58,7 @@ interface TaskDetail {
   priority: string
   category?: string
   due_date: string | null
+  sprint_id: string | null
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   project: { id: string; name: string } | null
   comments: Comment[]
@@ -93,6 +101,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [members, setMembers] = useState<User[]>([])
+  const [projectSprints, setProjectSprints] = useState<SprintOption[]>([])
 
   const [formData, setFormData] = useState({
     title: '',
@@ -102,6 +111,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
     category: 'task',
     assignee_id: '',
     due_date: '',
+    sprint_id: '',
   })
 
   const fetchTask = async () => {
@@ -118,8 +128,16 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
           category: data.task.category || 'task',
           assignee_id: data.task.assignee?.id || '',
           due_date: data.task.due_date || '',
+          sprint_id: data.task.sprint_id || '',
         })
         setHasNewComments(false)
+        // Cargar sprints del proyecto
+        if (data.task.project?.id) {
+          fetch(`/api/dashboard/projects/${data.task.project.id}/sprints`)
+            .then(r => r.json())
+            .then(d => { if (d.sprints) setProjectSprints(d.sprints) })
+            .catch(() => {})
+        }
       }
     } catch (error) {
       console.error('Error fetching task:', error)
@@ -233,7 +251,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
       const response = await fetch(`/api/dashboard/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, sprint_id: formData.sprint_id || null }),
       })
       if (response.ok) {
         fetchTask()
@@ -433,12 +451,32 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   <div className="space-y-2">
                     <Label>Fecha límite</Label>
                     <DatePicker
-                      value={formData.due_date ? new Date(formData.due_date) : null}
-                      onChange={(date) => setFormData({ ...formData, due_date: date ? date.toISOString().split('T')[0] : '' })}
+                      value={formData.due_date ? new Date(formData.due_date + 'T00:00:00') : null}
+                      onChange={(date) => setFormData({ ...formData, due_date: date ? format(date, 'yyyy-MM-dd') : '' })}
                       placeholder="Seleccionar fecha"
                     />
                   </div>
                 </div>
+
+                {projectSprints.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Sprint</Label>
+                    <Select
+                      value={formData.sprint_id || 'none'}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, sprint_id: v === 'none' ? '' : v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Sin sprint (Backlog)" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin sprint (Backlog)</SelectItem>
+                        {projectSprints.map(s => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}{s.status === 'active' ? ' (Activo)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <Button onClick={handleSave} disabled={saving} className="w-full">
                   {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</> : 'Guardar Cambios'}

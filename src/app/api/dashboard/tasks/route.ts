@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
 
@@ -83,6 +84,7 @@ export async function POST(request: Request) {
         assignee_id: primaryAssigneeId,
         due_date: body.due_date || null,
         position: newPosition,
+        sprint_id: body.sprint_id || null,
       })
       .select(`
         *,
@@ -208,6 +210,8 @@ export async function POST(request: Request) {
 
       assignees = assigneesData || []
     }
+
+    revalidateTag(`project-${body.project_id}`)
 
     return NextResponse.json({ task: { ...task, assignees } })
   } catch (error) {

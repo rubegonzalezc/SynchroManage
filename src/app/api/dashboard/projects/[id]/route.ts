@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { unstable_cache, revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 // Función para crear notificación
@@ -27,9 +28,75 @@ async function createNotification(
   })
 }
 
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
+
+function getCachedProject(projectId: string) {
+  return unstable_cache(
+    async () => {
+      const admin = getSupabaseAdmin()
+
+      const { data: project, error } = await admin
+        .from('projects')
+        .select(`
+          *,
+          company:companies(id, name),
+          pm:profiles!projects_pm_id_fkey(id, full_name, email, avatar_url),
+          tech_lead:profiles!projects_tech_lead_id_fkey(id, full_name, email, avatar_url),
+          members:project_members(
+            id,
+            role,
+            user:profiles(id, full_name, email, avatar_url, role:roles(name))
+          ),
+          tasks(
+            id, task_number, title, description, status, priority, category, position, due_date, created_at,
+            sprint_id, is_carry_over,
+            assignee:profiles(id, full_name, avatar_url)
+          ),
+          sprints(
+            id, name, goal, start_date, end_date, status, order_index, created_at
+          )
+        `)
+        .eq('id', projectId)
+        .single()
+
+      if (error) throw new Error(error.message)
+
+      if (project?.sprints) {
+        project.sprints.sort(
+          (a: { order_index: number; created_at: string }, b: { order_index: number; created_at: string }) =>
+            a.order_index !== b.order_index
+              ? a.order_index - b.order_index
+              : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let projectWithParent: any = project
+      if (project?.parent_project_id) {
+        const { data: parentProject } = await admin
+          .from('projects')
+          .select('id, name')
+          .eq('id', project.parent_project_id)
+          .single()
+        projectWithParent = { ...project, parent_project: parentProject || null }
+      }
+
+      return projectWithParent
+    },
+    [`project-${projectId}`],
+    { tags: [`project-${projectId}`, 'projects'], revalidate: 60 }
+  )()
+}
+
 // GET - Obtener proyecto por ID
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -41,49 +108,8 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
-
-    const { data: project, error } = await supabaseAdmin
-      .from('projects')
-      .select(`
-        *,
-        company:companies(id, name),
-        pm:profiles!projects_pm_id_fkey(id, full_name, email, avatar_url),
-        tech_lead:profiles!projects_tech_lead_id_fkey(id, full_name, email, avatar_url),
-        members:project_members(
-          id,
-          role,
-          user:profiles(id, full_name, email, avatar_url, role:roles(name))
-        ),
-        tasks(
-          id, task_number, title, description, status, priority, category, position, due_date, created_at,
-          assignee:profiles(id, full_name, avatar_url)
-        )
-      `)
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
-
-    // Resolver parent_project manualmente
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let projectWithParent: any = project
-    if (project?.parent_project_id) {
-      const { data: parentProject } = await supabaseAdmin
-        .from('projects')
-        .select('id, name')
-        .eq('id', project.parent_project_id)
-        .single()
-      projectWithParent = { ...project, parent_project: parentProject || null }
-    }
-
-    return NextResponse.json({ project: projectWithParent })
+    const project = await getCachedProject(id)
+    return NextResponse.json({ project })
   } catch (error) {
     console.error('Error fetching project:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
@@ -106,11 +132,7 @@ export async function PUT(
 
     const body = await request.json()
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const supabaseAdmin = getSupabaseAdmin()
 
     // Obtener proyecto actual para comparar cambios
     const { data: currentProject } = await supabaseAdmin
@@ -179,10 +201,8 @@ export async function PUT(
 
     // Actualizar miembros si se proporcionaron
     if (body.members !== undefined) {
-      // Eliminar miembros actuales
       await supabaseAdmin.from('project_members').delete().eq('project_id', id)
       
-      // Insertar nuevos miembros
       if (body.members.length > 0) {
         const membersToInsert = body.members.map((m: { user_id: string; role: string }) => ({
           project_id: id,
@@ -191,7 +211,6 @@ export async function PUT(
         }))
         await supabaseAdmin.from('project_members').insert(membersToInsert)
 
-        // Notificar a nuevos miembros (que no estaban antes)
         const currentMemberIds = currentMembers?.map(m => m.user_id) || []
         for (const member of body.members) {
           if (!currentMemberIds.includes(member.user_id)) {
@@ -219,6 +238,9 @@ export async function PUT(
       entity_name: projectName,
       details: { project_id: id },
     })
+
+    revalidateTag(`project-${id}`)
+    revalidateTag('projects')
 
     return NextResponse.json({ project: data })
   } catch (error) {
@@ -253,13 +275,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 })
     }
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const supabaseAdmin = getSupabaseAdmin()
 
-    // Obtener nombre del proyecto antes de eliminar
     const { data: projectData } = await supabaseAdmin
       .from('projects')
       .select('name')
@@ -275,7 +292,6 @@ export async function DELETE(
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    // Registrar actividad
     await supabaseAdmin.from('activity_log').insert({
       user_id: user.id,
       action: 'deleted',
@@ -284,6 +300,9 @@ export async function DELETE(
       entity_name: projectData?.name || 'Proyecto',
       details: { project_id: id },
     })
+
+    revalidateTag(`project-${id}`)
+    revalidateTag('projects')
 
     return NextResponse.json({ success: true })
   } catch (error) {
