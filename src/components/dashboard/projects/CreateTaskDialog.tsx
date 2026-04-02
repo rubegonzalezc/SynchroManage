@@ -14,7 +14,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Plus, Loader2, CheckCircle } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Plus, Loader2, CheckCircle, GitBranch } from 'lucide-react'
+import { TASK_CATEGORIES } from '@/lib/constants/categories'
 
 interface Member {
   id: string
@@ -43,6 +45,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [autoBranchName, setAutoBranchName] = useState(true)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -53,12 +56,21 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
     assignee_ids: [] as string[],
     due_date: '',
     sprint_id: initialSprintId ?? '',
+    branch_name: '',
   })
 
   // Actualizar sprint_id cuando cambia initialSprintId (sprint activo seleccionado)
   useEffect(() => {
     setFormData(prev => ({ ...prev, sprint_id: initialSprintId ?? '' }))
   }, [initialSprintId])
+
+  // Previsualización de la rama en tiempo real mientras el autoBranchName está activo
+  const previewSlug = formData.title
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+  const generatedPreview = formData.title ? `${formData.category}/${previewSlug}-[#]` : ''
 
   const developerMembers = members.filter(u => u.roles?.includes('developer'))
 
@@ -77,6 +89,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
           ...formData,
           sprint_id: formData.sprint_id || null,
           assignee_ids: formData.assignee_ids.length > 0 ? formData.assignee_ids : [],
+          auto_branch: autoBranchName, // Pasamos la bandera a la API para que maneje el número
         }),
       })
       const data = await response.json()
@@ -109,7 +122,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
         setFormData({
           title: '', description: '', status: 'backlog',
           priority: 'medium', category: 'task', assignee_ids: [], due_date: '',
-          sprint_id: initialSprintId ?? '',
+          sprint_id: initialSprintId ?? '', branch_name: '',
         })
         setSuccess(false)
         onTaskCreated?.()
@@ -214,16 +227,11 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="task">📋 Tarea</SelectItem>
-                <SelectItem value="bug">🐛 Bug</SelectItem>
-                <SelectItem value="feature">✨ Feature</SelectItem>
-                <SelectItem value="hotfix">🔥 Hotfix</SelectItem>
-                <SelectItem value="fix">🔧 Fix</SelectItem>
-                <SelectItem value="improvement">📈 Mejora</SelectItem>
-                <SelectItem value="refactor">♻️ Refactor</SelectItem>
-                <SelectItem value="docs">📝 Documentación</SelectItem>
-                <SelectItem value="test">🧪 Test</SelectItem>
-                <SelectItem value="chore">🔨 Chore</SelectItem>
+                {TASK_CATEGORIES.map(cat => (
+                  <SelectItem key={cat.slug} value={cat.slug}>
+                    {cat.icon} {cat.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -274,6 +282,39 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
               </Select>
             </div>
           )}
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="branch_name" className="flex items-center gap-1.5">
+                <GitBranch className="w-3.5 h-3.5" />
+                Nombre de rama
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="autoBranch" 
+                  checked={autoBranchName} 
+                  onCheckedChange={(checked) => setAutoBranchName(checked === true)}
+                  disabled={loading || success}
+                />
+                <Label
+                  htmlFor="autoBranch"
+                  className="text-xs text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Autocompletar
+                </Label>
+              </div>
+            </div>
+            <Input
+              id="branch_name"
+              value={autoBranchName ? generatedPreview : formData.branch_name}
+              onChange={(e) => {
+                setFormData({ ...formData, branch_name: e.target.value })
+                if (autoBranchName) setAutoBranchName(false)
+              }}
+              placeholder="feat/nombre-de-la-tarea"
+              disabled={loading || success || autoBranchName}
+            />
+          </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>

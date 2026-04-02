@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { AvatarStack } from '@/components/ui/avatar-stack'
 import { Calendar, GripVertical, RefreshCw } from 'lucide-react'
 import { TaskDetailDialog } from './TaskDetailDialog'
+import { categoryIcons, categoryLabels, categoryColors } from '@/lib/constants/categories'
 
 interface Task {
   id: string
@@ -54,44 +55,6 @@ const priorityLabels: Record<string, string> = {
   urgent: 'Urgente',
 }
 
-const categoryIcons: Record<string, string> = {
-  task: '📋',
-  bug: '🐛',
-  feature: '✨',
-  hotfix: '🔥',
-  fix: '🔧',
-  improvement: '📈',
-  refactor: '♻️',
-  docs: '📝',
-  test: '🧪',
-  chore: '🔨',
-}
-
-const categoryLabels: Record<string, string> = {
-  task: 'Tarea',
-  bug: 'Bug',
-  feature: 'Feature',
-  hotfix: 'Hotfix',
-  fix: 'Fix',
-  improvement: 'Mejora',
-  refactor: 'Refactor',
-  docs: 'Docs',
-  test: 'Test',
-  chore: 'Chore',
-}
-
-const categoryColors: Record<string, string> = {
-  task: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-  bug: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-  feature: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-  hotfix: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-  fix: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  improvement: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',
-  refactor: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
-  docs: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-  test: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400',
-  chore: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-}
 
 export function TaskCard({ task, projectId, projectName, members, allUsers, currentUserId, onUpdate, isDragging }: TaskCardProps) {
   const [showDetail, setShowDetail] = useState(false)

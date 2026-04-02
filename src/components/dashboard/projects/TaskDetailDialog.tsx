@@ -17,13 +17,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MentionInput, renderMentions, extractMentionedUserIds, extractMentionAll } from '@/components/ui/mention-input'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Loader2, Trash2, Send, RefreshCw } from 'lucide-react'
+import { Loader2, Trash2, Send, RefreshCw, GitBranch } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { FileAttachments } from '@/components/ui/file-attachments'
+import { TASK_CATEGORIES } from '@/lib/constants/categories'
 
 interface Member {
   id: string
@@ -58,6 +60,7 @@ interface TaskDetail {
   status: string
   priority: string
   category?: string
+  branch_name?: string | null
   due_date: string | null
   sprint_id: string | null
   is_carry_over: boolean
@@ -108,6 +111,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null)
   const [hasNewComments, setHasNewComments] = useState(false)
   const [projectSprints, setProjectSprints] = useState<SprintOption[]>([])
+  const [autoBranchName, setAutoBranchName] = useState(false)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -118,6 +122,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
     assignee_ids: [] as string[],
     due_date: '',
     sprint_id: '',
+    branch_name: '',
   })
 
   const fetchTask = async () => {
@@ -136,6 +141,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
           assignee_ids: (data.task.assignees || []).map((a: { id: string }) => a.id),
           due_date: data.task.due_date || '',
           sprint_id: data.task.sprint_id || '',
+          branch_name: data.task.branch_name || '',
         })
         setHasNewComments(false)
       }
@@ -145,6 +151,24 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
       setLoading(false)
     }
   }
+
+  // Autocompletar branch_name cuando autoBranchName es true
+  useEffect(() => {
+    if (autoBranchName) {
+      if (!formData.title) {
+        setFormData(prev => ({ ...prev, branch_name: '' }))
+        return
+      }
+      const slug = formData.title
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+      
+      const newBranch = `${formData.category}/${slug}-${task?.task_number || ''}`
+      setFormData(prev => ({ ...prev, branch_name: newBranch }))
+    }
+  }, [formData.title, formData.category, autoBranchName, task?.task_number])
 
   useEffect(() => {
     if (open && taskId) {
@@ -427,16 +451,11 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                 <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="task">📋 Tarea</SelectItem>
-                    <SelectItem value="bug">🐛 Bug</SelectItem>
-                    <SelectItem value="feature">✨ Feature</SelectItem>
-                    <SelectItem value="hotfix">🔥 Hotfix</SelectItem>
-                    <SelectItem value="fix">🔧 Fix</SelectItem>
-                    <SelectItem value="improvement">📈 Mejora</SelectItem>
-                    <SelectItem value="refactor">♻️ Refactor</SelectItem>
-                    <SelectItem value="docs">📝 Documentación</SelectItem>
-                    <SelectItem value="test">🧪 Test</SelectItem>
-                    <SelectItem value="chore">🔨 Chore</SelectItem>
+                    {TASK_CATEGORIES.map(cat => (
+                      <SelectItem key={cat.slug} value={cat.slug}>
+                        {cat.icon} {cat.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -481,6 +500,38 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                   </Select>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-1.5">
+                    <GitBranch className="w-3.5 h-3.5" />
+                    Nombre de rama
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="autoBranchEdit" 
+                      checked={autoBranchName} 
+                      onCheckedChange={(checked) => setAutoBranchName(checked === true)}
+                      disabled={saving}
+                    />
+                    <Label
+                      htmlFor="autoBranchEdit"
+                      className="text-xs text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Autocompletar
+                    </Label>
+                  </div>
+                </div>
+                <Input
+                  value={formData.branch_name}
+                  onChange={(e) => {
+                    setFormData({ ...formData, branch_name: e.target.value })
+                    if (autoBranchName) setAutoBranchName(false)
+                  }}
+                  placeholder="feat/nombre-de-la-tarea"
+                  disabled={saving || autoBranchName}
+                />
+              </div>
             </div>
 
             {/* Assignees display */}

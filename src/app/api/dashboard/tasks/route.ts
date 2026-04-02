@@ -85,6 +85,7 @@ export async function POST(request: Request) {
         due_date: body.due_date || null,
         position: newPosition,
         sprint_id: body.sprint_id || null,
+        branch_name: body.branch_name || null,
       })
       .select(`
         *,
@@ -94,6 +95,23 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    // Si el frontend pidió autocompletar, aplicamos el número oficial de la DB en 1 ms extra
+    if (body.auto_branch && task && task.task_number) {
+      const slug = (task.title || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+      
+      const generatedBranch = `${task.category || 'task'}/${slug}-${task.task_number}`
+      
+      // Enviar actualización muy rápida a la base de datos
+      await supabaseAdmin.from('tasks').update({ branch_name: generatedBranch }).eq('id', task.id)
+      
+      // Actualizar la variable que devolvemos en el JSON
+      task.branch_name = generatedBranch
     }
 
     // Insertar registros en task_assignees para cada asignado (ON CONFLICT DO NOTHING via upsert)

@@ -24,6 +24,7 @@ import { Loader2, Trash2, Send, RefreshCw, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { FileAttachments } from '@/components/ui/file-attachments'
+import { TASK_CATEGORIES } from '@/lib/constants/categories'
 
 interface User {
   id: string
@@ -421,16 +422,11 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="task">📋 Tarea</SelectItem>
-                      <SelectItem value="bug">🐛 Bug</SelectItem>
-                      <SelectItem value="feature">✨ Feature</SelectItem>
-                      <SelectItem value="hotfix">🔥 Hotfix</SelectItem>
-                      <SelectItem value="fix">🔧 Fix</SelectItem>
-                      <SelectItem value="improvement">📈 Mejora</SelectItem>
-                      <SelectItem value="refactor">♻️ Refactor</SelectItem>
-                      <SelectItem value="docs">📝 Documentación</SelectItem>
-                      <SelectItem value="test">🧪 Test</SelectItem>
-                      <SelectItem value="chore">🔨 Chore</SelectItem>
+                      {TASK_CATEGORIES.map(cat => (
+                        <SelectItem key={cat.slug} value={cat.slug}>
+                          {cat.icon} {cat.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

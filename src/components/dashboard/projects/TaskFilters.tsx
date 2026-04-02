@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Search, X } from 'lucide-react'
+import { TASK_CATEGORIES } from '@/lib/constants/categories'
 
 interface Member {
   id: string
@@ -34,18 +35,6 @@ const priorityLabels: Record<string, string> = {
   urgent: 'Urgente',
 }
 
-const categoryLabels: Record<string, string> = {
-  task: 'Tarea',
-  bug: 'Bug',
-  feature: 'Feature',
-  hotfix: 'Hotfix',
-  fix: 'Fix',
-  improvement: 'Mejora',
-  refactor: 'Refactor',
-  docs: 'Docs',
-  test: 'Test',
-  chore: 'Chore',
-}
 
 export function TaskFilters({
   search, onSearchChange,
@@ -84,8 +73,8 @@ export function TaskFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Categoría: Todas</SelectItem>
-          {Object.entries(categoryLabels).map(([key, label]) => (
-            <SelectItem key={key} value={key}>{label}</SelectItem>
+          {TASK_CATEGORIES.map((cat) => (
+            <SelectItem key={cat.slug} value={cat.slug}>{cat.icon} {cat.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
