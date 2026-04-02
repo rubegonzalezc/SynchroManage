@@ -239,8 +239,8 @@ export async function PUT(
       details: { project_id: id },
     })
 
-    revalidateTag(`project-${id}`)
-    revalidateTag('projects')
+    revalidateTag(`project-${id}`, 'max')
+    revalidateTag('projects', 'max')
 
     return NextResponse.json({ project: data })
   } catch (error) {
@@ -301,8 +301,8 @@ export async function DELETE(
       details: { project_id: id },
     })
 
-    revalidateTag(`project-${id}`)
-    revalidateTag('projects')
+    revalidateTag(`project-${id}`, 'max')
+    revalidateTag('projects', 'max')
 
     return NextResponse.json({ success: true })
   } catch (error) {

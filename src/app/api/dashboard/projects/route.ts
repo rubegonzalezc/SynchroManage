@@ -362,7 +362,7 @@ export async function POST(request: Request) {
       console.error('Error sending project assignment emails:', emailError)
     }
 
-    revalidateTag('projects')
+    revalidateTag('projects', 'max')
 
     return NextResponse.json({ project })
   } catch (error) {

@@ -106,8 +106,8 @@ export async function POST(
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-    revalidateTag(`sprints-${id}`)
-    revalidateTag(`project-${id}`)
+    revalidateTag(`sprints-${id}`, 'max')
+    revalidateTag(`project-${id}`, 'max')
 
     return NextResponse.json({ sprint }, { status: 201 })
   } catch (err) {

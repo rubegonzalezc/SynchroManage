@@ -51,8 +51,8 @@ export async function PATCH(
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-    revalidateTag(`sprints-${sprint.project_id}`)
-    revalidateTag(`project-${sprint.project_id}`)
+    revalidateTag(`sprints-${sprint.project_id}`, 'max')
+    revalidateTag(`project-${sprint.project_id}`, 'max')
 
     return NextResponse.json({ sprint })
   } catch (err) {
@@ -89,8 +89,8 @@ export async function DELETE(
     const { error } = await admin.from('sprints').delete().eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-    revalidateTag(`sprints-${sprint.project_id}`)
-    revalidateTag(`project-${sprint.project_id}`)
+    revalidateTag(`sprints-${sprint.project_id}`, 'max')
+    revalidateTag(`project-${sprint.project_id}`, 'max')
 
     return NextResponse.json({ success: true })
   } catch (err) {

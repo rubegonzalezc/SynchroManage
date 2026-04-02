@@ -211,7 +211,7 @@ export async function POST(request: Request) {
       assignees = assigneesData || []
     }
 
-    revalidateTag(`project-${body.project_id}`)
+    revalidateTag(`project-${body.project_id}`, 'max')
 
     return NextResponse.json({ task: { ...task, assignees } })
   } catch (error) {
