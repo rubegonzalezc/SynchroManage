@@ -192,21 +192,12 @@ export function NotificationsDropdown() {
     setOpen(false)
   }
 
-  // No renderizar hasta que esté montado en el cliente
-  if (!mounted) {
-    return (
-      <Button variant="ghost" size="icon" className="relative">
-        <Bell className="w-5 h-5 text-muted-foreground" />
-      </Button>
-    )
-  }
-
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5 text-muted-foreground" />
-          {unreadCount > 0 && (
+          {mounted && unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>

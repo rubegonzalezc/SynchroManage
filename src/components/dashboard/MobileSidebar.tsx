@@ -32,10 +32,11 @@ interface MenuItem {
   icon: typeof LayoutDashboard
   href: string
   roles?: string[]
+  exact?: boolean
 }
 
 const menuItems: MenuItem[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+  { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', exact: true },
   { title: 'Mis Tareas', icon: ListTodo, href: '/my-tasks', roles: ['admin', 'pm', 'tech_lead', 'developer'] },
   { title: 'Usuarios', icon: Users, href: '/dashboard/users', roles: ['admin'] },
   { title: 'Empresas', icon: Building2, href: '/dashboard/companies', roles: ['admin'] },
@@ -130,7 +131,9 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
           <p className="text-xs text-muted-foreground px-2 mb-2 font-medium">Menú Principal</p>
           <ul className="space-y-1">
             {filteredMenuItems.map((item) => {
-              const isActive = pathname === item.href
+              const isActive = item.exact 
+                ? pathname === item.href 
+                : (pathname === item.href || pathname.startsWith(item.href + '/'))
               return (
                 <li key={item.href}>
                   <Link

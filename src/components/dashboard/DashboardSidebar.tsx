@@ -48,6 +48,7 @@ interface MenuItem {
   icon: typeof LayoutDashboard
   href: string
   roles?: string[] // Si no se especifica, todos los roles pueden ver
+  exact?: boolean
 }
 
 const menuItems: MenuItem[] = [
@@ -55,6 +56,7 @@ const menuItems: MenuItem[] = [
     title: 'Dashboard',
     icon: LayoutDashboard,
     href: '/dashboard',
+    exact: true,
   },
   {
     title: 'Mis Tareas',
@@ -172,7 +174,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+                    isActive={item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(item.href + '/'))}
                     className="data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
                   >
                     <Link href={item.href}>
