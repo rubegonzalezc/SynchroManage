@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import useSWR from 'swr'
 import { TasksList, type Task } from './TasksList'
 import { TasksCalendar } from './TasksCalendar'
@@ -8,9 +8,12 @@ import { CreateMeetingDialog } from './CreateMeetingDialog'
 import { MeetingDetailDialog } from './MeetingDetailDialog'
 import { MyTasksProjectSelector } from './MyTasksProjectSelector'
 import { ProjectSprintBanner } from './ProjectSprintBanner'
+import { ProjectOrderDialog } from './ProjectOrderDialog'
 import { Button } from '@/components/ui/button'
-import { Plus, CalendarDays, ListTodo } from 'lucide-react'
+import { Plus, CalendarDays, ListTodo, Settings2 } from 'lucide-react'
 import { useSprints } from '@/hooks/useSprints'
+
+const STORAGE_KEY = 'synchro-project-order'
 
 interface Meeting {
   id: string
@@ -41,6 +44,26 @@ export function MyTasksClient() {
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null)
   const [mobileView, setMobileView] = useState<'list' | 'calendar'>('list')
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false)
+  const [customOrderIds, setCustomOrderIds] = useState<string[] | null>(null)
+
+  // Cargar orden personalizado desde localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) setCustomOrderIds(JSON.parse(saved))
+    } catch { /* ignorar */ }
+  }, [])
+
+  const saveCustomOrder = useCallback((ids: string[]) => {
+    setCustomOrderIds(ids)
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ids)) } catch { /* ignorar */ }
+  }, [])
+
+  const resetOrder = useCallback(() => {
+    setCustomOrderIds(null)
+    try { localStorage.removeItem(STORAGE_KEY) } catch { /* ignorar */ }
+  }, [])
 
   // Fetch de tareas propias (con sprint y proyecto)
   const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useSWR<{ tasks: Task[] }>(
@@ -61,30 +84,6 @@ export function MyTasksClient() {
   const tasks: Task[] = tasksData?.tasks ?? []
   const meetings: Meeting[] = meetingsData?.meetings ?? []
 
-  // Proyectos únicos que tienen tareas asignadas al usuario
-  const projectsWithTasks = useMemo(() => {
-    const fromTasks = new Map<string, Project>()
-    tasks.forEach(t => {
-      if (t.project && !fromTasks.has(t.project.id)) {
-        fromTasks.set(t.project.id, { id: t.project.id, name: t.project.name, type: t.project.type, company: (t.project as Project).company })
-      }
-    })
-    // Fusionar con la lista oficial de proyectos para incluir proyectos sin tareas
-    const allProjects = projectsData?.projects ?? []
-    allProjects.forEach(p => {
-      if (!fromTasks.has(p.id)) {
-        fromTasks.set(p.id, p)
-      }
-    })
-    return Array.from(fromTasks.values()).sort((a, b) => a.name.localeCompare(b.name))
-  }, [tasks, projectsData?.projects])
-
-  // Tareas filtradas según proyecto seleccionado
-  const filteredTasks = useMemo(() => {
-    if (selectedProjectId === null) return tasks
-    return tasks.filter(t => t.project?.id === selectedProjectId)
-  }, [tasks, selectedProjectId])
-
   // Conteo de tareas pendientes por proyecto para el selector
   const taskCountByProject = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -95,6 +94,51 @@ export function MyTasksClient() {
     })
     return counts
   }, [tasks])
+
+  // Proyectos únicos (sin completados), con orden personalizado o automático
+  const projectsWithTasks = useMemo(() => {
+    const fromTasks = new Map<string, Project>()
+    tasks.forEach(t => {
+      if (t.project && !fromTasks.has(t.project.id)) {
+        fromTasks.set(t.project.id, {
+          id: t.project.id,
+          name: t.project.name,
+          type: t.project.type,
+          company: (t.project as Project).company,
+        })
+      }
+    })
+    const allProjects = (projectsData?.projects ?? []).filter(
+      (p: Project & { status?: string }) => p.status !== 'completed'
+    )
+    allProjects.forEach(p => {
+      if (!fromTasks.has(p.id)) fromTasks.set(p.id, p)
+    })
+    const active = Array.from(fromTasks.values()).filter(
+      (p: Project & { status?: string }) => p.status !== 'completed'
+    )
+
+    if (customOrderIds && customOrderIds.length > 0) {
+      // Aplicar orden guardado: primero los que tienen posición, luego los nuevos al final
+      const ordered = customOrderIds
+        .map(id => active.find(p => p.id === id))
+        .filter((p): p is Project => !!p)
+      const rest = active.filter(p => !customOrderIds.includes(p.id))
+      return [...ordered, ...rest]
+    }
+
+    // Orden automático: por tareas pendientes desc, luego nombre asc
+    return active.sort((a, b) => {
+      const diff = (taskCountByProject[b.id] ?? 0) - (taskCountByProject[a.id] ?? 0)
+      return diff !== 0 ? diff : a.name.localeCompare(b.name)
+    })
+  }, [tasks, projectsData?.projects, taskCountByProject, customOrderIds])
+
+  // Tareas filtradas según proyecto seleccionado
+  const filteredTasks = useMemo(() => {
+    if (selectedProjectId === null) return tasks
+    return tasks.filter(t => t.project?.id === selectedProjectId)
+  }, [tasks, selectedProjectId])
 
   // Nombre del proyecto seleccionado
   const selectedProjectName = useMemo(
@@ -159,14 +203,29 @@ export function MyTasksClient() {
         </div>
       </div>
 
-      {/* Project selector */}
+      {/* Project selector + botón de ordenar */}
       {projectsWithTasks.length > 0 && (
-        <MyTasksProjectSelector
-          projects={projectsWithTasks}
-          selectedProjectId={selectedProjectId}
-          onSelect={setSelectedProjectId}
-          taskCountByProject={taskCountByProject}
-        />
+        <div className="flex items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <MyTasksProjectSelector
+              projects={projectsWithTasks}
+              selectedProjectId={selectedProjectId}
+              onSelect={setSelectedProjectId}
+              taskCountByProject={taskCountByProject}
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-9 w-9 flex-shrink-0 rounded-full transition-colors ${
+              customOrderIds ? 'text-primary bg-primary/10 hover:bg-primary/20' : 'text-muted-foreground hover:text-foreground'
+            }`}
+            onClick={() => setOrderDialogOpen(true)}
+            title={customOrderIds ? 'Orden personalizado activo' : 'Personalizar orden de proyectos'}
+          >
+            <Settings2 className="w-4 h-4" />
+          </Button>
+        </div>
       )}
 
       {/* Sprint banner — solo cuando hay proyecto seleccionado */}
@@ -205,6 +264,14 @@ export function MyTasksClient() {
       </div>
 
       {/* Dialogs */}
+      <ProjectOrderDialog
+        open={orderDialogOpen}
+        onOpenChange={setOrderDialogOpen}
+        projects={projectsWithTasks}
+        onSave={saveCustomOrder}
+        onReset={resetOrder}
+      />
+
       <CreateMeetingDialog
         open={createMeetingOpen}
         onOpenChange={setCreateMeetingOpen}
