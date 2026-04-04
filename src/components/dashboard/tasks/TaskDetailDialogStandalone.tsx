@@ -20,11 +20,12 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MentionInput, renderMentions, extractMentionedUserIds } from '@/components/ui/mention-input'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Loader2, Trash2, Send, RefreshCw, ExternalLink } from 'lucide-react'
+import { Loader2, Trash2, Send, RefreshCw, ExternalLink, GitBranch, Copy, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
+import { getBranchName } from '@/lib/utils/branch-name'
 
 interface User {
   id: string
@@ -93,6 +94,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
   const [task, setTask] = useState<TaskDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [branchCopied, setBranchCopied] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [sendingComment, setSendingComment] = useState(false)
   const [deleteCommentDialogOpen, setDeleteCommentDialogOpen] = useState(false)
@@ -354,19 +356,45 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
             </div>
           ) : task ? (
             <div className="space-y-6">
-              {/* Project Link */}
-              {task.project && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Proyecto:</span>
-                  <Link 
-                    href={`/projects/${task.project.id}`}
-                    className="text-foreground hover:underline flex items-center gap-1"
-                  >
-                    {task.project.name}
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
+              {/* Project Link + Branch */}
+              <div className="flex flex-col gap-2">
+                {task.project && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Proyecto:</span>
+                    <Link
+                      href={`/projects/${task.project.id}`}
+                      className="text-foreground hover:underline flex items-center gap-1"
+                    >
+                      {task.project.name}
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
+                )}
+
+                {/* Rama de creación */}
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground text-sm">Rama:</span>
+                  <div className="flex items-center gap-1.5 bg-muted rounded-md px-2.5 py-1 flex-1 min-w-0">
+                    <GitBranch className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                    <span className="font-mono text-xs text-foreground truncate">
+                      {getBranchName(task)}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(getBranchName(task))
+                        setBranchCopied(true)
+                        setTimeout(() => setBranchCopied(false), 1500)
+                      }}
+                      className="ml-auto flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                      title="Copiar nombre de rama"
+                    >
+                      {branchCopied
+                        ? <Check className="w-3.5 h-3.5 text-green-500" />
+                        : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
-              )}
+              </div>
 
               {/* Form */}
               <div className="space-y-4">

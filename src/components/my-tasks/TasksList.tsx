@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { TaskDetailDialogStandalone } from '@/components/dashboard/tasks/TaskDetailDialogStandalone'
+import { getBranchName } from '@/lib/utils/branch-name'
 
 export interface Task {
   id: string
@@ -84,17 +85,6 @@ const categoryConfig: Record<string, { label: string; color: string; icon: strin
   chore:       { label: 'Chore',     color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',           icon: '🔨' },
 }
 
-function getBranchName(task: Task): string {
-  const cat = task.category || 'task'
-  const num = task.task_number ? `#${task.task_number}` : ''
-  const slug = task.title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .slice(0, 30)
-  return `${cat}/${num}-${slug}`
-}
 
 // Helper para toggle de sets multi-select
 function toggleSet(set: Set<string>, value: string): Set<string> {
