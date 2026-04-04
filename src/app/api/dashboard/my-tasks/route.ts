@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-// GET - Obtener tareas asignadas al usuario actual (single join, no 2 queries)
+// GET - Obtener tareas asignadas al usuario actual con datos de sprint y proyecto
 export async function GET() {
   try {
     const supabaseServer = await createServerClient()
@@ -31,7 +31,10 @@ export async function GET() {
           category,
           due_date,
           created_at,
-          project:projects(id, name, status)
+          sprint_id,
+          is_carry_over,
+          project:projects(id, name, status, type, company:companies(id, name)),
+          sprint:sprints(id, name, status)
         )
       `)
       .eq('user_id', user.id)
@@ -40,7 +43,7 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    // Extraer las tareas del join y filtrar nulos
+    // Extraer las tareas del join, filtrar nulos y ordenar por fecha de creación desc
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tasks = (assigneeRecords || [])
       .map((r: any) => r.task)
