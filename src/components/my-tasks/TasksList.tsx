@@ -4,12 +4,13 @@ import { useState, useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Loader2, Search, ExternalLink, AlertTriangle, CheckCircle2,
-  Clock, RefreshCw, GitBranch, Layers, X,
+  Clock, RefreshCw, GitBranch, Layers, X, ChevronDown,
 } from 'lucide-react'
 import Link from 'next/link'
 import { TaskDetailDialogStandalone } from '@/components/dashboard/tasks/TaskDetailDialogStandalone'
@@ -95,11 +96,85 @@ function getBranchName(task: Task): string {
   return `${cat}/${num}-${slug}`
 }
 
+// Helper para toggle de sets multi-select
+function toggleSet(set: Set<string>, value: string): Set<string> {
+  const next = new Set(set)
+  if (next.has(value)) next.delete(value)
+  else next.add(value)
+  return next
+}
+
+// Componente de filtro multi-select reutilizable
+function MultiSelectFilter({
+  label,
+  options,
+  selected,
+  onToggle,
+  onClear,
+}: {
+  label: string
+  options: { value: string; label: string; dot?: string }[]
+  selected: Set<string>
+  onToggle: (v: string) => void
+  onClear: () => void
+}) {
+  const count = selected.size
+  const isActive = count > 0
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={`h-8 gap-1.5 text-sm font-normal px-3 ${isActive ? 'border-primary text-primary bg-primary/5' : 'text-muted-foreground'}`}
+        >
+          {label}
+          {isActive && (
+            <span className="bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center font-semibold leading-none">
+              {count}
+            </span>
+          )}
+          <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-48 p-1" sideOffset={6}>
+        {options.map(opt => (
+          <label
+            key={opt.value}
+            className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer transition-colors"
+          >
+            <Checkbox
+              checked={selected.has(opt.value)}
+              onCheckedChange={() => onToggle(opt.value)}
+              className="flex-shrink-0"
+            />
+            {opt.dot && <span className={`w-2 h-2 rounded-full flex-shrink-0 ${opt.dot}`} />}
+            <span className="text-sm">{opt.label}</span>
+          </label>
+        ))}
+        {isActive && (
+          <>
+            <div className="border-t border-border mt-1 pt-1">
+              <button
+                onClick={onClear}
+                className="w-full text-xs text-muted-foreground hover:text-foreground text-left px-2 py-1.5 rounded-md hover:bg-muted transition-colors"
+              >
+                Limpiar selección
+              </button>
+            </div>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }: TasksListProps) {
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [priorityFilter, setPriorityFilter] = useState('all')
-  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set())
+  const [priorityFilter, setPriorityFilter] = useState<Set<string>>(new Set())
+  const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set())
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   const isOverdue = (dueDate: string | null, status: string) => {
@@ -107,23 +182,64 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
     return new Date(dueDate + 'T00:00:00') < new Date()
   }
 
-  const filteredTasks = useMemo(() => tasks.filter(task => {
-    const matchesSearch =
-      task.title.toLowerCase().includes(search.toLowerCase()) ||
-      task.project?.name.toLowerCase().includes(search.toLowerCase()) ||
-      `#${task.task_number}`.includes(search)
-    const matchesStatus = statusFilter === 'all' || task.status === statusFilter
-    const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter
-    const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter
-    return matchesSearch && matchesStatus && matchesPriority && matchesCategory
-  }), [tasks, search, statusFilter, priorityFilter, categoryFilter])
+  const filteredTasks = useMemo(() => {
+    const SPRINT_ORDER: Record<string, number> = { active: 0, planning: 1 }
+    const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
+
+    return tasks
+      .filter(task => {
+        const matchesSearch =
+          task.title.toLowerCase().includes(search.toLowerCase()) ||
+          task.project?.name.toLowerCase().includes(search.toLowerCase()) ||
+          `#${task.task_number}`.includes(search)
+        const matchesStatus = statusFilter.size === 0 || statusFilter.has(task.status)
+        const matchesPriority = priorityFilter.size === 0 || priorityFilter.has(task.priority)
+        const matchesCategory = categoryFilter.size === 0 || categoryFilter.has(task.category ?? 'task')
+        return matchesSearch && matchesStatus && matchesPriority && matchesCategory
+      })
+      .sort((a, b) => {
+        // 1. Tareas "done" siempre al final
+        const aDone = a.status === 'done' ? 1 : 0
+        const bDone = b.status === 'done' ? 1 : 0
+        if (aDone !== bDone) return aDone - bDone
+
+        // 2. Carry Over tiene prioridad máxima dentro de su grupo de sprint
+        const aCarry = a.is_carry_over ? 0 : 1
+        const bCarry = b.is_carry_over ? 0 : 1
+        if (aCarry !== bCarry) return aCarry - bCarry
+
+        // 3. Orden por estado del sprint: activo → planning → backlog
+        const aSprintOrder = a.sprint ? (SPRINT_ORDER[a.sprint.status] ?? 2) : 3
+        const bSprintOrder = b.sprint ? (SPRINT_ORDER[b.sprint.status] ?? 2) : 3
+        if (aSprintOrder !== bSprintOrder) return aSprintOrder - bSprintOrder
+
+        // 4. Dentro del mismo sprint: primero vencidas
+        const aOverdue = isOverdue(a.due_date, a.status) ? 0 : 1
+        const bOverdue = isOverdue(b.due_date, b.status) ? 0 : 1
+        if (aOverdue !== bOverdue) return aOverdue - bOverdue
+
+        // 5. Prioridad (urgent → high → medium → low)
+        const aPriority = PRIORITY_ORDER[a.priority] ?? 99
+        const bPriority = PRIORITY_ORDER[b.priority] ?? 99
+        if (aPriority !== bPriority) return aPriority - bPriority
+
+        // 6. Fecha de entrega más próxima primero
+        if (a.due_date && b.due_date) {
+          return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+        }
+        if (a.due_date) return -1
+        if (b.due_date) return 1
+
+        return 0
+      })
+  }, [tasks, search, statusFilter, priorityFilter, categoryFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pendingCount = tasks.filter(t => t.status !== 'done').length
   const completedCount = tasks.filter(t => t.status === 'done').length
   const overdueCount = tasks.filter(t => isOverdue(t.due_date, t.status)).length
   const carryOverCount = tasks.filter(t => t.is_carry_over).length
 
-  const hasActiveFilters = search !== '' || statusFilter !== 'all' || priorityFilter !== 'all' || categoryFilter !== 'all'
+  const hasActiveFilters = search !== '' || statusFilter.size > 0 || priorityFilter.size > 0 || categoryFilter.size > 0
 
   const formatDate = (date: string | null) => {
     if (!date) return null
@@ -181,7 +297,7 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
       </div>
 
       {/* Filters */}
-      <div className="p-3 border-b border-border flex flex-wrap gap-2">
+      <div className="p-3 border-b border-border flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
@@ -191,50 +307,54 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
             className="pl-8 h-8 text-sm"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[130px] h-8 text-sm">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="backlog">Backlog</SelectItem>
-            <SelectItem value="todo">Por Hacer</SelectItem>
-            <SelectItem value="in_progress">En Progreso</SelectItem>
-            <SelectItem value="review">En Revisión</SelectItem>
-            <SelectItem value="done">Completado</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[120px] h-8 text-sm">
-            <SelectValue placeholder="Prioridad" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Prioridad</SelectItem>
-            <SelectItem value="urgent">Urgente</SelectItem>
-            <SelectItem value="high">Alta</SelectItem>
-            <SelectItem value="medium">Media</SelectItem>
-            <SelectItem value="low">Baja</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[130px] h-8 text-sm">
-            <SelectValue placeholder="Tipo/Rama" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los tipos</SelectItem>
-            {Object.entries(categoryConfig).map(([key, cfg]) => (
-              <SelectItem key={key} value={key}>{cfg.icon} {cfg.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        <MultiSelectFilter
+          label="Estado"
+          selected={statusFilter}
+          onToggle={(v) => setStatusFilter(prev => toggleSet(prev, v))}
+          onClear={() => setStatusFilter(new Set())}
+          options={[
+            { value: 'backlog', label: 'Backlog', dot: 'bg-slate-400' },
+            { value: 'todo', label: 'Por Hacer', dot: 'bg-blue-500' },
+            { value: 'in_progress', label: 'En Progreso', dot: 'bg-amber-500' },
+            { value: 'review', label: 'En Revisión', dot: 'bg-purple-500' },
+            { value: 'done', label: 'Completado', dot: 'bg-green-500' },
+          ]}
+        />
+
+        <MultiSelectFilter
+          label="Prioridad"
+          selected={priorityFilter}
+          onToggle={(v) => setPriorityFilter(prev => toggleSet(prev, v))}
+          onClear={() => setPriorityFilter(new Set())}
+          options={[
+            { value: 'urgent', label: 'Urgente', dot: 'bg-red-500' },
+            { value: 'high', label: 'Alta', dot: 'bg-orange-500' },
+            { value: 'medium', label: 'Media', dot: 'bg-blue-500' },
+            { value: 'low', label: 'Baja', dot: 'bg-slate-400' },
+          ]}
+        />
+
+        <MultiSelectFilter
+          label="Tipo/Rama"
+          selected={categoryFilter}
+          onToggle={(v) => setCategoryFilter(prev => toggleSet(prev, v))}
+          onClear={() => setCategoryFilter(new Set())}
+          options={Object.entries(categoryConfig).map(([key, cfg]) => ({
+            value: key,
+            label: `${cfg.icon} ${cfg.label}`,
+          }))}
+        />
+
         {hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2 text-muted-foreground hover:text-foreground"
-            onClick={() => { setSearch(''); setStatusFilter('all'); setPriorityFilter('all'); setCategoryFilter('all') }}
+            className="h-8 px-2 text-muted-foreground hover:text-foreground gap-1"
+            onClick={() => { setSearch(''); setStatusFilter(new Set()); setPriorityFilter(new Set()); setCategoryFilter(new Set()) }}
           >
             <X className="w-3.5 h-3.5" />
+            <span className="text-xs">Limpiar</span>
           </Button>
         )}
       </div>
@@ -254,7 +374,7 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
                 variant="link"
                 size="sm"
                 className="mt-2 text-xs"
-                onClick={() => { setSearch(''); setStatusFilter('all'); setPriorityFilter('all'); setCategoryFilter('all') }}
+                onClick={() => { setSearch(''); setStatusFilter(new Set()); setPriorityFilter(new Set()); setCategoryFilter(new Set()) }}
               >
                 Limpiar filtros
               </Button>
@@ -262,14 +382,42 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {filteredTasks.map((task) => {
+            {filteredTasks.map((task, idx) => {
               const cat = categoryConfig[task.category || 'task'] ?? categoryConfig.task
               const overdue = isOverdue(task.due_date, task.status)
               const branchName = getBranchName(task)
 
+              // Determinar si hay cambio de grupo de sprint respecto a la tarea anterior
+              const getSprintGroup = (t: Task) => {
+                if (t.status === 'done') return 'done'
+                if (!t.sprint) return 'backlog'
+                return t.sprint.id
+              }
+              const prevTask = filteredTasks[idx - 1]
+              const groupChanged = idx > 0 && getSprintGroup(task) !== getSprintGroup(prevTask)
+
+              // Etiqueta del grupo
+              const getGroupLabel = () => {
+                if (task.status === 'done') return null
+                if (!task.sprint) return { label: 'Backlog', color: 'text-muted-foreground', dot: 'bg-slate-400' }
+                if (task.sprint.status === 'active') return { label: `Sprint activo · ${task.sprint.name}`, color: 'text-primary', dot: 'bg-primary' }
+                if (task.sprint.status === 'planning') return { label: `En planificación · ${task.sprint.name}`, color: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500' }
+                return { label: task.sprint.name, color: 'text-muted-foreground', dot: 'bg-slate-400' }
+              }
+
+              const showHeader = idx === 0 || groupChanged
+              const groupLabel = showHeader ? getGroupLabel() : null
+
               return (
+                <div key={task.id}>
+                  {/* Separador de grupo de sprint */}
+                  {groupLabel && (
+                    <div className={`flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border ${idx > 0 ? 'border-t border-border' : ''}`}>
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${groupLabel.dot}`} />
+                      <span className={`text-xs font-semibold ${groupLabel.color}`}>{groupLabel.label}</span>
+                    </div>
+                  )}
                 <div
-                  key={task.id}
                   onClick={() => setSelectedTaskId(task.id)}
                   className="group p-4 hover:bg-muted/40 cursor-pointer transition-colors"
                 >
@@ -337,6 +485,7 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
                       </Link>
                     )}
                   </div>
+                </div>
                 </div>
               )
             })}
