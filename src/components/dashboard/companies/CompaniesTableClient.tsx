@@ -10,7 +10,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Loader2, Search, Building2, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Search, Building2, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CreateCompanyDialog } from './CreateCompanyDialog'
 import { EditCompanyDialog } from './EditCompanyDialog'
 import { DeleteCompanyDialog } from './DeleteCompanyDialog'
@@ -132,8 +133,44 @@ export function CompaniesTableClient() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <div className="rounded-lg border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead><Skeleton className="h-4 w-24" /></TableHead>
+                  <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                  <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                  <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                  <TableHead className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-9 h-9 rounded-lg flex-shrink-0" />
+                        <Skeleton className="h-4 w-36" />
+                      </div>
+                    </TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell>
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-3.5 w-40" />
+                        <Skeleton className="h-3 w-28" />
+                      </div>
+                    </TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Skeleton className="w-8 h-8 rounded-md" />
+                        <Skeleton className="w-8 h-8 rounded-md" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         ) : error ? (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg">{error}</div>

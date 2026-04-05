@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { MentionInput, renderMentions, extractMentionedUserIds, extractMentionAll } from '@/components/ui/mention-input'
 import { Loader2, Send, MessageSquare, Trash2, RefreshCw } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
 
 interface User {
@@ -234,8 +235,21 @@ export function ProjectComments({ projectId, projectName, users, currentUserId }
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <div className="space-y-3 mb-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-3 p-3 rounded-lg bg-muted/50">
+                <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-16 rounded-full" />
+                    <Skeleton className="h-3 w-24 ml-auto" />
+                  </div>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <>

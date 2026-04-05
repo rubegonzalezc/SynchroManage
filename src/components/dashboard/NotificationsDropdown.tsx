@@ -9,7 +9,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Bell, Check, MessageSquare, UserPlus, FolderPlus, Loader2 } from 'lucide-react'
+import { Bell, Check, MessageSquare, UserPlus, FolderPlus } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
 
 interface Notification {
@@ -62,7 +63,7 @@ export function NotificationsDropdown() {
 
     const controller = new AbortController()
     const supabase = createClient()
-    
+
     // Obtener usuario actual
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -73,7 +74,7 @@ export function NotificationsDropdown() {
         fetchNotifications(controller.signal)
       }
     }
-    
+
     getUser()
     return () => controller.abort()
   }, [mounted])
@@ -83,7 +84,7 @@ export function NotificationsDropdown() {
     if (!userId) return
 
     const supabase = createClient()
-    
+
     // Suscribirse a nuevas notificaciones para este usuario
     const channel = supabase
       .channel('notifications-changes')
@@ -111,7 +112,7 @@ export function NotificationsDropdown() {
         (payload) => {
           // Notificación actualizada (marcada como leída)
           const updated = payload.new as { id: string; read: boolean }
-          setNotifications(prev => 
+          setNotifications(prev =>
             prev.map(n => n.id === updated.id ? { ...n, read: updated.read } : n)
           )
           if (updated.read) {
@@ -133,7 +134,7 @@ export function NotificationsDropdown() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notificationIds }),
       })
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => notificationIds.includes(n.id) ? { ...n, read: true } : n)
       )
       setUnreadCount(prev => Math.max(0, prev - notificationIds.length))
@@ -219,8 +220,16 @@ export function NotificationsDropdown() {
 
         <div className="max-h-96 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            <div className="space-y-1 p-1">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3 px-3 py-3">
+                  <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+                  <div className="flex-1 space-y-2 pt-0.5">
+                    <Skeleton className="h-3.5 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : notifications.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground text-sm">
@@ -233,18 +242,16 @@ export function NotificationsDropdown() {
                   <Link
                     href={notification.link}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`flex gap-3 px-4 py-3 hover:bg-muted/50 transition-colors ${
-                      !notification.read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
-                    }`}
+                    className={`flex gap-3 px-4 py-3 hover:bg-muted/50 transition-colors ${!notification.read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
+                      }`}
                   >
                     <NotificationContent notification={notification} getIcon={getIcon} getInitials={getInitials} formatTime={formatTime} />
                   </Link>
                 ) : (
                   <div
                     onClick={() => handleNotificationClick(notification)}
-                    className={`flex gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer ${
-                      !notification.read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
-                    }`}
+                    className={`flex gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer ${!notification.read ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''
+                      }`}
                   >
                     <NotificationContent notification={notification} getIcon={getIcon} getInitials={getInitials} formatTime={formatTime} />
                   </div>
@@ -258,12 +265,12 @@ export function NotificationsDropdown() {
   )
 }
 
-function NotificationContent({ 
-  notification, 
-  getIcon, 
-  getInitials, 
-  formatTime 
-}: { 
+function NotificationContent({
+  notification,
+  getIcon,
+  getInitials,
+  formatTime
+}: {
   notification: Notification
   getIcon: (type: string) => React.ReactNode
   getInitials: (name: string | null) => string

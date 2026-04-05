@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Loader2, ArrowLeft, Users, Calendar, Building2, Mail, CheckCircle2, Clock, FolderKanban, GitPullRequest, LayoutGrid, List } from 'lucide-react'
+import { ArrowLeft, Users, Calendar, Building2, Mail, CheckCircle2, Clock, FolderKanban, GitPullRequest, LayoutGrid, List } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { KanbanBoard } from './KanbanBoard'
 import { TaskListView } from './TaskListView'
 import { TaskFilters } from './TaskFilters'
@@ -157,8 +158,59 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        {/* Header skeleton */}
+        <div className="flex items-start justify-between">
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-24 mb-2" />
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-24 rounded-full" />
+            <Skeleton className="h-8 w-20 rounded-md" />
+            <Skeleton className="h-8 w-20 rounded-md" />
+          </div>
+        </div>
+
+        {/* Info Cards skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-card rounded-lg border border-border p-4 space-y-2">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+          ))}
+        </div>
+
+        {/* View toggle + filters skeleton */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-9 w-36 rounded-lg" />
+          <Skeleton className="h-9 flex-1" />
+          <Skeleton className="h-9 w-28" />
+        </div>
+
+        {/* Kanban Board skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((col) => (
+            <div key={col} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-5 w-6 rounded-full" />
+              </div>
+              {[1, 2, 3].map((card) => (
+                <div key={card} className="bg-card border border-border rounded-lg p-3 space-y-2.5">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3.5 w-4/5" />
+                  <div className="flex items-center justify-between pt-1">
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="w-6 h-6 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

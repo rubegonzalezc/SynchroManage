@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2, Video, Clock, MapPin, ExternalLink, User, Check, X, HelpCircle, Pencil, Trash2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -236,8 +237,30 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
           </DialogHeader>
 
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <div className="space-y-4 py-2">
+              <Skeleton className="h-4 w-3/5" />
+              <Skeleton className="h-10 w-full rounded-lg" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-3.5 w-24" />
+                <Skeleton className="h-4 w-40" />
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-28" />
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+                    <Skeleton className="h-4 flex-1" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : meeting ? (
             isEditing ? (

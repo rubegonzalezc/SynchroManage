@@ -9,9 +9,10 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover'
 import {
-  Loader2, Search, ExternalLink, AlertTriangle, CheckCircle2,
+  Search, ExternalLink, AlertTriangle, CheckCircle2,
   Clock, RefreshCw, GitBranch, Layers, X, ChevronDown,
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { TaskDetailDialogStandalone } from '@/components/dashboard/tasks/TaskDetailDialogStandalone'
 import { getBranchName } from '@/lib/utils/branch-name'
@@ -238,8 +239,44 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="h-full flex flex-col bg-card rounded-xl border border-border overflow-hidden">
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-2.5 px-4 py-3">
+              <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-5 w-8" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Filters skeleton */}
+        <div className="p-3 border-b border-border flex gap-2">
+          <Skeleton className="h-8 flex-1 min-w-[160px]" />
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-24" />
+        </div>
+        {/* Task list skeleton */}
+        <div className="flex-1 overflow-y-auto divide-y divide-border">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-3.5 w-8" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-3 w-14" />
+                <Skeleton className="h-3 w-16 ml-auto" />
+              </div>
+              <Skeleton className="h-4 w-3/4" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-24 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

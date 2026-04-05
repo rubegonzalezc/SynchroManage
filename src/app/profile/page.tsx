@@ -11,6 +11,7 @@ import {
   User, Mail, Shield, Calendar, Loader2, CheckCircle, 
   Key, AlertCircle, Camera, Upload
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
 
 interface Profile {
@@ -269,8 +270,43 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-8 w-36 mb-1" />
+          <Skeleton className="h-4 w-52" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          {/* Avatar card skeleton */}
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex flex-col items-center gap-3">
+              <Skeleton className="w-24 h-24 rounded-full" />
+              <Skeleton className="h-8 w-28" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-4 w-36 mt-2" />
+            </div>
+          </div>
+          {/* Form card skeleton */}
+          <div className="bg-card border border-border rounded-xl p-6 md:col-span-2 space-y-4">
+            <Skeleton className="h-6 w-40 mb-1" />
+            <Skeleton className="h-4 w-56" />
+            <div className="space-y-2 pt-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-10 w-full rounded-lg" />
+            </div>
+            <div className="flex justify-end pt-2">
+              <Skeleton className="h-9 w-28 rounded-md" />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
