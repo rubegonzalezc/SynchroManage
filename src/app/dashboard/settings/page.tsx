@@ -11,8 +11,10 @@ import {
 } from '@/components/ui/select'
 import { 
   Settings, Bell, Palette, Shield, Database, 
-  Loader2, CheckCircle, Building2, Mail, Globe
+  CheckCircle, Building2, Mail, Globe
 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
 
 interface SystemSettings {
@@ -300,8 +302,13 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="text-center p-4 bg-muted/50 rounded-lg space-y-2">
+                    <Skeleton className="h-8 w-12 mx-auto" />
+                    <Skeleton className="h-3 w-16 mx-auto" />
+                  </div>
+                ))}
               </div>
             ) : stats ? (
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

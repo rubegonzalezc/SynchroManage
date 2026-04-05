@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
-  Loader2, History, Plus, Pencil, Trash2, UserPlus, 
+  History, Plus, Pencil, Trash2, UserPlus, 
   CheckCircle, MessageSquare, ArrowRight, Paperclip
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
 
 interface Activity {
@@ -173,8 +174,16 @@ export function ProjectActivity({ projectId }: ProjectActivityProps) {
       </h3>
 
       {loading ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex gap-3">
+              <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+              <div className="flex-1 space-y-2 pt-0.5">
+                <Skeleton className="h-4 w-4/5" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : activities.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">

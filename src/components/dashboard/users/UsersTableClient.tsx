@@ -23,7 +23,8 @@ import { Button } from '@/components/ui/button'
 import { EditUserDialog } from './EditUserDialog'
 import { DeleteUserDialog } from './DeleteUserDialog'
 import { CreateUserDialog } from './CreateUserDialog'
-import { Loader2, Search, ChevronLeft, ChevronRight, X, RefreshCw } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, X, RefreshCw, Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Role {
   id: number
@@ -194,8 +195,59 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1.5">
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-4 w-52" />
+          </div>
+          <Skeleton className="h-9 w-32 rounded-md" />
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Skeleton className="h-9 flex-1 min-w-[200px] max-w-sm" />
+          <Skeleton className="h-9 w-[160px]" />
+          <Skeleton className="h-9 w-[160px]" />
+          <Skeleton className="h-9 w-[180px]" />
+        </div>
+        <div className="rounded-lg border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-12" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-28" /></TableHead>
+                <TableHead className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-44" />
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Skeleton className="w-8 h-8 rounded-md" />
+                      <Skeleton className="w-8 h-8 rounded-md" />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     )
   }
