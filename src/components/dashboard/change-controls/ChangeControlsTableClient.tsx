@@ -11,7 +11,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Loader2, Search, GitPullRequest, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Search, GitPullRequest, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CreateChangeControlDialog } from './CreateChangeControlDialog'
 import { DeleteProjectDialog } from '@/components/dashboard/projects/DeleteProjectDialog'
 
@@ -169,8 +170,39 @@ export function ChangeControlsTableClient() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <div className="rounded-lg border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead><Skeleton className="h-4 w-36" /></TableHead>
+                  <TableHead><Skeleton className="h-4 w-28" /></TableHead>
+                  <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                  <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                  <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                  <TableHead><Skeleton className="h-4 w-24" /></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-9 h-9 rounded-lg flex-shrink-0" />
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-40" />
+                          <Skeleton className="h-3 w-56" />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         ) : error ? (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg">{error}</div>

@@ -10,7 +10,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Loader2, Search, ExternalLink, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
+import { Search, ExternalLink, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { TaskDetailDialogStandalone } from './TaskDetailDialogStandalone'
 
@@ -120,9 +121,66 @@ export function MyTasksClient() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <>
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-card rounded-lg border border-border p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-9 h-9 rounded-lg flex-shrink-0" />
+                <div className="space-y-2">
+                  <Skeleton className="h-7 w-10" />
+                  <Skeleton className="h-3.5 w-20" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filters Skeleton */}
+        <div className="bg-card rounded-lg border border-border p-4 mb-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <Skeleton className="h-9 flex-1" />
+            <Skeleton className="h-9 w-full md:w-[180px]" />
+            <Skeleton className="h-9 w-full md:w-[180px]" />
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[80px]"><Skeleton className="h-4 w-6" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-18" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-24" /></TableHead>
+                <TableHead className="w-[100px]"><Skeleton className="h-4 w-16" /></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-4 w-10 font-mono" /></TableCell>
+                  <TableCell>
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-48" />
+                      <Skeleton className="h-3 w-64" />
+                    </div>
+                  </TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-12 rounded" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </>
     )
   }
 

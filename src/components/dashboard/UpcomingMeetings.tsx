@@ -8,6 +8,7 @@ import { Video, Clock, Users, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { format, isToday, isTomorrow } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Meeting {
   id: string
@@ -79,9 +80,32 @@ export function UpcomingMeetings() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="animate-pulse space-y-3">
-            {[1, 2].map(i => (
-              <div key={i} className="h-20 bg-muted rounded-lg" />
+          <div className="space-y-3">
+            {[1, 2].map((i) => (
+              <div key={i} className="p-3 rounded-lg bg-muted/50 space-y-2.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-3/5" />
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-3 w-3 rounded-full" />
+                      <Skeleton className="h-3 w-40" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-lg flex-shrink-0" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-3 w-3 rounded-full" />
+                    <div className="flex -space-x-1.5">
+                      {[1, 2, 3].map((a) => (
+                        <Skeleton key={a} className="w-6 h-6 rounded-full border-2 border-background" />
+                      ))}
+                    </div>
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+              </div>
             ))}
           </div>
         </CardContent>
