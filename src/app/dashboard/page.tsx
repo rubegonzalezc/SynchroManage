@@ -413,7 +413,7 @@ export default async function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-5 w-full overflow-x-hidden">
+    <div className="space-y-5 w-full overflow-x-hidden pt-2 md:pt-0">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
