@@ -168,6 +168,7 @@ export async function PUT(
     if ('sprint_id' in body) updatePayload.sprint_id = body.sprint_id ?? null
     if ('is_carry_over' in body) updatePayload.is_carry_over = body.is_carry_over ?? false
     if ('branch_name' in body) updatePayload.branch_name = body.branch_name || null
+    if ('complexity' in body) updatePayload.complexity = body.complexity ?? null
 
     const { data: task, error } = await supabaseAdmin
       .from('tasks')

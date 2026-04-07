@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Loader2, CheckCircle, GitBranch } from 'lucide-react'
+import { CopyButton } from '@/components/ui/copy-button'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
 
 interface Member {
@@ -57,6 +58,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
     due_date: '',
     sprint_id: initialSprintId ?? '',
     branch_name: '',
+    complexity: null as number | null,
   })
 
   // Actualizar sprint_id cuando cambia initialSprintId (sprint activo seleccionado)
@@ -92,10 +94,14 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
           auto_branch: autoBranchName, // Pasamos la bandera a la API para que maneje el número
         }),
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error)
+      let data;
+      try {
+        data = await response.json()
+      } catch (err) {
+        throw new Error(`Error del servidor (${response.status})`)
+      }
+      if (!response.ok) throw new Error(data.error || 'Error desconocido')
 
-      // Notificar a los usuarios asignados
       if (formData.assignee_ids.length > 0) {
         await Promise.all(
           formData.assignee_ids.map((assigneeId) =>
@@ -122,7 +128,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
         setFormData({
           title: '', description: '', status: 'backlog',
           priority: 'medium', category: 'task', assignee_ids: [], due_date: '',
-          sprint_id: initialSprintId ?? '', branch_name: '',
+          sprint_id: initialSprintId ?? '', branch_name: '', complexity: null,
         })
         setSuccess(false)
         onTaskCreated?.()
@@ -216,24 +222,41 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Categoría</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(v) => setFormData({ ...formData, category: v })}
-              disabled={loading || success}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TASK_CATEGORIES.map(cat => (
-                  <SelectItem key={cat.slug} value={cat.slug}>
-                    {cat.icon} {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label>Categoría</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(v) => setFormData({ ...formData, category: v })}
+                disabled={loading || success}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TASK_CATEGORIES.map(cat => (
+                    <SelectItem key={cat.slug} value={cat.slug}>
+                      {cat.icon} {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Complejidad</Label>
+              <Select
+                value={formData.complexity === null ? '?' : String(formData.complexity)}
+                onValueChange={(v) => setFormData({ ...formData, complexity: v === '?' ? null : Number(v) })}
+                disabled={loading || success}
+              >
+                <SelectTrigger><SelectValue placeholder="Seleccionar complejidad" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="?">? — No sé</SelectItem>
+                  {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -304,16 +327,19 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
                 </Label>
               </div>
             </div>
-            <Input
-              id="branch_name"
-              value={autoBranchName ? generatedPreview : formData.branch_name}
-              onChange={(e) => {
-                setFormData({ ...formData, branch_name: e.target.value })
-                if (autoBranchName) setAutoBranchName(false)
-              }}
-              placeholder="feat/nombre-de-la-tarea"
-              disabled={loading || success || autoBranchName}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="branch_name"
+                value={autoBranchName ? generatedPreview : formData.branch_name}
+                onChange={(e) => {
+                  setFormData({ ...formData, branch_name: e.target.value })
+                  if (autoBranchName) setAutoBranchName(false)
+                }}
+                placeholder="feat/nombre-de-la-tarea"
+                disabled={loading || success || autoBranchName}
+              />
+              <CopyButton value={autoBranchName ? generatedPreview : formData.branch_name} />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

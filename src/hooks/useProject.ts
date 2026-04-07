@@ -13,6 +13,7 @@ interface Task {
   due_date: string | null
   sprint_id: string | null
   is_carry_over: boolean
+  complexity?: number | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
   assignee?: { id: string; full_name: string; avatar_url: string | null } | null
 }
