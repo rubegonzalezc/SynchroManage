@@ -28,6 +28,7 @@ interface Attachment {
 interface FileAttachmentsProps {
   taskId?: string
   projectId?: string
+  bugId?: string
   currentUserId: string
 }
 
@@ -58,7 +59,7 @@ function getFileIcon(fileType: string) {
   return <File className="w-4 h-4 text-blue-500" />
 }
 
-export function FileAttachments({ taskId, projectId, currentUserId }: FileAttachmentsProps) {
+export function FileAttachments({ taskId, projectId, bugId, currentUserId }: FileAttachmentsProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -74,7 +75,7 @@ export function FileAttachments({ taskId, projectId, currentUserId }: FileAttach
   const fetchAttachments = useCallback(async () => {
     setLoading(true)
     try {
-      const params = taskId ? `task_id=${taskId}` : `project_id=${projectId}`
+      const params = taskId ? `task_id=${taskId}` : bugId ? `bug_id=${bugId}` : `project_id=${projectId}`
       const res = await fetch(`/api/dashboard/attachments?${params}`)
       const data = await res.json()
       if (res.ok) setAttachments(data.attachments || [])
@@ -84,7 +85,7 @@ export function FileAttachments({ taskId, projectId, currentUserId }: FileAttach
       setLoading(false)
       setFetched(true)
     }
-  }, [taskId, projectId])
+  }, [taskId, projectId, bugId])
 
   // Cargar al montar
   useState(() => {
@@ -98,6 +99,7 @@ export function FileAttachments({ taskId, projectId, currentUserId }: FileAttach
       formData.append('file', file)
       if (taskId) formData.append('task_id', taskId)
       if (projectId) formData.append('project_id', projectId)
+      if (bugId) formData.append('bug_id', bugId)
 
       const res = await fetch('/api/dashboard/attachments/upload', {
         method: 'POST',

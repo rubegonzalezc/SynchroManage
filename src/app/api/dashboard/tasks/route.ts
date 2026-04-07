@@ -82,6 +82,7 @@ export async function POST(request: Request) {
         priority: body.priority || 'medium',
         category: body.category || 'task',
         assignee_id: primaryAssigneeId,
+        reviewer_id: body.reviewer_id || null,
         due_date: body.due_date || null,
         position: newPosition,
         sprint_id: body.sprint_id || null,
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
       })
       .select(`
         *,
-        assignee:profiles(id, full_name, avatar_url)
+        assignee:profiles!assignee_id(id, full_name, avatar_url)
       `)
       .single()
 
@@ -142,6 +143,29 @@ export async function POST(request: Request) {
       { project_id: body.project_id }
     )
 
+    // Si se asignó revisor al crear, registrar en auditoría
+    if (body.reviewer_id) {
+      const { data: reviewerProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name')
+        .eq('id', body.reviewer_id)
+        .single()
+
+      await logActivityServer(
+        supabaseAdmin,
+        user.id,
+        'reviewer_assigned',
+        'task',
+        task.id,
+        task.title,
+        {
+          project_id: body.project_id,
+          reviewer_id: body.reviewer_id,
+          reviewer_name: reviewerProfile?.full_name || '',
+        }
+      )
+    }
+
     // Enviar notificaciones a todos los asignados
     for (const assigneeId of assigneeIds) {
       if (assigneeId === user.id) continue // No notificar al creador si se asignó a sí mismo
@@ -157,6 +181,23 @@ export async function POST(request: Request) {
         })
       } catch (notifError) {
         console.error('Error sending notification to assignee:', notifError)
+      }
+    }
+
+    // Notificar al revisor si se asignó uno al crear
+    if (body.reviewer_id && body.reviewer_id !== user.id) {
+      try {
+        await supabaseAdmin.from('notifications').insert({
+          user_id: body.reviewer_id,
+          from_user_id: user.id,
+          type: 'task_assigned',
+          title: 'Te asignaron como Revisor (QA)',
+          message: `Eres el revisor de la tarea "${task.title}"`,
+          link: `/projects?task=${task.id}`,
+          project_id: body.project_id,
+        })
+      } catch (notifError) {
+        console.error('Error sending notification to reviewer:', notifError)
       }
     }
 
@@ -277,7 +318,7 @@ export async function PATCH(request: Request) {
       .eq('id', taskId)
       .select(`
         *,
-        assignee:profiles(id, full_name, avatar_url)
+        assignee:profiles!assignee_id(id, full_name, avatar_url)
       `)
       .single()
 

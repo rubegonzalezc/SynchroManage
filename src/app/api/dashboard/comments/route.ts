@@ -18,8 +18,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El contenido es requerido' }, { status: 400 })
     }
 
-    if (!body.project_id && !body.task_id) {
-      return NextResponse.json({ error: 'Se requiere project_id o task_id' }, { status: 400 })
+    if (!body.project_id && !body.task_id && !body.bug_id) {
+      return NextResponse.json({ error: 'Se requiere project_id, task_id o bug_id' }, { status: 400 })
     }
 
     const supabaseAdmin = createClient(
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
         user_id: user.id,
         project_id: body.project_id || null,
         task_id: body.task_id || null,
+        bug_id: body.bug_id || null,
         is_stakeholder_message: body.is_stakeholder_message || false,
       })
       .select(`

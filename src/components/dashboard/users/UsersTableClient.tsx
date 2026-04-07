@@ -195,7 +195,7 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 pt-2 md:pt-0">
         <div className="flex items-center justify-between">
           <div className="space-y-1.5">
             <Skeleton className="h-8 w-32" />
@@ -257,7 +257,7 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-2 md:pt-0">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

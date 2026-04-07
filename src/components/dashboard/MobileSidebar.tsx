@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -14,6 +14,7 @@ import {
   UserCircle,
   Building2,
   ListTodo,
+  GitPullRequest,
   X,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -41,6 +42,7 @@ const menuItems: MenuItem[] = [
   { title: 'Usuarios', icon: Users, href: '/dashboard/users', roles: ['admin'] },
   { title: 'Empresas', icon: Building2, href: '/dashboard/companies', roles: ['admin'] },
   { title: 'Proyectos', icon: FolderKanban, href: '/projects', roles: ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'] },
+  { title: 'Control de Cambios', icon: GitPullRequest, href: '/change-controls', roles: ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'] },
   { title: 'Configuración', icon: Settings, href: '/dashboard/settings', roles: ['admin'] },
 ]
 
@@ -69,6 +71,11 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
   const supabase = createClient()
   const { resolvedTheme } = useTheme()
   const userRole = user.role || 'admin'
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const filteredMenuItems = menuItems.filter(item => {
     if (!item.roles) return true
@@ -156,6 +163,7 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
 
         {/* Footer: perfil con dropdown */}
         <div className="border-t border-border px-3 py-3">
+          {mounted ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent transition-colors text-left">
@@ -190,6 +198,23 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          ) : (
+            <div className="flex items-center gap-3 px-3 py-2.5">
+              <Avatar className="w-8 h-8 flex-shrink-0">
+                <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                  {getInitials(user.full_name, user.email)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col flex-1 min-w-0">
+                <span className="text-sm font-medium text-foreground truncate">
+                  {user.full_name || user.email}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {roleLabels[userRole] || userRole}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </>

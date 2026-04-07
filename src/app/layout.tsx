@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   title: "SynchroManage",
   description: "Gestor de proyectos informáticos",
   icons: {
-    icon: '/logo/isotipo-blanco.png',
-    apple: '/logo/isotipo-blanco.png',
+    icon: '/logo/sm-icon-blanco.png',
+    apple: '/logo/sm-icon-blanco.png',
   },
 };
 

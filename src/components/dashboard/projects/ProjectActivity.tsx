@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
-  History, Plus, Pencil, Trash2, UserPlus, 
-  CheckCircle, MessageSquare, ArrowRight, Paperclip
+  History, Plus, Pencil, Trash2, UserPlus, UserMinus,
+  CheckCircle, MessageSquare, ArrowRight, Paperclip, ShieldCheck, Bug
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
@@ -33,11 +33,14 @@ const actionIcons: Record<string, React.ReactNode> = {
   updated: <Pencil className="w-4 h-4 text-blue-500" />,
   deleted: <Trash2 className="w-4 h-4 text-red-500" />,
   assigned: <UserPlus className="w-4 h-4 text-purple-500" />,
+  unassigned: <UserMinus className="w-4 h-4 text-orange-500" />,
   completed: <CheckCircle className="w-4 h-4 text-green-500" />,
   commented: <MessageSquare className="w-4 h-4 text-cyan-500" />,
   status_changed: <ArrowRight className="w-4 h-4 text-amber-500" />,
   attached: <Paperclip className="w-4 h-4 text-indigo-500" />,
   detached: <Paperclip className="w-4 h-4 text-red-500" />,
+  reviewer_assigned: <ShieldCheck className="w-4 h-4 text-violet-500" />,
+  reviewer_removed: <ShieldCheck className="w-4 h-4 text-red-400" />,
 }
 
 const actionLabels: Record<string, string> = {
@@ -45,17 +48,21 @@ const actionLabels: Record<string, string> = {
   updated: 'actualizó',
   deleted: 'eliminó',
   assigned: 'asignó',
+  unassigned: 'desasignó',
   completed: 'completó',
   commented: 'comentó en',
   status_changed: 'cambió el estado de',
   attached: 'adjuntó un archivo en',
   detached: 'eliminó un archivo de',
+  reviewer_assigned: 'asignó revisor en',
+  reviewer_removed: 'removió el revisor de',
 }
 
 const entityLabels: Record<string, string> = {
   project: 'el proyecto',
   change_control: 'el control de cambios',
   task: 'la tarea',
+  bug: 'el bug',
   comment: 'un comentario',
   member: 'un miembro',
 }
@@ -159,6 +166,15 @@ export function ProjectActivity({ projectId }: ProjectActivityProps) {
       if (activity.action === 'assigned' && activity.details.assignee_name) {
         extra = ` a ${activity.details.assignee_name}`
       }
+      if (activity.action === 'unassigned' && activity.details.unassigned_user_name) {
+        extra = ` a ${activity.details.unassigned_user_name}`
+      }
+      if (activity.action === 'reviewer_assigned' && activity.details.reviewer_name) {
+        extra = ` → ${activity.details.reviewer_name}`
+      }
+      if (activity.action === 'reviewer_removed' && activity.details.reviewer_name) {
+        extra = ` (${activity.details.reviewer_name})`
+      }
       if ((activity.action === 'attached' || activity.action === 'detached') && activity.details.file_name) {
         extra = ` (${activity.details.file_name})`
       }
@@ -204,7 +220,10 @@ export function ProjectActivity({ projectId }: ProjectActivityProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <div className="flex-shrink-0">
-                    {actionIcons[activity.action] || <History className="w-4 h-4 text-muted-foreground" />}
+                    {activity.entity_type === 'bug'
+                      ? <Bug className="w-4 h-4 text-red-500" />
+                      : (actionIcons[activity.action] || <History className="w-4 h-4 text-muted-foreground" />)
+                    }
                   </div>
                   <p className="text-sm text-foreground">
                     <span className="font-medium">{activity.user?.full_name || 'Usuario'}</span>
