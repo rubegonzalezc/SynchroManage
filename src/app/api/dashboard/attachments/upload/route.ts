@@ -26,13 +26,14 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null
     const taskId = formData.get('task_id') as string | null
     const projectId = formData.get('project_id') as string | null
+    const bugId = formData.get('bug_id') as string | null
 
     if (!file) {
       return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
     }
 
-    if (!taskId && !projectId) {
-      return NextResponse.json({ error: 'Se requiere task_id o project_id' }, { status: 400 })
+    if (!taskId && !projectId && !bugId) {
+      return NextResponse.json({ error: 'Se requiere task_id, project_id o bug_id' }, { status: 400 })
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
     // Generar path único
     const timestamp = Date.now()
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const folder = taskId ? `tasks/${taskId}` : `projects/${projectId}`
+    const folder = taskId ? `tasks/${taskId}` : bugId ? `bugs/${bugId}` : `projects/${projectId}`
     const filePath = `attachments/${folder}/${timestamp}_${sanitizedName}`
 
     // Subir archivo a Storage
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
       .insert({
         task_id: taskId || null,
         project_id: projectId || null,
+        bug_id: bugId || null,
         uploaded_by_id: user.id,
         file_name: file.name,
         file_size: file.size,

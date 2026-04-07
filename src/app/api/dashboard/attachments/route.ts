@@ -15,9 +15,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const taskId = searchParams.get('task_id')
     const projectId = searchParams.get('project_id')
+    const bugId = searchParams.get('bug_id')
 
-    if (!taskId && !projectId) {
-      return NextResponse.json({ error: 'Se requiere task_id o project_id' }, { status: 400 })
+    if (!taskId && !projectId && !bugId) {
+      return NextResponse.json({ error: 'Se requiere task_id, project_id o bug_id' }, { status: 400 })
     }
 
     const supabaseAdmin = createClient(
@@ -36,8 +37,10 @@ export async function GET(request: Request) {
 
     if (taskId) {
       query = query.eq('task_id', taskId)
+    } else if (bugId) {
+      query = query.eq('bug_id', bugId)
     } else if (projectId) {
-      query = query.eq('project_id', projectId).is('task_id', null)
+      query = query.eq('project_id', projectId).is('task_id', null).is('bug_id', null)
     }
 
     const { data: attachments, error } = await query

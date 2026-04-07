@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
   History, Plus, Pencil, Trash2, UserPlus, UserMinus,
-  CheckCircle, MessageSquare, ArrowRight, Paperclip, ShieldCheck
+  CheckCircle, MessageSquare, ArrowRight, Paperclip, ShieldCheck, Bug
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
@@ -62,6 +62,7 @@ const entityLabels: Record<string, string> = {
   project: 'el proyecto',
   change_control: 'el control de cambios',
   task: 'la tarea',
+  bug: 'el bug',
   comment: 'un comentario',
   member: 'un miembro',
 }
@@ -219,7 +220,10 @@ export function ProjectActivity({ projectId }: ProjectActivityProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <div className="flex-shrink-0">
-                    {actionIcons[activity.action] || <History className="w-4 h-4 text-muted-foreground" />}
+                    {activity.entity_type === 'bug'
+                      ? <Bug className="w-4 h-4 text-red-500" />
+                      : (actionIcons[activity.action] || <History className="w-4 h-4 text-muted-foreground" />)
+                    }
                   </div>
                   <p className="text-sm text-foreground">
                     <span className="font-medium">{activity.user?.full_name || 'Usuario'}</span>

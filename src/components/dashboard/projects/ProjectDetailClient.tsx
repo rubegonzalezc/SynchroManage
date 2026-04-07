@@ -24,6 +24,7 @@ import { SprintSelector } from './SprintSelector'
 import { SprintHeader } from './SprintHeader'
 import { CreateSprintDialog } from './CreateSprintDialog'
 import type { Sprint } from './CreateSprintDialog'
+import { BugSection } from './BugSection'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useUsers } from '@/hooks/useUsers'
 import { useProject } from '@/hooks/useProject'
@@ -644,6 +645,19 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             onTasksChange={mutateProject}
           />
         )}
+      </div>
+
+      {/* Bugs Section */}
+      <div className="bg-card rounded-lg border border-border p-6">
+        <BugSection
+          projectId={project.id}
+          members={projectMembers}
+          allUsers={allUsers}
+          currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
+          sprints={project.sprints || []}
+          tasks={project.tasks.map(t => ({ id: t.id, task_number: t.task_number, title: t.title }))}
+        />
       </div>
 
       {/* Project Attachments */}
