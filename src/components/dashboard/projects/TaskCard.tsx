@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Badge } from '@/components/ui/badge'
@@ -40,6 +40,7 @@ interface TaskCardProps {
   currentUserId: string
   onUpdate: () => void
   isDragging?: boolean
+  highlightId?: string | null
 }
 
 const priorityColors: Record<string, string> = {
@@ -57,8 +58,20 @@ const priorityLabels: Record<string, string> = {
 }
 
 
-export function TaskCard({ task, projectId, projectName, members, allUsers, currentUserId, onUpdate, isDragging }: TaskCardProps) {
+export function TaskCard({ task, projectId, projectName, members, allUsers, currentUserId, onUpdate, isDragging, highlightId }: TaskCardProps) {
   const [showDetail, setShowDetail] = useState(false)
+  const [highlighted, setHighlighted] = useState(false)
+  const cardRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (highlightId === task.id) {
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        setHighlighted(true)
+        setTimeout(() => setHighlighted(false), 2000)
+      }, 400)
+    }
+  }, [highlightId, task.id])
 
   const {
     attributes,
@@ -84,11 +97,11 @@ export function TaskCard({ task, projectId, projectName, members, allUsers, curr
   return (
     <>
       <div
-        ref={setNodeRef}
+        ref={(node) => { setNodeRef(node); (cardRef as React.MutableRefObject<HTMLDivElement | null>).current = node }}
         style={style}
-        className={`bg-card rounded-lg border border-border p-3 cursor-pointer hover:shadow-md transition-shadow ${
+        className={`bg-card rounded-lg border p-3 cursor-pointer hover:shadow-md transition-all ${
           isDragging || isSortableDragging ? 'opacity-50 shadow-lg' : ''
-        }`}
+        } ${highlighted ? 'border-primary shadow-[0_0_0_2px_hsl(var(--primary))] animate-pulse' : 'border-border'}`}
         onClick={() => setShowDetail(true)}
       >
         <div className="flex items-start gap-2">
