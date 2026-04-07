@@ -14,15 +14,14 @@ export interface TaskCategory {
 
 export const TASK_CATEGORIES: TaskCategory[] = [
   { slug: 'task',        label: 'Tarea',         icon: '📋', color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',         orderIndex: 0 },
-  { slug: 'bug',         label: 'Bug',           icon: '🐛', color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',              orderIndex: 1 },
-  { slug: 'feature',     label: 'Feature',       icon: '✨', color: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',  orderIndex: 2 },
-  { slug: 'hotfix',      label: 'Hotfix',        icon: '🔥', color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',  orderIndex: 3 },
-  { slug: 'fix',         label: 'Fix',           icon: '🔧', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',  orderIndex: 4 },
-  { slug: 'improvement', label: 'Mejora',        icon: '📈', color: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',          orderIndex: 5 },
-  { slug: 'refactor',    label: 'Refactor',      icon: '♻️', color: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',          orderIndex: 6 },
-  { slug: 'docs',        label: 'Documentación', icon: '📝', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',          orderIndex: 7 },
-  { slug: 'test',        label: 'Test',          icon: '🧪', color: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400',          orderIndex: 8 },
-  { slug: 'chore',       label: 'Chore',         icon: '🔨', color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',             orderIndex: 9 },
+  { slug: 'feature',     label: 'Feature',       icon: '✨', color: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',  orderIndex: 1 },
+  { slug: 'hotfix',      label: 'Hotfix',        icon: '🔥', color: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',  orderIndex: 2 },
+  { slug: 'fix',         label: 'Fix',           icon: '🔧', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',  orderIndex: 3 },
+  { slug: 'improvement', label: 'Mejora',        icon: '📈', color: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',          orderIndex: 4 },
+  { slug: 'refactor',    label: 'Refactor',      icon: '♻️', color: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',          orderIndex: 5 },
+  { slug: 'docs',        label: 'Documentación', icon: '📝', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',          orderIndex: 6 },
+  { slug: 'test',        label: 'Test',          icon: '🧪', color: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400',          orderIndex: 7 },
+  { slug: 'chore',       label: 'Chore',         icon: '🔨', color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',             orderIndex: 8 },
 ]
 
 /** Lookup O(n) por slug. Devuelve undefined si no existe. */
