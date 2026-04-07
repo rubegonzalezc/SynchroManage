@@ -43,9 +43,13 @@ const actionLabels: Record<string, string> = {
   updated: 'actualizó',
   deleted: 'eliminó',
   assigned: 'asignó',
+  unassigned: 'desasignó',
   commented: 'comentó en',
   completed: 'completó',
   invited: 'invitó a',
+  status_changed: 'cambió el estado de',
+  reviewer_assigned: 'asignó revisor en',
+  reviewer_removed: 'removió el revisor de',
 }
 
 const entityLabels: Record<string, string> = {
@@ -61,9 +65,13 @@ const actionColors: Record<string, string> = {
   updated: 'text-blue-600 dark:text-blue-400',
   deleted: 'text-red-600 dark:text-red-400',
   assigned: 'text-purple-600 dark:text-purple-400',
+  unassigned: 'text-orange-600 dark:text-orange-400',
   commented: 'text-amber-600 dark:text-amber-400',
   completed: 'text-green-600 dark:text-green-400',
   invited: 'text-indigo-600 dark:text-indigo-400',
+  status_changed: 'text-amber-600 dark:text-amber-400',
+  reviewer_assigned: 'text-violet-600 dark:text-violet-400',
+  reviewer_removed: 'text-red-500 dark:text-red-400',
 }
 
 export default async function AdminDashboard() {
