@@ -41,10 +41,11 @@ export function UpcomingMeetings() {
     const fetchMeetings = async () => {
       try {
         const res = await fetch('/api/dashboard/meetings', { signal: controller.signal })
-        const data = await res.json()
-        if (res.ok) {
-          setMeetings((data.meetings || []).slice(0, 3))
+        if (!res.ok) {
+          throw new Error(`Error: ${res.status} ${res.statusText}`)
         }
+        const data = await res.json()
+        setMeetings((data.meetings || []).slice(0, 3))
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         console.error('Error fetching meetings:', err)

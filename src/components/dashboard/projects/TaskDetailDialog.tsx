@@ -23,6 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MentionInput, renderMentions, extractMentionedUserIds, extractMentionAll } from '@/components/ui/mention-input'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Loader2, Trash2, Send, RefreshCw, GitBranch } from 'lucide-react'
+import { CopyButton } from '@/components/ui/copy-button'
 import { createClient } from '@/lib/supabase/client'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
@@ -61,6 +62,7 @@ interface TaskDetail {
   priority: string
   category?: string
   branch_name?: string | null
+  complexity?: number | null
   due_date: string | null
   sprint_id: string | null
   is_carry_over: boolean
@@ -123,6 +125,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
     due_date: '',
     sprint_id: '',
     branch_name: '',
+    complexity: null as number | null,
   })
 
   const fetchTask = async () => {
@@ -142,6 +145,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
           due_date: data.task.due_date || '',
           sprint_id: data.task.sprint_id || '',
           branch_name: data.task.branch_name || '',
+          complexity: data.task.complexity ?? null,
         })
         setHasNewComments(false)
       }
@@ -444,20 +448,36 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Categoría</Label>
-                <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TASK_CATEGORIES.map(cat => (
-                      <SelectItem key={cat.slug} value={cat.slug}>
-                        {cat.icon} {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label>Categoría</Label>
+                  <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TASK_CATEGORIES.map(cat => (
+                        <SelectItem key={cat.slug} value={cat.slug}>
+                          {cat.icon} {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Complejidad</Label>
+                  <Select
+                    value={formData.complexity === null ? '?' : String(formData.complexity)}
+                    onValueChange={(v) => setFormData({ ...formData, complexity: v === '?' ? null : Number(v) })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Seleccionar complejidad" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="?">? — No sé</SelectItem>
+                      {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -522,15 +542,18 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                     </Label>
                   </div>
                 </div>
-                <Input
-                  value={formData.branch_name}
-                  onChange={(e) => {
-                    setFormData({ ...formData, branch_name: e.target.value })
-                    if (autoBranchName) setAutoBranchName(false)
-                  }}
-                  placeholder="feat/nombre-de-la-tarea"
-                  disabled={saving || autoBranchName}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.branch_name}
+                    onChange={(e) => {
+                      setFormData({ ...formData, branch_name: e.target.value })
+                      if (autoBranchName) setAutoBranchName(false)
+                    }}
+                    placeholder="feat/nombre-de-la-tarea"
+                    disabled={saving || autoBranchName}
+                  />
+                  <CopyButton value={formData.branch_name} />
+                </div>
               </div>
             </div>
 

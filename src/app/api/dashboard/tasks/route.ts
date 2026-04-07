@@ -86,6 +86,7 @@ export async function POST(request: Request) {
         position: newPosition,
         sprint_id: body.sprint_id || null,
         branch_name: body.branch_name || null,
+        complexity: body.complexity ?? null,
       })
       .select(`
         *,

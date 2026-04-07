@@ -21,6 +21,7 @@ interface Task {
   due_date: string | null
   sprint_id?: string | null
   is_carry_over?: boolean
+  complexity?: number | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
 }
 
@@ -127,6 +128,16 @@ export function TaskCard({ task, projectId, projectName, members, allUsers, curr
               {task.category && (
                 <Badge variant="secondary" className={`text-xs ${categoryColors[task.category] || categoryColors.task}`}>
                   {categoryIcons[task.category]} {categoryLabels[task.category] || 'Tarea'}
+                </Badge>
+              )}
+
+              {task.complexity != null ? (
+                <Badge variant="secondary" className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 font-mono">
+                  ⚡ {task.complexity}
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 font-mono">
+                  ⚡ ?
                 </Badge>
               )}
               
