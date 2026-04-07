@@ -53,7 +53,8 @@ export async function GET(
       .from('tasks')
       .select(`
         *,
-        assignee:profiles(id, full_name, email, avatar_url),
+        assignee:profiles!assignee_id(id, full_name, email, avatar_url),
+        reviewer:profiles!reviewer_id(id, full_name, avatar_url),
         project:projects(id, name),
         sprint:sprints(id, name, status),
         comments(
@@ -133,7 +134,7 @@ export async function PUT(
     // Obtener tarea actual para comparar cambios
     const { data: currentTask } = await supabaseAdmin
       .from('tasks')
-      .select('title, status, assignee_id, project_id')
+      .select('title, status, assignee_id, reviewer_id, project_id')
       .eq('id', id)
       .single()
 
@@ -169,6 +170,7 @@ export async function PUT(
     if ('is_carry_over' in body) updatePayload.is_carry_over = body.is_carry_over ?? false
     if ('branch_name' in body) updatePayload.branch_name = body.branch_name || null
     if ('complexity' in body) updatePayload.complexity = body.complexity ?? null
+    if ('reviewer_id' in body) updatePayload.reviewer_id = body.reviewer_id ?? null
 
     const { data: task, error } = await supabaseAdmin
       .from('tasks')
@@ -176,7 +178,7 @@ export async function PUT(
       .eq('id', id)
       .select(`
         *,
-        assignee:profiles(id, full_name, avatar_url)
+        assignee:profiles!assignee_id(id, full_name, avatar_url)
       `)
       .single()
 
@@ -266,6 +268,55 @@ export async function PUT(
           )
         }
       }
+
+      // Registrar actividad si cambió el revisor
+      const newReviewerId = body.reviewer_id ?? null
+      const oldReviewerId = currentTask.reviewer_id ?? null
+      if (newReviewerId !== oldReviewerId) {
+        if (newReviewerId) {
+          // Obtener nombre del nuevo revisor
+          const { data: reviewerProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('id, full_name')
+            .eq('id', newReviewerId)
+            .single()
+
+          await logActivityServer(
+            supabaseAdmin,
+            user.id,
+            'reviewer_assigned',
+            'task',
+            id,
+            body.title,
+            {
+              project_id: currentTask.project_id,
+              reviewer_id: newReviewerId,
+              reviewer_name: reviewerProfile?.full_name || '',
+            }
+          )
+        } else if (oldReviewerId) {
+          // Obtener nombre del revisor removido
+          const { data: oldReviewerProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('id, full_name')
+            .eq('id', oldReviewerId)
+            .single()
+
+          await logActivityServer(
+            supabaseAdmin,
+            user.id,
+            'reviewer_removed',
+            'task',
+            id,
+            body.title,
+            {
+              project_id: currentTask.project_id,
+              reviewer_id: oldReviewerId,
+              reviewer_name: oldReviewerProfile?.full_name || '',
+            }
+          )
+        }
+      }
     }
 
     // Enviar notificaciones a nuevos asignados (B\A), no a los que ya estaban (A∩B)
@@ -283,6 +334,25 @@ export async function PUT(
         })
       } catch (notifError) {
         console.error('Error sending notification to new assignee:', notifError)
+      }
+    }
+
+    // Notificar al nuevo revisor si cambió
+    const newReviewerId = body.reviewer_id ?? null
+    const oldReviewerId = currentTask?.reviewer_id ?? null
+    if (newReviewerId && newReviewerId !== oldReviewerId && newReviewerId !== user.id) {
+      try {
+        await supabaseAdmin.from('notifications').insert({
+          user_id: newReviewerId,
+          from_user_id: user.id,
+          type: 'task_assigned',
+          title: 'Te asignaron como Revisor (QA)',
+          message: `Eres el revisor de la tarea "${task.title}"`,
+          link: `/projects?task=${task.id}`,
+          project_id: currentTask?.project_id || null,
+        })
+      } catch (notifError) {
+        console.error('Error sending notification to reviewer:', notifError)
       }
     }
 

@@ -27,6 +27,7 @@ import { CopyButton } from '@/components/ui/copy-button'
 import { createClient } from '@/lib/supabase/client'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
+import { SingleSelectUser } from '@/components/ui/single-select-user'
 
 interface Member {
   id: string
@@ -66,6 +67,8 @@ interface TaskDetail {
   due_date: string | null
   sprint_id: string | null
   is_carry_over: boolean
+  reviewer_id?: string | null
+  reviewer?: { id: string; full_name: string; avatar_url: string | null } | null
   sprint?: SprintOption | null
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
@@ -122,6 +125,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
     priority: '',
     category: 'task',
     assignee_ids: [] as string[],
+    reviewer_id: null as string | null,
     due_date: '',
     sprint_id: '',
     branch_name: '',
@@ -142,6 +146,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
           priority: data.task.priority,
           category: data.task.category || 'task',
           assignee_ids: (data.task.assignees || []).map((a: { id: string }) => a.id),
+          reviewer_id: data.task.reviewer_id ?? null,
           due_date: data.task.due_date || '',
           sprint_id: data.task.sprint_id || '',
           branch_name: data.task.branch_name || '',
@@ -497,6 +502,22 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                     value={formData.due_date ? new Date(formData.due_date + 'T00:00:00') : null}
                     onChange={(date) => setFormData({ ...formData, due_date: date ? format(date, 'yyyy-MM-dd') : '' })}
                     placeholder="Seleccionar fecha"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    Revisor (QA)
+                    <span className="text-[10px] font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">opcional</span>
+                  </Label>
+                  <SingleSelectUser
+                    users={members}
+                    selectedId={formData.reviewer_id}
+                    onSelectionChange={(id) => setFormData(prev => ({ ...prev, reviewer_id: id }))}
+                    placeholder="Asignar revisor..."
+                    emptyLabel="Sin revisor"
                   />
                 </div>
               </div>

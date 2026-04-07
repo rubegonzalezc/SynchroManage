@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Loader2, CheckCircle, GitBranch } from 'lucide-react'
 import { CopyButton } from '@/components/ui/copy-button'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
+import { SingleSelectUser } from '@/components/ui/single-select-user'
 
 interface Member {
   id: string
@@ -55,6 +56,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
     priority: 'medium',
     category: 'task',
     assignee_ids: [] as string[],
+    reviewer_id: null as string | null,
     due_date: '',
     sprint_id: initialSprintId ?? '',
     branch_name: '',
@@ -127,7 +129,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
         setOpen(false)
         setFormData({
           title: '', description: '', status: 'backlog',
-          priority: 'medium', category: 'task', assignee_ids: [], due_date: '',
+          priority: 'medium', category: 'task', assignee_ids: [], reviewer_id: null, due_date: '',
           sprint_id: initialSprintId ?? '', branch_name: '', complexity: null,
         })
         setSuccess(false)
@@ -277,6 +279,23 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
                 value={formData.due_date ? new Date(formData.due_date + 'T00:00:00') : null}
                 onChange={(date) => setFormData({ ...formData, due_date: date ? format(date, 'yyyy-MM-dd') : '' })}
                 placeholder="Seleccionar fecha"
+                disabled={loading || success}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                Revisor (QA)
+                <span className="text-[10px] font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">opcional</span>
+              </Label>
+              <SingleSelectUser
+                users={members}
+                selectedId={formData.reviewer_id}
+                onSelectionChange={(id) => setFormData(prev => ({ ...prev, reviewer_id: id }))}
+                placeholder="Asignar revisor..."
+                emptyLabel="Sin revisor"
                 disabled={loading || success}
               />
             </div>
