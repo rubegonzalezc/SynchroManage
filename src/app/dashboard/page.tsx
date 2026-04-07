@@ -5,6 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Users, FolderKanban, CheckCircle, ListTodo, Building2, AlertCircle, Activity, Code2 } from 'lucide-react'
 import Link from 'next/link'
 import { UpcomingMeetings } from '@/components/dashboard/UpcomingMeetings'
+import { TaskStatusChart } from '@/components/dashboard/TaskStatusChart'
+import { ProjectStatusChart } from '@/components/dashboard/ProjectStatusChart'
+import { UnassignedTasks } from '@/components/dashboard/UnassignedTasks'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administradores',
@@ -123,6 +126,8 @@ export default async function AdminDashboard() {
     { data: recentProjects },
     { data: urgentTasks },
     { data: recentActivity },
+    { data: allProjectsForChart },
+    { data: allTasksForChart },
   ] = await Promise.all([
     // Total usuarios (solo admin)
     isAdmin 
@@ -227,6 +232,12 @@ export default async function AdminDashboard() {
       .select('*, user:profiles(id, full_name, avatar_url)')
       .order('created_at', { ascending: false })
       .limit(8),
+    // Proyectos por estado (para gráfica)
+    supabase.from('projects')
+      .select('status'),
+    // Tareas por estado (para gráfica)
+    supabase.from('tasks')
+      .select('status'),
   ])
 
   // Contar usuarios por rol
@@ -382,6 +393,26 @@ export default async function AdminDashboard() {
     },
   ]
 
+  // Datos para gráfica de proyectos por estado
+  const projectStatusData = [
+    { name: 'Planif.', key: 'planning', color: '#94a3b8' },
+    { name: 'Activo', key: 'in_progress', color: '#3b82f6' },
+    { name: 'Pausado', key: 'paused', color: '#f59e0b' },
+    { name: 'Completado', key: 'completed', color: '#22c55e' },
+    { name: 'Cancelado', key: 'cancelled', color: '#ef4444' },
+  ].map(s => ({
+    name: s.name,
+    color: s.color,
+    count: (allProjectsForChart || []).filter(p => p.status === s.key).length,
+  })).filter(d => d.count > 0)
+
+  // Datos para gráfica de tareas por estado
+  const tasksDone = (allTasksForChart || []).filter(t => t.status === 'done').length
+  const tasksInProgressChart = (allTasksForChart || []).filter(t => t.status === 'in_progress').length
+  const tasksReviewChart = (allTasksForChart || []).filter(t => t.status === 'review').length
+  const tasksTodoChart = (allTasksForChart || []).filter(t => t.status === 'todo').length
+  const tasksBacklogChart = (allTasksForChart || []).filter(t => t.status === 'backlog').length
+
   const isOverdue = (dueDate: string | null) => {
     if (!dueDate) return false
     return new Date(dueDate) < new Date()
@@ -425,7 +456,7 @@ export default async function AdminDashboard() {
       <div className={`grid gap-3 grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : isStakeholder ? 'lg:grid-cols-2' : 'md:grid-cols-3'}`}>
         {stats.map((stat) => (
           <Link key={stat.title} href={stat.href}>
-            <Card className="hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer h-full">
+            <Card className="hover:shadow-md transition-all cursor-pointer h-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
                 <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground leading-tight">
                   {stat.title}
@@ -435,7 +466,7 @@ export default async function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-                <div className="text-xl md:text-2xl font-bold text-foreground">{stat.value}</div>
+                <div className={`text-xl md:text-2xl font-bold ${stat.color}`}>{stat.value}</div>
                 <p className="text-xs text-muted-foreground">{stat.description}</p>
               </CardContent>
             </Card>
@@ -450,7 +481,7 @@ export default async function AdminDashboard() {
           <Card className="overflow-hidden">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Activity className="w-4 h-4 flex-shrink-0" /> Actividad Reciente
+                <Activity className="w-4 h-4 text-violet-500 flex-shrink-0" /> Actividad Reciente
               </CardTitle>
               <CardDescription>Últimas acciones en el sistema</CardDescription>
             </CardHeader>
@@ -499,7 +530,7 @@ export default async function AdminDashboard() {
         <Card className="overflow-hidden">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <FolderKanban className="w-4 h-4 flex-shrink-0" /> Proyectos Recientes
+              <FolderKanban className="w-4 h-4 text-indigo-500 flex-shrink-0" /> Proyectos Recientes
             </CardTitle>
             <CardDescription>Últimos proyectos creados</CardDescription>
           </CardHeader>
@@ -592,101 +623,89 @@ export default async function AdminDashboard() {
         )}
       </div>
 
-      {/* Tercera fila - No para Stakeholder */}
+      {/* Tercera fila - Gráficas + Resumen */}
       {!isStakeholder && (
-        <div className={`grid gap-4 ${isAdmin ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
+        <div className={`grid gap-4 ${isAdmin ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+          {/* Gráfica de tareas por estado */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ListTodo className="w-4 h-4 text-green-500 flex-shrink-0" />
+                {isDeveloper ? 'Mi Progreso' : 'Estado de Tareas'}
+              </CardTitle>
+              <CardDescription>Distribución por estado</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TaskStatusChart
+                done={isDeveloper ? (myTasksCompletedCount || 0) : tasksDone}
+                inProgress={tasksInProgressChart}
+                review={tasksReviewChart}
+                pending={tasksTodoChart}
+                backlog={tasksBacklogChart}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Gráfica de proyectos por estado */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FolderKanban className="w-4 h-4 text-indigo-500 flex-shrink-0" /> Proyectos por Estado
+              </CardTitle>
+              <CardDescription>Distribución de proyectos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProjectStatusChart data={projectStatusData} />
+            </CardContent>
+          </Card>
+
           {/* Usuarios por Rol - Solo Admin */}
           {isAdmin && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Users className="w-4 h-4 flex-shrink-0" /> Usuarios por Rol
+                  <Users className="w-4 h-4 text-blue-500 flex-shrink-0" /> Usuarios por Rol
                 </CardTitle>
                 <CardDescription>Distribución de roles en el sistema</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {Object.entries(roleCounts).map(([role, count]) => (
-                    <div key={role} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${roleColors[role]?.split(' ')[0] || 'bg-muted'}`} />
-                        <span className="text-sm text-foreground">{roleLabels[role] || role}</span>
+                  {Object.entries(roleCounts).map(([role, count]) => {
+                    const total = Object.values(roleCounts).reduce((a, b) => a + b, 0)
+                    const pct = total > 0 ? Math.round((count / total) * 100) : 0
+                    return (
+                      <div key={role}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${roleColors[role]?.split(' ')[0] || 'bg-muted'}`} />
+                            <span className="text-sm text-foreground">{roleLabels[role] || role}</span>
+                          </div>
+                          <span className="text-sm font-semibold text-foreground">{count}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${roleColors[role]?.split(' ')[0] || 'bg-primary'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
                       </div>
-                      <span className="text-sm font-medium text-foreground">{count}</span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
           )}
-
-          {/* Resumen de Tareas */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ListTodo className="w-4 h-4 flex-shrink-0" /> {isDeveloper ? 'Mi Progreso' : 'Resumen de Tareas'}
-              </CardTitle>
-              <CardDescription>
-                {isDeveloper ? 'Estado de tus tareas asignadas' : isTechLead ? 'Estado de tareas en tus proyectos' : isPM ? 'Estado de tareas en tus proyectos' : 'Estado general de las tareas'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-muted-foreground flex-shrink-0">Completadas</span>
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green-500 rounded-full"
-                        style={{ width: `${isDeveloper
-                          ? ((myTasksCount || 0) + (myTasksCompletedCount || 0)) > 0
-                            ? ((myTasksCompletedCount || 0) / ((myTasksCount || 0) + (myTasksCompletedCount || 0))) * 100
-                            : 0
-                          : tasksTotalCount
-                            ? ((tasksCompletedCount || 0) / tasksTotalCount) * 100
-                            : 0}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-foreground w-10 text-right flex-shrink-0">
-                      {isDeveloper
-                        ? ((myTasksCount || 0) + (myTasksCompletedCount || 0)) > 0
-                          ? Math.round(((myTasksCompletedCount || 0) / ((myTasksCount || 0) + (myTasksCompletedCount || 0))) * 100)
-                          : 0
-                        : tasksTotalCount
-                          ? Math.round(((tasksCompletedCount || 0) / tasksTotalCount) * 100)
-                          : 0}%
-                    </span>
-                  </div>
-                </div>
-                <div className={`grid gap-3 pt-1 ${isTechLead ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                  <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-                      {isDeveloper ? (myTasksCompletedCount || 0) : (tasksCompletedCount || 0)}
-                    </p>
-                    <p className="text-xs text-green-600 dark:text-green-500">Completadas</p>
-                  </div>
-                  {isTechLead && (
-                    <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{tasksInReviewCount || 0}</p>
-                      <p className="text-xs text-purple-600 dark:text-purple-500">En Revisión</p>
-                    </div>
-                  )}
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <p className="text-2xl font-bold text-foreground">
-                      {isDeveloper ? (myTasksCount || 0) : (tasksTotalCount || 0) - (tasksCompletedCount || 0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Pendientes</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
 
       {/* Reuniones Próximas */}
       {!isStakeholder && (
         <UpcomingMeetings />
+      )}
+
+      {/* Tareas sin Asignar */}
+      {(isAdmin || isPM) && (
+        <UnassignedTasks />
       )}
     </div>
   )

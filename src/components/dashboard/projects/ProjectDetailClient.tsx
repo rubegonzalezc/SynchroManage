@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -91,6 +92,17 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   const { project, isLoading: loading, error: projectError, mutate: mutateProject } = useProject(projectId)
   const { users } = useUsers()
   const { currentUserId, currentUserRole } = useCurrentUser()
+  const searchParams = useSearchParams()
+  const highlightId = searchParams.get('highlight')
+
+  // Si hay un highlight, asegurarse de que el sprint correcto esté seleccionado
+  useEffect(() => {
+    if (!highlightId || !project) return
+    const task = project.tasks.find(t => t.id === highlightId)
+    if (task) {
+      setSelectedSprintId(task.sprint_id ?? null)
+    }
+  }, [highlightId, project?.tasks])
 
   const allUsers: User[] = users.map(u => ({ id: u.id, full_name: u.full_name, avatar_url: u.avatar_url ?? null }))
   const error = projectError?.message ?? null
@@ -632,6 +644,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             allUsers={allUsers}
             currentUserId={currentUserId}
             onTasksChange={mutateProject}
+            highlightId={highlightId}
           />
         ) : (
           <TaskListView

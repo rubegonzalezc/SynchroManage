@@ -113,7 +113,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null)
   const [hasNewComments, setHasNewComments] = useState(false)
   const [projectSprints, setProjectSprints] = useState<SprintOption[]>([])
-  const [autoBranchName, setAutoBranchName] = useState(false)
+  const [autoBranchName, setAutoBranchName] = useState(true)
 
   const [formData, setFormData] = useState({
     title: '',

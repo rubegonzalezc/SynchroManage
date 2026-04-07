@@ -56,7 +56,7 @@ function getCachedProject(projectId: string) {
           tasks(
             id, task_number, title, description, status, priority, category, position, due_date, created_at,
             sprint_id, is_carry_over, complexity,
-            assignee:profiles(id, full_name, avatar_url)
+            assignee:profiles!tasks_assignee_id_fkey(id, full_name, avatar_url)
           ),
           sprints(
             id, name, goal, start_date, end_date, status, order_index, created_at

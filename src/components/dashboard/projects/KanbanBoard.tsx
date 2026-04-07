@@ -55,6 +55,7 @@ interface KanbanBoardProps {
   allUsers: Member[]
   currentUserId: string
   onTasksChange: () => void
+  highlightId?: string | null
 }
 
 const columns = [
@@ -89,6 +90,7 @@ export function KanbanBoard({
   allUsers,
   currentUserId,
   onTasksChange,
+  highlightId,
 }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
@@ -312,6 +314,7 @@ export function KanbanBoard({
                       allUsers={allUsers}
                       currentUserId={currentUserId}
                       onUpdate={onTasksChange}
+                      highlightId={highlightId}
                     />
                   ))}
                 </KanbanColumn>
