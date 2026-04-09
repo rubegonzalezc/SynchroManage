@@ -70,7 +70,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { response, title, description, start_time, end_time, meeting_link, project_id } = body
+    const { response, title, description, start_time, end_time, meeting_link, project_id, attendee_ids } = body
 
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -166,7 +166,43 @@ export async function PUT(
       .eq('id', user.id)
       .single()
 
-    // Notificar a todos los participantes (excepto al organizador)
+    // Sincronizar participantes si se enviaron
+    if (attendee_ids !== undefined) {
+      const newAttendees: string[] = (attendee_ids as string[]).filter((uid: string) => uid !== user.id)
+      const currentAttendeeIds: string[] = (meeting.attendees || [])
+        .map((a: { user_id: string }) => a.user_id)
+        .filter((uid: string) => uid !== user.id)
+
+      const toAdd = newAttendees.filter((uid: string) => !currentAttendeeIds.includes(uid))
+      const toRemove = currentAttendeeIds.filter((uid: string) => !newAttendees.includes(uid))
+
+      if (toRemove.length > 0) {
+        await supabaseAdmin
+          .from('meeting_attendees')
+          .delete()
+          .eq('meeting_id', id)
+          .in('user_id', toRemove)
+      }
+
+      if (toAdd.length > 0) {
+        await supabaseAdmin.from('meeting_attendees').insert(
+          toAdd.map((uid: string) => ({ meeting_id: id, user_id: uid, response: 'pending' }))
+        )
+        // Notificar a los nuevos invitados
+        const inviteNotifications = toAdd.map((uid: string) => ({
+          user_id: uid,
+          type: 'meeting_invite',
+          title: 'Nueva invitación a reunión',
+          message: `${organizer?.full_name || 'El organizador'} te invitó a "${title || meeting.title}"`,
+          link: '/my-tasks',
+          meeting_id: id,
+          from_user_id: user.id,
+        }))
+        await supabaseAdmin.from('notifications').insert(inviteNotifications)
+      }
+    }
+
+    // Notificar a todos los participantes actuales (excepto al organizador y los recién añadidos)
     const attendeeIds = (meeting.attendees || [])
       .map((a: { user_id: string }) => a.user_id)
       .filter((attendeeId: string) => attendeeId !== user.id)
