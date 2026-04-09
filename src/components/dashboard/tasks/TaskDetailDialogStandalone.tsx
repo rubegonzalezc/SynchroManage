@@ -26,6 +26,7 @@ import Link from 'next/link'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
 import { getBranchName } from '@/lib/utils/branch-name'
+import { SingleSelectUser } from '@/components/ui/single-select-user'
 
 interface User {
   id: string
@@ -61,6 +62,8 @@ interface TaskDetail {
   category?: string
   due_date: string | null
   sprint_id: string | null
+  reviewer_id?: string | null
+  reviewer?: { id: string; full_name: string; avatar_url: string | null } | null
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   project: { id: string; name: string } | null
   comments: Comment[]
@@ -113,6 +116,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
     priority: '',
     category: 'task',
     assignee_id: '',
+    reviewer_id: '',
     due_date: '',
     sprint_id: '',
   })
@@ -130,6 +134,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
           priority: data.task.priority,
           category: data.task.category || 'task',
           assignee_id: data.task.assignee?.id || '',
+          reviewer_id: data.task.reviewer?.id || data.task.reviewer_id || '',
           due_date: data.task.due_date || '',
           sprint_id: data.task.sprint_id || '',
         })
@@ -254,7 +259,11 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
       const response = await fetch(`/api/dashboard/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, sprint_id: formData.sprint_id || null }),
+        body: JSON.stringify({
+          ...formData,
+          sprint_id: formData.sprint_id || null,
+          reviewer_id: formData.reviewer_id || null,
+        }),
       })
       if (response.ok) {
         fetchTask()
@@ -480,6 +489,20 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                       placeholder="Seleccionar fecha"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    Revisor (QA)
+                    <span className="text-[10px] font-normal text-muted-foreground">opcional</span>
+                  </Label>
+                  <SingleSelectUser
+                    users={members}
+                    selectedId={formData.reviewer_id || null}
+                    onSelectionChange={(id) => setFormData(prev => ({ ...prev, reviewer_id: id || '' }))}
+                    placeholder="Asignar revisor..."
+                    emptyLabel="Sin revisor"
+                  />
                 </div>
 
                 {projectSprints.length > 0 && (

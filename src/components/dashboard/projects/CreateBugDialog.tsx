@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Loader2, CheckCircle, Bug } from 'lucide-react'
+import { Plus, Loader2, CheckCircle, Bug, Search, X } from 'lucide-react'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
 
 interface Member {
@@ -31,6 +31,21 @@ interface TaskOption {
   id: string
   task_number: number | null
   title: string
+  sprint_id?: string | null
+}
+
+interface BugItem {
+  id: string
+  title: string
+  description: string | null
+  steps_to_reproduce: string | null
+  severity: string
+  status: string
+  created_at: string
+  sprint: { id: string; name: string; status: string } | null
+  task: { id: string; task_number: number | null; title: string } | null
+  assignee: { id: string; full_name: string; avatar_url: string | null } | null
+  reporter: { id: string; full_name: string; avatar_url: string | null } | null
 }
 
 interface CreateBugDialogProps {
@@ -39,7 +54,7 @@ interface CreateBugDialogProps {
   sprints?: SprintOption[]
   tasks?: TaskOption[]
   initialSprintId?: string | null
-  onBugCreated?: () => void
+  onBugCreated?: (bug: BugItem) => void
 }
 
 const severityOptions = [
@@ -54,6 +69,8 @@ export function CreateBugDialog({ projectId, members, sprints = [], tasks = [], 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [taskSearch, setTaskSearch] = useState('')
+  const [taskDropdownOpen, setTaskDropdownOpen] = useState(false)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -64,6 +81,47 @@ export function CreateBugDialog({ projectId, members, sprints = [], tasks = [], 
     task_id: '',
     assignee_id: null as string | null,
   })
+
+  // Tareas filtradas por sprint seleccionado y búsqueda
+  const filteredTasks = useMemo(() => {
+    let result = tasks
+    if (formData.sprint_id) {
+      result = result.filter(t => t.sprint_id === formData.sprint_id)
+    }
+    if (taskSearch.trim()) {
+      const q = taskSearch.toLowerCase()
+      result = result.filter(t =>
+        t.title.toLowerCase().includes(q) ||
+        (t.task_number != null && `#${t.task_number}`.includes(q))
+      )
+    }
+    return result
+  }, [tasks, formData.sprint_id, taskSearch])
+
+  const selectedTask = tasks.find(t => t.id === formData.task_id)
+
+  const handleSprintChange = (v: string) => {
+    // Al cambiar sprint, limpiar tarea si no pertenece al nuevo sprint
+    const newSprintId = v === 'none' ? '' : v
+    const taskStillValid = !newSprintId || tasks.find(t => t.id === formData.task_id)?.sprint_id === newSprintId
+    setFormData(prev => ({
+      ...prev,
+      sprint_id: newSprintId,
+      task_id: taskStillValid ? prev.task_id : '',
+    }))
+    setTaskSearch('')
+  }
+
+  const handleTaskSelect = (task: TaskOption) => {
+    setFormData(prev => ({ ...prev, task_id: task.id }))
+    setTaskSearch('')
+    setTaskDropdownOpen(false)
+  }
+
+  const handleClearTask = () => {
+    setFormData(prev => ({ ...prev, task_id: '' }))
+    setTaskSearch('')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,8 +149,9 @@ export function CreateBugDialog({ projectId, members, sprints = [], tasks = [], 
           title: '', description: '', steps_to_reproduce: '',
           severity: 'medium', sprint_id: initialSprintId ?? '', task_id: '', assignee_id: null,
         })
+        setTaskSearch('')
         setSuccess(false)
-        onBugCreated?.()
+        onBugCreated?.(data.bug)
       }, 1000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear bug')
@@ -184,7 +243,7 @@ export function CreateBugDialog({ projectId, members, sprints = [], tasks = [], 
               <Label>Sprint</Label>
               <Select
                 value={formData.sprint_id || 'none'}
-                onValueChange={(v) => setFormData({ ...formData, sprint_id: v === 'none' ? '' : v })}
+                onValueChange={handleSprintChange}
                 disabled={loading || success}
               >
                 <SelectTrigger><SelectValue placeholder="Sin sprint" /></SelectTrigger>
@@ -200,23 +259,60 @@ export function CreateBugDialog({ projectId, members, sprints = [], tasks = [], 
             </div>
           </div>
 
+          {/* Tarea relacionada con búsqueda */}
           <div className="space-y-2">
             <Label>Tarea relacionada</Label>
-            <Select
-              value={formData.task_id || 'none'}
-              onValueChange={(v) => setFormData({ ...formData, task_id: v === 'none' ? '' : v })}
-              disabled={loading || success}
-            >
-              <SelectTrigger><SelectValue placeholder="Sin tarea relacionada" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin tarea relacionada</SelectItem>
-                {tasks.map(t => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.task_number ? `#${t.task_number} - ` : ''}{t.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {selectedTask ? (
+              <div className="flex items-center gap-2 px-3 py-2 border border-border rounded-md bg-muted/50">
+                <span className="flex-1 text-sm truncate">
+                  {selectedTask.task_number ? `#${selectedTask.task_number} - ` : ''}{selectedTask.title}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleClearTask}
+                  disabled={loading || success}
+                  className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={taskSearch}
+                    onChange={(e) => { setTaskSearch(e.target.value); setTaskDropdownOpen(true) }}
+                    onFocus={() => setTaskDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setTaskDropdownOpen(false), 150)}
+                    placeholder={formData.sprint_id ? 'Buscar tarea del sprint...' : 'Buscar tarea...'}
+                    disabled={loading || success}
+                    className="pl-9"
+                  />
+                </div>
+                {taskDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
+                    {filteredTasks.length === 0 ? (
+                      <p className="px-3 py-2 text-sm text-muted-foreground">
+                        {formData.sprint_id ? 'No hay tareas en este sprint' : 'No hay tareas disponibles'}
+                      </p>
+                    ) : (
+                      filteredTasks.map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onMouseDown={() => handleTaskSelect(t)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors truncate"
+                        >
+                          {t.task_number ? <span className="text-muted-foreground font-mono mr-1">#{t.task_number}</span> : null}
+                          {t.title}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
