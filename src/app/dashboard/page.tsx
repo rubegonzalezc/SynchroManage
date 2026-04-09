@@ -2,12 +2,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Users, FolderKanban, CheckCircle, ListTodo, Building2, AlertCircle, Activity, Code2 } from 'lucide-react'
+import { Users, FolderKanban, CheckCircle, ListTodo, Building2, AlertCircle, Activity, Code2, Bug } from 'lucide-react'
 import Link from 'next/link'
 import { UpcomingMeetings } from '@/components/dashboard/UpcomingMeetings'
 import { TaskStatusChart } from '@/components/dashboard/TaskStatusChart'
 import { ProjectStatusChart } from '@/components/dashboard/ProjectStatusChart'
+import { BugStatusChart } from '@/components/dashboard/BugStatusChart'
 import { UnassignedTasks } from '@/components/dashboard/UnassignedTasks'
+import { OpenBugsList } from '@/components/dashboard/OpenBugsList'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administradores',
@@ -136,6 +138,10 @@ export default async function AdminDashboard() {
     { data: recentActivity },
     { data: allProjectsForChart },
     { data: allTasksForChart },
+    { count: bugsOpenCount },
+    { count: bugsInProgressCount },
+    { count: bugsResolvedCount },
+    { count: bugsClosedCount },
   ] = await Promise.all([
     // Total usuarios (solo admin)
     isAdmin 
@@ -246,6 +252,11 @@ export default async function AdminDashboard() {
     // Tareas por estado (para gráfica)
     supabase.from('tasks')
       .select('status'),
+    // Bugs por estado (para gráfica)
+    supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+    supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'),
+    supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'resolved'),
+    supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'closed'),
   ])
 
   // Contar usuarios por rol
@@ -399,6 +410,15 @@ export default async function AdminDashboard() {
       bg: 'bg-amber-50 dark:bg-amber-900/30',
       href: '/dashboard/companies',
     },
+    {
+      title: 'Bugs Abiertos',
+      value: (bugsOpenCount ?? 0) + (bugsInProgressCount ?? 0),
+      description: `de ${(bugsOpenCount ?? 0) + (bugsInProgressCount ?? 0) + (bugsResolvedCount ?? 0) + (bugsClosedCount ?? 0)} total`,
+      icon: Bug,
+      color: 'text-red-600 dark:text-red-400',
+      bg: 'bg-red-50 dark:bg-red-900/30',
+      href: '/dashboard/reports',
+    },
   ]
 
   // Datos para gráfica de proyectos por estado
@@ -420,6 +440,13 @@ export default async function AdminDashboard() {
   const tasksReviewChart = (allTasksForChart || []).filter(t => t.status === 'review').length
   const tasksTodoChart = (allTasksForChart || []).filter(t => t.status === 'todo').length
   const tasksBacklogChart = (allTasksForChart || []).filter(t => t.status === 'backlog').length
+
+  // Datos para gráfica de bugs
+  const bugsOpen = bugsOpenCount ?? 0
+  const bugsInProgress = bugsInProgressCount ?? 0
+  const bugsResolved = bugsResolvedCount ?? 0
+  const bugsClosed = bugsClosedCount ?? 0
+  const bugsTotal = bugsOpen + bugsInProgress + bugsResolved + bugsClosed
 
   const isOverdue = (dueDate: string | null) => {
     if (!dueDate) return false
@@ -461,7 +488,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className={`grid gap-3 grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : isStakeholder ? 'lg:grid-cols-2' : 'md:grid-cols-3'}`}>
+      <div className={`grid gap-3 grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : isStakeholder ? 'lg:grid-cols-2' : 'md:grid-cols-3'}`}>
         {stats.map((stat) => (
           <Link key={stat.title} href={stat.href}>
             <Card className="hover:shadow-md transition-all cursor-pointer h-full">
@@ -633,7 +660,7 @@ export default async function AdminDashboard() {
 
       {/* Tercera fila - Gráficas + Resumen */}
       {!isStakeholder && (
-        <div className={`grid gap-4 ${isAdmin ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+        <div className={`grid gap-4 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
           {/* Gráfica de tareas por estado */}
           <Card>
             <CardHeader className="pb-2">
@@ -664,6 +691,26 @@ export default async function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <ProjectStatusChart data={projectStatusData} />
+            </CardContent>
+          </Card>
+
+          {/* Gráfica de bugs por estado */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Bug className="w-4 h-4 text-red-500 flex-shrink-0" /> Estado de Bugs
+              </CardTitle>
+              <CardDescription>
+                {bugsTotal > 0 ? `${bugsOpen + bugsInProgress} activos de ${bugsTotal} total` : 'Sin bugs registrados'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BugStatusChart
+                open={bugsOpen}
+                inProgress={bugsInProgress}
+                resolved={bugsResolved}
+                closed={bugsClosed}
+              />
             </CardContent>
           </Card>
 
@@ -714,6 +761,11 @@ export default async function AdminDashboard() {
       {/* Tareas sin Asignar */}
       {(isAdmin || isPM) && (
         <UnassignedTasks />
+      )}
+
+      {/* Bugs Abiertos */}
+      {(isAdmin || isPM) && (
+        <OpenBugsList />
       )}
     </div>
   )

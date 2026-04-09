@@ -33,6 +33,8 @@ export async function GET() {
           created_at,
           sprint_id,
           is_carry_over,
+          complexity,
+          branch_name,
           project:projects(id, name, status, type, company:companies(id, name)),
           sprint:sprints(id, name, status)
         )
@@ -52,7 +54,24 @@ export async function GET() {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
 
-    return NextResponse.json({ tasks })
+    // Obtener bugs abiertos por tarea
+    const taskIds = tasks.map((t: { id: string }) => t.id)
+    let bugCountByTask: Record<string, number> = {}
+    if (taskIds.length > 0) {
+      const { data: openBugs } = await supabaseAdmin
+        .from('bugs')
+        .select('task_id')
+        .in('task_id', taskIds)
+        .in('status', ['open', 'in_progress'])
+      for (const bug of (openBugs || [])) {
+        if (bug.task_id) bugCountByTask[bug.task_id] = (bugCountByTask[bug.task_id] || 0) + 1
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tasksWithBugs = tasks.map((t: any) => ({ ...t, open_bugs_count: bugCountByTask[t.id] ?? 0 }))
+
+    return NextResponse.json({ tasks: tasksWithBugs })
   } catch (error) {
     console.error('Error fetching my tasks:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
