@@ -479,12 +479,13 @@ export default async function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-5 w-full overflow-x-hidden pt-2 md:pt-0">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          {isStakeholder ? 'Resumen de tus proyectos' : isDeveloper ? 'Resumen de tus tareas asignadas' : isTechLead ? 'Resumen de tus proyectos técnicos' : isPM ? 'Resumen de tus proyectos' : 'Bienvenido al panel de administración'}
-        </p>
+    <div className="space-y-5 w-full overflow-x-hidden pt-6">
+      <div className="flex items-center gap-3">
+        <Activity className="w-6 h-6 text-primary flex-shrink-0" />
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Panel de administración</p>
+        </div>
       </div>
 
       {/* Stats Grid */}

@@ -190,8 +190,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        {/* Header skeleton */}
+      <div className="space-y-6 pt-8">
         <div className="flex items-start justify-between">
           <div className="space-y-3">
             <Skeleton className="h-8 w-24 mb-2" />
@@ -249,7 +248,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
 
   if (error || !project) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 pt-8">
         <Link href={backHref}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="w-4 h-4 mr-2" /> Volver
@@ -283,10 +282,9 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
   const hasNoTasks = totalTasks === 0
 
-  // Vista simplificada para stakeholder
   if (currentUserRole === 'stakeholder') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pt-8">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -415,7 +413,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-8">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="space-y-1">
