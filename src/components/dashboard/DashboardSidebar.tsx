@@ -200,7 +200,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild suppressHydrationWarning>
                 <SidebarMenuButton className="h-auto py-3">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={user.avatar_url || undefined} />

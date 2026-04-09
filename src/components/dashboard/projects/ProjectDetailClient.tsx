@@ -669,7 +669,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           currentUserId={currentUserId}
           currentUserRole={currentUserRole}
           sprints={project.sprints || []}
-          tasks={project.tasks.map(t => ({ id: t.id, task_number: t.task_number, title: t.title }))}
+          tasks={project.tasks.map(t => ({ id: t.id, task_number: t.task_number, title: t.title, sprint_id: t.sprint_id }))}
         />
       </div>
 

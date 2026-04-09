@@ -26,6 +26,7 @@ interface TaskOption {
   id: string
   task_number: number | null
   title: string
+  sprint_id?: string | null
 }
 
 interface BugItem {
@@ -154,7 +155,7 @@ export function BugSection({ projectId, members, allUsers, currentUserId, curren
             members={members}
             sprints={sprints}
             tasks={tasks}
-            onBugCreated={fetchBugs}
+            onBugCreated={(newBug) => setBugs(prev => [newBug, ...prev])}
           />
         )}
       </div>
