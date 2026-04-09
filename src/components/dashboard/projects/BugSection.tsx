@@ -53,11 +53,18 @@ interface BugSectionProps {
   tasks: TaskOption[]
 }
 
-const severityConfig: Record<string, { label: string; color: string; dot: string }> = {
-  low: { label: 'Baja', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', dot: 'bg-green-500' },
-  medium: { label: 'Media', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', dot: 'bg-yellow-500' },
-  high: { label: 'Alta', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', dot: 'bg-orange-500' },
-  critical: { label: 'Crítica', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', dot: 'bg-red-500' },
+const statusDot: Record<string, string> = {
+  open: 'bg-red-500',
+  in_progress: 'bg-blue-500',
+  resolved: 'bg-green-500',
+  closed: 'bg-slate-400',
+}
+
+const severityConfig: Record<string, { label: string; color: string }> = {
+  low: { label: 'Baja', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+  medium: { label: 'Media', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  high: { label: 'Alta', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
+  critical: { label: 'Crítica', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -231,15 +238,19 @@ export function BugSection({ projectId, members, allUsers, currentUserId, curren
                 {!isCollapsed && (
                   <div className="divide-y divide-border">
                     {sprintBugs.map(bug => {
-                      const sev = severityConfig[bug.severity] ?? severityConfig.medium
+                      const sev = severityConfig[bug.severity] ?? { label: bug.severity, color: '' }
                       const sta = statusConfig[bug.status] ?? statusConfig.open
+                      const dot = statusDot[bug.status] ?? 'bg-slate-400'
                       return (
                         <button
                           key={bug.id}
                           onClick={() => openBug(bug.id)}
                           className="w-full flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
                         >
-                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${sev.dot}`} />
+                          <div
+                            className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`}
+                            title={sta.label}
+                          />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{bug.title}</p>
                             {bug.task && (

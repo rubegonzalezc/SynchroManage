@@ -45,6 +45,8 @@ export async function GET(
           user:profiles(id, full_name, avatar_url, role:roles(name))
         `)
         .eq('project_id', id)
+        .is('task_id', null)
+        .is('bug_id', null)
         .eq('is_stakeholder_message', true)
         .order('created_at', { ascending: true })
 
@@ -81,7 +83,7 @@ export async function GET(
       return NextResponse.json({ comments })
     }
 
-    // Para otros roles, obtener comentarios normales (no stakeholder messages)
+    // Para otros roles, obtener comentarios normales (no stakeholder messages, solo del proyecto directo)
     const { data: comments, error } = await supabaseAdmin
       .from('comments')
       .select(`
@@ -89,6 +91,8 @@ export async function GET(
         user:profiles(id, full_name, avatar_url, role:roles(name))
       `)
       .eq('project_id', id)
+      .is('task_id', null)
+      .is('bug_id', null)
       .or('is_stakeholder_message.is.null,is_stakeholder_message.eq.false')
       .order('created_at', { ascending: true })
 
