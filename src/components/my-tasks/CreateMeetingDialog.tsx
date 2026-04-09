@@ -95,8 +95,13 @@ export function CreateMeetingDialog({ open, onOpenChange, onCreated, initialDate
     setLoading(true)
     try {
       const dateStr = format(formData.date, 'yyyy-MM-dd')
-      const start_time = `${dateStr}T${formData.start_time}:00`
-      const end_time = `${dateStr}T${formData.end_time}:00`
+      const tzOffset = -formData.date.getTimezoneOffset()
+      const tzSign = tzOffset >= 0 ? '+' : '-'
+      const tzHH = String(Math.floor(Math.abs(tzOffset) / 60)).padStart(2, '0')
+      const tzMM = String(Math.abs(tzOffset) % 60).padStart(2, '0')
+      const tz = `${tzSign}${tzHH}:${tzMM}`
+      const start_time = `${dateStr}T${formData.start_time}:00${tz}`
+      const end_time = `${dateStr}T${formData.end_time}:00${tz}`
 
       const res = await fetch('/api/dashboard/meetings', {
         method: 'POST',

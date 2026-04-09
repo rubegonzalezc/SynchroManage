@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Loader2, Video, Clock, MapPin, ExternalLink, User, Check, X, HelpCircle, Pencil, Trash2 } from 'lucide-react'
+import { Loader2, Video, Clock, MapPin, ExternalLink, User, Check, X, HelpCircle, Pencil, Trash2, UserPlus } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -79,7 +79,9 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
   const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
-  
+  const [allUsers, setAllUsers] = useState<{ id: string; full_name: string; avatar_url: string | null }[]>([])
+  const [selectedAttendees, setSelectedAttendees] = useState<string[]>([])
+
   const [editForm, setEditForm] = useState({
     title: '',
     description: '',
@@ -95,6 +97,7 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
       fetchMeeting()
       fetchCurrentUser()
       fetchProjects()
+      fetchUsers()
       setIsEditing(false)
     }
   }, [open, meetingId])
@@ -106,6 +109,16 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
       if (res.ok) setProjects(data.projects || [])
     } catch (err) {
       console.error('Error fetching projects:', err)
+    }
+  }
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/dashboard/users')
+      const data = await res.json()
+      if (res.ok) setAllUsers(data.users || [])
+    } catch (err) {
+      console.error('Error fetching users:', err)
     }
   }
 
@@ -128,6 +141,11 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
           end_time: format(new Date(m.end_time), 'HH:mm'),
           meeting_link: m.meeting_link || '',
         })
+        // Inicializar participantes (excluir al organizador)
+        const attendeeIds = (m.attendees as Attendee[])
+          .map((a) => a.user.id)
+          .filter((uid: string) => uid !== m.organizer.id)
+        setSelectedAttendees(attendeeIds)
       }
     } catch (err) {
       console.error('Error fetching meeting:', err)
@@ -169,14 +187,25 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
+  const toggleAttendee = (userId: string) => {
+    setSelectedAttendees(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    )
+  }
+
   const handleSaveEdit = async () => {
     if (!editForm.title || !editForm.date) return
     
     setSaving(true)
     try {
       const dateStr = format(editForm.date, 'yyyy-MM-dd')
-      const start_time = `${dateStr}T${editForm.start_time}:00`
-      const end_time = `${dateStr}T${editForm.end_time}:00`
+      const tzOffset = -editForm.date.getTimezoneOffset()
+      const tzSign = tzOffset >= 0 ? '+' : '-'
+      const tzHH = String(Math.floor(Math.abs(tzOffset) / 60)).padStart(2, '0')
+      const tzMM = String(Math.abs(tzOffset) % 60).padStart(2, '0')
+      const tz = `${tzSign}${tzHH}:${tzMM}`
+      const start_time = `${dateStr}T${editForm.start_time}:00${tz}`
+      const end_time = `${dateStr}T${editForm.end_time}:00${tz}`
 
       const res = await fetch(`/api/dashboard/meetings/${meetingId}`, {
         method: 'PUT',
@@ -188,6 +217,7 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
           start_time,
           end_time,
           meeting_link: editForm.meeting_link || null,
+          attendee_ids: selectedAttendees,
         }),
       })
 
@@ -336,6 +366,46 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
                     onChange={(e) => setEditForm({ ...editForm, meeting_link: e.target.value })}
                     placeholder="https://meet.google.com/..."
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1"><UserPlus className="w-4 h-4" />Participantes</Label>
+                  <div className="border border-border rounded-lg max-h-48 overflow-y-auto">
+                    {allUsers
+                      .filter(u => u.id !== currentUserId)
+                      .map(user => (
+                        <div
+                          key={user.id}
+                          onClick={() => toggleAttendee(user.id)}
+                          className={`flex items-center gap-3 p-2 cursor-pointer transition-colors ${
+                            selectedAttendees.includes(user.id) ? 'bg-primary/10' : 'hover:bg-muted'
+                          }`}
+                        >
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={user.avatar_url || undefined} />
+                            <AvatarFallback className="text-xs">{getInitials(user.full_name)}</AvatarFallback>
+                          </Avatar>
+                          <span className="flex-1 text-sm text-foreground">{user.full_name}</span>
+                          {selectedAttendees.includes(user.id) && <Check className="w-4 h-4 text-primary" />}
+                        </div>
+                      ))}
+                  </div>
+                  {selectedAttendees.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedAttendees.map(id => {
+                        const u = allUsers.find(u => u.id === id)
+                        if (!u) return null
+                        return (
+                          <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded-full text-xs">
+                            {u.full_name}
+                            <button onClick={() => toggleAttendee(id)} className="hover:text-red-500">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2 pt-4">
