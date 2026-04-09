@@ -122,12 +122,12 @@ export default function ReportsPage() {
   }, [])
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 pt-6">
       <div className="flex items-center gap-3">
         <BarChart3 className="w-6 h-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Reporte de Tareas</h1>
-          <p className="text-sm text-muted-foreground">Estadísticas por desarrollador · {!loading && `${totalTasks} tareas en total`}</p>
+          <h1 className="text-2xl font-bold text-foreground">Reporte</h1>
+          <p className="text-sm text-muted-foreground">Estadísticas del sistema</p>
         </div>
       </div>
 

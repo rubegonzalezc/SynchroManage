@@ -11,7 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, GitPullRequest, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Search, GitPullRequest, ChevronLeft, ChevronRight, X, GitMerge } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CreateChangeControlDialog } from './CreateChangeControlDialog'
 import { DeleteProjectDialog } from '@/components/dashboard/projects/DeleteProjectDialog'
@@ -125,11 +125,14 @@ export function ChangeControlsTableClient() {
   }
 
   return (
-    <div className="space-y-6 pt-2 md:pt-0">
+    <div className="space-y-6 pt-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Control de Cambios</h1>
-          <p className="text-muted-foreground">Gestiona los controles de cambios de proyectos finalizados</p>
+        <div className="flex items-center gap-3">
+          <GitMerge className="w-6 h-6 text-primary flex-shrink-0" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Control de Cambios</h1>
+            <p className="text-sm text-muted-foreground">Gestiona cambios para proyectos finalizados</p>
+          </div>
         </div>
         {['admin', 'pm'].includes(currentUserRole) && (
           <CreateChangeControlDialog onCreated={fetchProjects} />

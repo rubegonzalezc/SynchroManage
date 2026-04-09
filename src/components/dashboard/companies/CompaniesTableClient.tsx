@@ -92,11 +92,14 @@ export function CompaniesTableClient() {
   const hasActiveFilters = search !== '' || statusFilter !== 'all'
 
   return (
-    <div className="space-y-6 pt-2 md:pt-0">
+    <div className="space-y-6 pt-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Empresas</h1>
-          <p className="text-muted-foreground">Gestiona las empresas clientes</p>
+        <div className="flex items-center gap-3">
+          <Building2 className="w-6 h-6 text-primary flex-shrink-0" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Empresas</h1>
+            <p className="text-sm text-muted-foreground">Gestiona las empresas del sistema</p>
+          </div>
         </div>
         <CreateCompanyDialog onCompanyCreated={fetchCompanies} />
       </div>

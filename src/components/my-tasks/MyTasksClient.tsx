@@ -10,7 +10,7 @@ import { MyTasksProjectSelector } from './MyTasksProjectSelector'
 import { ProjectSprintBanner } from './ProjectSprintBanner'
 import { ProjectOrderDialog } from './ProjectOrderDialog'
 import { Button } from '@/components/ui/button'
-import { Plus, CalendarDays, ListTodo, Settings2 } from 'lucide-react'
+import { Plus, CalendarDays, ListTodo, Settings2, ClipboardList } from 'lucide-react'
 import { useSprints } from '@/hooks/useSprints'
 
 const STORAGE_KEY = 'synchro-project-order'
@@ -165,16 +165,15 @@ export function MyTasksClient() {
   })), [filteredTasks])
 
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="h-full flex flex-col gap-4 pt-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Mis Tareas</h1>
-          <p className="text-muted-foreground text-sm">
-            {selectedProjectId
-              ? `Viendo tareas de ${selectedProjectName}`
-              : 'Todas tus tareas y reuniones asignadas'}
-          </p>
+        <div className="flex items-center gap-3">
+          <ClipboardList className="w-6 h-6 text-primary flex-shrink-0" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Mis Tareas</h1>
+            <p className="text-sm text-muted-foreground">Todas tus tareas y reuniones agendadas</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Mobile view toggle */}

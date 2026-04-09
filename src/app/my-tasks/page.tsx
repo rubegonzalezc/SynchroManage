@@ -2,7 +2,7 @@ import { MyTasksClient } from '@/components/my-tasks/MyTasksClient'
 
 export default function MyTasksPage() {
   return (
-    <div className="p-6 h-full">
+    <div className="h-full">
       <MyTasksClient />
     </div>
   )

@@ -121,12 +121,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 pt-2 md:pt-0">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Settings className="w-6 h-6" /> Configuración
-        </h1>
-        <p className="text-muted-foreground">Administra la configuración del sistema</p>
+    <div className="space-y-6 pt-6">
+      <div className="flex items-center gap-3">
+        <Settings className="w-6 h-6 text-primary flex-shrink-0" />
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
+          <p className="text-sm text-muted-foreground">Administra la configuración del sistema</p>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

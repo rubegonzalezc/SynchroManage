@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 import { EditUserDialog } from './EditUserDialog'
 import { DeleteUserDialog } from './DeleteUserDialog'
 import { CreateUserDialog } from './CreateUserDialog'
-import { Search, ChevronLeft, ChevronRight, X, RefreshCw, Loader2 } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, X, RefreshCw, Loader2, Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface Role {
@@ -195,7 +195,7 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
 
   if (loading) {
     return (
-      <div className="space-y-4 pt-2 md:pt-0">
+      <div className="space-y-4 pt-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1.5">
             <Skeleton className="h-8 w-32" />
@@ -257,12 +257,15 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
   }
 
   return (
-    <div className="space-y-4 pt-2 md:pt-0">
+    <div className="space-y-4 pt-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Usuarios</h1>
-          <p className="text-muted-foreground">Gestiona los usuarios del sistema</p>
+        <div className="flex items-center gap-3">
+          <Users className="w-6 h-6 text-primary flex-shrink-0" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Usuarios</h1>
+            <p className="text-sm text-muted-foreground">Gestiona los usuarios del sistema</p>
+          </div>
         </div>
         <CreateUserDialog roles={roles} onSuccess={refreshUsers} />
       </div>
