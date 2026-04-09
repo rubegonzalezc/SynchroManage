@@ -127,6 +127,24 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [assigneeFilter, setAssigneeFilter] = useState('all')
 
+  // Bugs por tarea (para mostrar conteo en list view)
+  const [bugsByTask, setBugsByTask] = useState<Record<string, number>>({})
+  useEffect(() => {
+    if (!project?.id) return
+    fetch(`/api/dashboard/bugs?project_id=${project.id}`)
+      .then(r => r.json())
+      .then(data => {
+        const counts: Record<string, number> = {}
+        for (const bug of (data.bugs || [])) {
+          if (bug.task_id && (bug.status === 'open' || bug.status === 'in_progress')) {
+            counts[bug.task_id] = (counts[bug.task_id] || 0) + 1
+          }
+        }
+        setBugsByTask(counts)
+      })
+      .catch(() => {})
+  }, [project?.id])
+
   // Auto-seleccionar sprint activo al cargar el proyecto
   const resolvedSprintId: string | null = useMemo(() => {
     if (!project || selectedSprintId !== 'auto') return selectedSprintId as string | null
@@ -140,6 +158,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
     return project.tasks.map(t => ({
       ...t,
       assignees: t.assignees?.length ? t.assignees : t.assignee ? [t.assignee] : [],
+      openBugsCount: bugsByTask[t.id] ?? 0,
     })).filter(task => {
       // Filtro de sprint
       const matchesSprint = resolvedSprintId === null

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/popover'
 import {
   Search, ExternalLink, AlertTriangle, CheckCircle2,
-  Clock, RefreshCw, GitBranch, Layers, X, ChevronDown,
+  Clock, RefreshCw, GitBranch, Layers, X, ChevronDown, Zap, Bug,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
@@ -28,6 +28,9 @@ export interface Task {
   due_date: string | null
   sprint_id: string | null
   is_carry_over?: boolean
+  complexity?: number | null
+  open_bugs_count?: number
+  branch_name?: string | null
   project: { id: string; name: string; type?: string; company?: { id: string; name: string } | null } | null
   sprint?: { id: string; name: string; status: string } | null
 }
@@ -271,8 +274,10 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
               </div>
               <Skeleton className="h-4 w-3/4" />
               <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-28 rounded-full" />
+                <Skeleton className="h-5 w-10 rounded-full" />
+                <Skeleton className="h-5 w-10 rounded-full" />
                 <Skeleton className="h-5 w-24 rounded-full" />
-                <Skeleton className="h-5 w-20 rounded-full" />
               </div>
             </div>
           ))}
@@ -412,7 +417,7 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
             {filteredTasks.map((task, idx) => {
               const cat = categoryConfig[task.category || 'task'] ?? categoryConfig.task
               const overdue = isOverdue(task.due_date, task.status)
-              const branchName = getBranchName(task)
+              const branchName = task.branch_name || getBranchName(task)
 
               // Determinar si hay cambio de grupo de sprint respecto a la tarea anterior
               const getSprintGroup = (t: Task) => {
@@ -479,15 +484,41 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
                     {task.title}
                   </p>
 
-                  {/* Bottom row: category/branch + sprint + project */}
+                  {/* Bottom row: branch | complexity | bugs | sprint | project */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    {/* Categoría / Rama de creación */}
+                    {/* 1. Rama */}
                     <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${cat.color}`}>
                       <GitBranch className="w-3 h-3" />
                       <span className="font-mono">{branchName}</span>
                     </div>
 
-                    {/* Sprint */}
+                    {/* 2. Complejidad */}
+                    {task.complexity != null ? (
+                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium">
+                        <Zap className="w-3 h-3" />
+                        <span>{task.complexity}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        <Zap className="w-3 h-3" />
+                        <span>-</span>
+                      </div>
+                    )}
+
+                    {/* 3. Bugs abiertos */}
+                    {(task.open_bugs_count ?? 0) > 0 ? (
+                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-medium">
+                        <Bug className="w-3 h-3" />
+                        <span>{task.open_bugs_count}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        <Bug className="w-3 h-3" />
+                        <span>0</span>
+                      </div>
+                    )}
+
+                    {/* 4. Sprint */}
                     {task.sprint ? (
                       <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
                         <Layers className="w-3 h-3" />

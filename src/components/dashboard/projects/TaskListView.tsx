@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { AvatarStack } from '@/components/ui/avatar-stack'
-import { Calendar, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Calendar, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Bug, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TaskDetailDialog } from './TaskDetailDialog'
 import { categoryIcons, categoryLabels, categoryColors } from '@/lib/constants/categories'
@@ -18,6 +18,8 @@ interface Task {
   category?: string
   position: number
   due_date: string | null
+  complexity?: number | null
+  openBugsCount?: number
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
 }
 
@@ -131,7 +133,7 @@ export function TaskListView({ tasks, projectId, projectName, members, allUsers,
   return (
     <div className="space-y-3">
       {/* Sort header */}
-      <div className="hidden md:grid grid-cols-[1fr_100px_100px_100px_80px] gap-2 px-4 py-2 text-xs font-medium text-muted-foreground border-b border-border">
+      <div className="hidden md:grid grid-cols-[1fr_90px_90px_80px_70px_70px_70px] gap-2 px-4 py-2 text-xs font-medium text-muted-foreground border-b border-border">
         <button className="flex items-center hover:text-foreground transition-colors text-left" onClick={() => handleSort('title')}>
           Título <SortIcon field="title" />
         </button>
@@ -142,6 +144,8 @@ export function TaskListView({ tasks, projectId, projectName, members, allUsers,
         <button className="flex items-center hover:text-foreground transition-colors" onClick={() => handleSort('due_date')}>
           Fecha <SortIcon field="due_date" />
         </button>
+        <span className="flex items-center gap-1"><Zap className="w-3 h-3" />Complejidad</span>
+        <span className="flex items-center gap-1"><Bug className="w-3 h-3 text-red-500" />Bugs</span>
         <span>Asignados</span>
       </div>
 
@@ -171,7 +175,7 @@ export function TaskListView({ tasks, projectId, projectName, members, allUsers,
                 return (
                   <div
                     key={task.id}
-                    className="grid grid-cols-1 md:grid-cols-[1fr_100px_100px_100px_80px] gap-2 px-4 py-3 hover:bg-muted/30 cursor-pointer transition-colors items-center"
+                    className="grid grid-cols-1 md:grid-cols-[1fr_90px_90px_80px_70px_70px_70px] gap-2 px-4 py-3 hover:bg-muted/30 cursor-pointer transition-colors items-center"
                     onClick={() => setSelectedTaskId(task.id)}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -200,6 +204,26 @@ export function TaskListView({ tasks, projectId, projectName, members, allUsers,
                           <Calendar className="w-3 h-3" />
                           {formatDate(task.due_date)}
                         </span>
+                      )}
+                    </div>
+                    <div>
+                      {task.complexity != null ? (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Zap className="w-3 h-3 text-amber-500" />
+                          {task.complexity}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/40">-</span>
+                      )}
+                    </div>
+                    <div>
+                      {(task.openBugsCount ?? 0) > 0 ? (
+                        <span className="flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+                          <Bug className="w-3 h-3" />
+                          {task.openBugsCount}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/40">-</span>
                       )}
                     </div>
                     <div>

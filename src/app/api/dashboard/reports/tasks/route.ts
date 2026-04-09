@@ -104,6 +104,11 @@ export async function GET() {
       { count: globalTodo },
       { count: globalBacklog },
       { count: globalCarryOver },
+      { count: bugsOpen },
+      { count: bugsInProgress },
+      { count: bugsResolved },
+      { count: bugsClosed },
+      { data: openBugsList },
     ] = await Promise.all([
       supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'done'),
       supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'),
@@ -111,6 +116,11 @@ export async function GET() {
       supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'todo'),
       supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'backlog'),
       supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('is_carry_over', true),
+      supabaseAdmin.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+      supabaseAdmin.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'),
+      supabaseAdmin.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'resolved'),
+      supabaseAdmin.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'closed'),
+      supabaseAdmin.from('bugs').select('id, title, severity, status, created_at, project:projects(id, name), task:tasks(id, task_number, title), assignee:profiles!bugs_assignee_id_fkey(id, full_name, avatar_url)').in('status', ['open', 'in_progress']).order('created_at', { ascending: false }),
     ])
 
     const globalTotals = {
@@ -122,12 +132,35 @@ export async function GET() {
       carry_over: globalCarryOver ?? 0,
     }
 
+    const bugTotals = {
+      open: bugsOpen ?? 0,
+      in_progress: bugsInProgress ?? 0,
+      resolved: bugsResolved ?? 0,
+      closed: bugsClosed ?? 0,
+      total: (bugsOpen ?? 0) + (bugsInProgress ?? 0) + (bugsResolved ?? 0) + (bugsClosed ?? 0),
+    }
+
     // Inicializar mapa
     const statsMap: Record<string, {
-      done: number; pending: number; in_progress: number; review: number; backlog: number; carry_over: number; total: number
+      done: number; pending: number; in_progress: number; review: number; backlog: number; carry_over: number; total: number;
+      bugs_open: number; bugs_in_progress: number; bugs_resolved: number; bugs_total: number
     }> = {}
     for (const uid of userIds) {
-      statsMap[uid] = { done: 0, pending: 0, in_progress: 0, review: 0, backlog: 0, carry_over: 0, total: 0 }
+      statsMap[uid] = { done: 0, pending: 0, in_progress: 0, review: 0, backlog: 0, carry_over: 0, total: 0, bugs_open: 0, bugs_in_progress: 0, bugs_resolved: 0, bugs_total: 0 }
+    }
+
+    // Bugs por asignado
+    const { data: bugsByAssignee } = await supabaseAdmin
+      .from('bugs')
+      .select('assignee_id, status')
+      .in('assignee_id', userIds)
+
+    for (const bug of (bugsByAssignee || [])) {
+      if (!bug.assignee_id || !statsMap[bug.assignee_id]) continue
+      statsMap[bug.assignee_id].bugs_total++
+      if (bug.status === 'open') statsMap[bug.assignee_id].bugs_open++
+      else if (bug.status === 'in_progress') statsMap[bug.assignee_id].bugs_in_progress++
+      else if (bug.status === 'resolved') statsMap[bug.assignee_id].bugs_resolved++
     }
 
     for (const ta of (taskAssignees || [])) {
@@ -141,9 +174,9 @@ export async function GET() {
       accumulate(statsMap, task.assignee_id, task as TaskRow)
     }
 
-    // Incluir solo usuarios que tienen al menos 1 tarea
+    // Incluir solo usuarios que tienen al menos 1 tarea o bug
     const stats = allProfiles
-      .filter(p => statsMap[p.id]?.total > 0)
+      .filter(p => statsMap[p.id]?.total > 0 || statsMap[p.id]?.bugs_total > 0)
       .map(p => ({
         user: {
           id: p.id,
@@ -156,7 +189,7 @@ export async function GET() {
 
     stats.sort((a, b) => b.done - a.done)
 
-    return NextResponse.json({ stats, unassigned: trulyUnassigned, totalTasks: totalTasksCount ?? 0, globalTotals })
+    return NextResponse.json({ stats, unassigned: trulyUnassigned, totalTasks: totalTasksCount ?? 0, globalTotals, bugTotals, openBugs: openBugsList || [] })
   } catch (error) {
     console.error('Error fetching task report:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
@@ -164,7 +197,7 @@ export async function GET() {
 }
 
 function accumulate(
-  map: Record<string, { done: number; pending: number; in_progress: number; review: number; backlog: number; carry_over: number; total: number }>,
+  map: Record<string, { done: number; pending: number; in_progress: number; review: number; backlog: number; carry_over: number; total: number; bugs_open: number; bugs_in_progress: number; bugs_resolved: number; bugs_total: number }>,
   userId: string,
   task: TaskRow
 ) {

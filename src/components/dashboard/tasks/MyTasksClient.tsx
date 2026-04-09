@@ -10,7 +10,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Search, ExternalLink, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
+import { Search, ExternalLink, CheckCircle2, Clock, AlertTriangle, Bug, Zap } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { TaskDetailDialogStandalone } from './TaskDetailDialogStandalone'
@@ -24,6 +24,8 @@ interface Task {
   priority: string
   due_date: string | null
   created_at: string
+  complexity?: number | null
+  open_bugs_count?: number
   project: { id: string; name: string; status: string } | null
 }
 
@@ -44,10 +46,7 @@ const statusColors: Record<string, string> = {
 }
 
 const priorityLabels: Record<string, string> = {
-  low: 'Baja',
-  medium: 'Media',
-  high: 'Alta',
-  urgent: 'Urgente',
+  low: 'Baja', medium: 'Media', high: 'Alta', urgent: 'Urgente',
 }
 
 const priorityColors: Record<string, string> = {
@@ -56,7 +55,6 @@ const priorityColors: Record<string, string> = {
   high: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
   urgent: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
 }
-
 
 export function MyTasksClient() {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -70,9 +68,7 @@ export function MyTasksClient() {
     try {
       const response = await fetch('/api/dashboard/my-tasks')
       const data = await response.json()
-      if (response.ok) {
-        setTasks(data.tasks || [])
-      }
+      if (response.ok) setTasks(data.tasks || [])
     } catch (error) {
       console.error('Error fetching tasks:', error)
     } finally {
@@ -80,19 +76,15 @@ export function MyTasksClient() {
     }
   }
 
-  useEffect(() => {
-    fetchTasks()
-  }, [])
+  useEffect(() => { fetchTasks() }, [])
 
   const filteredTasks = tasks.filter(task => {
-    const matchesSearch = 
+    const matchesSearch =
       task.title.toLowerCase().includes(search.toLowerCase()) ||
       task.project?.name.toLowerCase().includes(search.toLowerCase()) ||
       `#${task.task_number}`.includes(search)
-    
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter
     const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter
-    
     return matchesSearch && matchesStatus && matchesPriority
   })
 
@@ -108,13 +100,10 @@ export function MyTasksClient() {
 
   const isDueSoon = (dueDate: string | null, status: string) => {
     if (!dueDate || status === 'done') return false
-    const due = new Date(dueDate)
-    const now = new Date()
-    const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    const diffDays = Math.ceil((new Date(dueDate).getTime() - Date.now()) / 86400000)
     return diffDays >= 0 && diffDays <= 3
   }
 
-  // Estadísticas
   const pendingCount = tasks.filter(t => t.status !== 'done').length
   const completedCount = tasks.filter(t => t.status === 'done').length
   const overdueCount = tasks.filter(t => isOverdue(t.due_date, t.status)).length
@@ -122,7 +111,6 @@ export function MyTasksClient() {
   if (loading) {
     return (
       <>
-        {/* Stats Cards Skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="bg-card rounded-lg border border-border p-4">
@@ -136,8 +124,6 @@ export function MyTasksClient() {
             </div>
           ))}
         </div>
-
-        {/* Filters Skeleton */}
         <div className="bg-card rounded-lg border border-border p-4 mb-4">
           <div className="flex flex-col md:flex-row gap-4">
             <Skeleton className="h-9 flex-1" />
@@ -145,36 +131,21 @@ export function MyTasksClient() {
             <Skeleton className="h-9 w-full md:w-[180px]" />
           </div>
         </div>
-
-        {/* Table Skeleton */}
         <div className="bg-card rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[80px]"><Skeleton className="h-4 w-6" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-18" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-24" /></TableHead>
-                <TableHead className="w-[100px]"><Skeleton className="h-4 w-16" /></TableHead>
+                {[80, 0, 0, 0, 0, 0, 60, 60, 100].map((w, i) => (
+                  <TableHead key={i} style={w ? { width: w } : {}}><Skeleton className="h-4 w-12" /></TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {[1, 2, 3, 4, 5].map((i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-10 font-mono" /></TableCell>
-                  <TableCell>
-                    <div className="space-y-1.5">
-                      <Skeleton className="h-4 w-48" />
-                      <Skeleton className="h-3 w-64" />
-                    </div>
-                  </TableCell>
-                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-12 rounded" /></TableCell>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(j => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
                 </TableRow>
               ))}
             </TableBody>
@@ -199,7 +170,6 @@ export function MyTasksClient() {
             </div>
           </div>
         </div>
-
         <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
@@ -211,7 +181,6 @@ export function MyTasksClient() {
             </div>
           </div>
         </div>
-
         <div className="bg-card rounded-lg border border-border p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
@@ -238,9 +207,7 @@ export function MyTasksClient() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full md:w-[180px]">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
+            <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Estado" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los estados</SelectItem>
               <SelectItem value="backlog">Backlog</SelectItem>
@@ -251,9 +218,7 @@ export function MyTasksClient() {
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-full md:w-[180px]">
-              <SelectValue placeholder="Prioridad" />
-            </SelectTrigger>
+            <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Prioridad" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas las prioridades</SelectItem>
               <SelectItem value="low">Baja</SelectItem>
@@ -264,7 +229,6 @@ export function MyTasksClient() {
           </Select>
         </div>
       </div>
-
 
       {/* Tasks Table */}
       <div className="bg-card rounded-lg border border-border overflow-hidden">
@@ -277,22 +241,28 @@ export function MyTasksClient() {
               <TableHead>Estado</TableHead>
               <TableHead>Prioridad</TableHead>
               <TableHead>Fecha Límite</TableHead>
-              <TableHead className="w-[100px]">Acciones</TableHead>
+              <TableHead className="w-[70px]">
+                <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-amber-500" />Comp.</span>
+              </TableHead>
+              <TableHead className="w-[70px]">
+                <span className="flex items-center gap-1"><Bug className="w-3 h-3 text-red-500" />Bugs</span>
+              </TableHead>
+              <TableHead className="w-[80px]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredTasks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  {tasks.length === 0 
-                    ? 'No tienes tareas asignadas' 
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  {tasks.length === 0
+                    ? 'No tienes tareas asignadas'
                     : 'No se encontraron tareas con los filtros aplicados'}
                 </TableCell>
               </TableRow>
             ) : (
               filteredTasks.map((task) => (
-                <TableRow 
-                  key={task.id} 
+                <TableRow
+                  key={task.id}
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => setSelectedTaskId(task.id)}
                 >
@@ -309,7 +279,7 @@ export function MyTasksClient() {
                   </TableCell>
                   <TableCell>
                     {task.project ? (
-                      <Link 
+                      <Link
                         href={`/projects/${task.project.id}`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -334,8 +304,8 @@ export function MyTasksClient() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className={
-                        isOverdue(task.due_date, task.status) 
-                          ? 'text-red-600 dark:text-red-400 font-medium' 
+                        isOverdue(task.due_date, task.status)
+                          ? 'text-red-600 dark:text-red-400 font-medium'
                           : isDueSoon(task.due_date, task.status)
                             ? 'text-amber-600 dark:text-amber-400'
                             : 'text-muted-foreground'
@@ -348,13 +318,28 @@ export function MyTasksClient() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button 
-                      variant="ghost" 
+                    {task.complexity != null ? (
+                      <span className="flex items-center gap-1 text-sm font-medium text-amber-600 dark:text-amber-400">
+                        <Zap className="w-3 h-3" />{task.complexity}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/40">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {(task.open_bugs_count ?? 0) > 0 ? (
+                      <span className="flex items-center gap-1 text-sm font-medium text-red-600 dark:text-red-400">
+                        <Bug className="w-3 h-3" />{task.open_bugs_count}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/40">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedTaskId(task.id)
-                      }}
+                      onClick={(e) => { e.stopPropagation(); setSelectedTaskId(task.id) }}
                     >
                       Ver
                     </Button>
@@ -366,7 +351,6 @@ export function MyTasksClient() {
         </Table>
       </div>
 
-      {/* Task Detail Dialog */}
       {selectedTaskId && (
         <TaskDetailDialogStandalone
           taskId={selectedTaskId}

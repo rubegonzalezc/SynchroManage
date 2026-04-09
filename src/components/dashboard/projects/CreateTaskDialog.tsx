@@ -314,7 +314,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Sin sprint (Backlog)</SelectItem>
-                  {sprints.map(s => (
+                  {sprints.filter(s => s.status !== 'completed').map(s => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}
                       {s.status === 'active' && ' (Activo)'}
