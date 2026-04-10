@@ -353,6 +353,11 @@ export async function PATCH(request: Request) {
       )
     }
 
+    // Invalidar caché del proyecto para que SWR reciba datos actualizados en el refetch
+    if (currentTask?.project_id) {
+      revalidateTag(`project-${currentTask.project_id}`, 'max')
+    }
+
     return NextResponse.json({ task: { ...task, assignees } })
   } catch (error) {
     console.error('Error updating task position:', error)
