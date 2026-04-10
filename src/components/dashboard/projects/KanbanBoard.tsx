@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -105,7 +105,12 @@ export function KanbanBoard({
     setTasks(initialTasks)
   }, [initialTasks])
 
-  // Realtime subscription for task updates
+  // Ref estable para onTasksChange — evita recrear la suscripción Realtime en cada render
+  const onTasksChangeRef = useRef(onTasksChange)
+  useEffect(() => { onTasksChangeRef.current = onTasksChange }, [onTasksChange])
+
+  // Realtime subscription for task updates (only from other users/sessions)
+  const isDraggingRef = useRef(false)
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -119,7 +124,11 @@ export function KanbanBoard({
           filter: `project_id=eq.${projectId}`,
         },
         () => {
-          onTasksChange()
+          // Ignorar eventos Realtime mientras el usuario está arrastrando para evitar
+          // que el refetch sobreescriba el estado optimista durante el drag
+          if (!isDraggingRef.current) {
+            onTasksChangeRef.current()
+          }
         }
       )
       .subscribe()
@@ -127,7 +136,7 @@ export function KanbanBoard({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [projectId, onTasksChange])
+  }, [projectId]) // Solo depende de projectId — onTasksChange se accede via ref
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -148,6 +157,7 @@ export function KanbanBoard({
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find((t) => t.id === event.active.id)
     if (task) {
+      isDraggingRef.current = true
       setActiveTask(task)
       dragOverColumnRef.current = task.status
       setDragOverColumn(task.status)
@@ -212,7 +222,8 @@ export function KanbanBoard({
       }
     }
 
-    // Clear the drag-over state and reference
+    // Clear the drag-over state, reference, and dragging flag
+    isDraggingRef.current = false
     dragOverColumnRef.current = null
     setDragOverColumn(null)
 
@@ -264,7 +275,8 @@ export function KanbanBoard({
         throw new Error(`Server responded with ${response.status}`)
       }
 
-      // Sync latest data from server
+      // Pequeño delay para asegurar que revalidateTag propague antes del refetch de SWR
+      await new Promise(res => setTimeout(res, 100))
       onTasksChange()
     } catch (error) {
       console.error('Error updating task:', error)
