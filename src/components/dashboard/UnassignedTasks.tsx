@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { UserX, Calendar } from 'lucide-react'
 import { categoryIcons, categoryLabels, categoryColors } from '@/lib/constants/categories'
 
@@ -30,44 +28,24 @@ const priorityLabels: Record<string, string> = {
   low: 'Baja', medium: 'Media', high: 'Alta', urgent: 'Urgente',
 }
 
-export function UnassignedTasks() {
-  const [tasks, setTasks] = useState<UnassignedTask[]>([])
-  const [loading, setLoading] = useState(true)
+interface UnassignedTasksProps {
+  tasks: UnassignedTask[]
+}
 
-  useEffect(() => {
-    fetch('/api/dashboard/reports/tasks')
-      .then(r => r.json())
-      .then(data => setTasks(data.unassigned || []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
+export function UnassignedTasks({ tasks }: UnassignedTasksProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <UserX className="w-4 h-4 text-rose-500" />
           Tareas sin Asignar
-          {!loading && (
-            <Badge variant="secondary" className="ml-1 bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
-              {tasks.length}
-            </Badge>
-          )}
+          <Badge variant="secondary" className="ml-1 bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
+            {tasks.length}
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-4 w-12" />
-                <Skeleton className="h-4 flex-1" />
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-20 rounded-full" />
-              </div>
-            ))}
-          </div>
-        ) : tasks.length === 0 ? (
+        {tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Todas las tareas están asignadas</p>
         ) : (
           <div className="space-y-2">

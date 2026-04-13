@@ -11,7 +11,6 @@ import { ProjectSprintBanner } from './ProjectSprintBanner'
 import { ProjectOrderDialog } from './ProjectOrderDialog'
 import { Button } from '@/components/ui/button'
 import { Plus, CalendarDays, ListTodo, Settings2, ClipboardList } from 'lucide-react'
-import { useSprints } from '@/hooks/useSprints'
 
 const STORAGE_KEY = 'synchro-project-order'
 
@@ -78,11 +77,24 @@ export function MyTasksClient() {
   // Fetch de proyectos para el selector
   const { data: projectsData } = useSWR<{ projects: Project[] }>('/api/dashboard/projects')
 
-  // Sprints del proyecto seleccionado (para el banner)
-  const { sprints } = useSprints(selectedProjectId ?? '')
-
   const tasks: Task[] = tasksData?.tasks ?? []
   const meetings: Meeting[] = meetingsData?.meetings ?? []
+
+  // Derivar sprints del proyecto seleccionado desde las tareas ya cargadas (evita fetch extra)
+  const sprints = useMemo(() => {
+    if (!selectedProjectId) return []
+    const sprintMap = new Map<string, {
+      id: string; name: string; goal: string | null;
+      start_date: string; end_date: string;
+      status: 'planning' | 'active' | 'completed'; order_index: number
+    }>()
+    tasks.forEach(t => {
+      if (t.project?.id === selectedProjectId && t.sprint && !sprintMap.has(t.sprint.id)) {
+        sprintMap.set(t.sprint.id, t.sprint as typeof sprintMap extends Map<string, infer V> ? V : never)
+      }
+    })
+    return Array.from(sprintMap.values()).sort((a, b) => a.order_index - b.order_index)
+  }, [tasks, selectedProjectId])
 
   // Conteo de tareas pendientes por proyecto para el selector
   const taskCountByProject = useMemo(() => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Badge } from '@/components/ui/badge'
@@ -58,7 +58,7 @@ const priorityLabels: Record<string, string> = {
 }
 
 
-export function TaskCard({ task, projectId, projectName, members, allUsers, currentUserId, onUpdate, isDragging, highlightId }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({ task, projectId, projectName, members, allUsers, currentUserId, onUpdate, isDragging, highlightId }: TaskCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [highlighted, setHighlighted] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
@@ -184,4 +184,21 @@ export function TaskCard({ task, projectId, projectName, members, allUsers, curr
       />
     </>
   )
-}
+}, (prev, next) => {
+  // Solo re-renderizar si cambian props relevantes
+  return (
+    prev.task.id === next.task.id &&
+    prev.task.title === next.task.title &&
+    prev.task.status === next.task.status &&
+    prev.task.priority === next.task.priority &&
+    prev.task.category === next.task.category &&
+    prev.task.due_date === next.task.due_date &&
+    prev.task.position === next.task.position &&
+    prev.task.complexity === next.task.complexity &&
+    prev.task.is_carry_over === next.task.is_carry_over &&
+    prev.task.assignees.length === next.task.assignees.length &&
+    prev.isDragging === next.isDragging &&
+    prev.highlightId === next.highlightId &&
+    prev.currentUserId === next.currentUserId
+  )
+})

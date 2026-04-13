@@ -425,6 +425,7 @@ export async function PUT(
 
     if (currentTask?.project_id) {
       revalidateTag(`project-${currentTask.project_id}`, 'max')
+      revalidateTag('tasks', 'max')
     }
 
     return NextResponse.json({ task: { ...task, assignees } })
@@ -482,6 +483,7 @@ export async function DELETE(
         { project_id: taskToDelete.project_id }
       )
       revalidateTag(`project-${taskToDelete.project_id}`, 'max')
+      revalidateTag('tasks', 'max')
     }
 
     return NextResponse.json({ success: true })

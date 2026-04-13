@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Bug, Calendar } from 'lucide-react'
 
 interface OpenBug {
@@ -30,43 +28,24 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
-export function OpenBugsList() {
-  const [bugs, setBugs] = useState<OpenBug[]>([])
-  const [loading, setLoading] = useState(true)
+interface OpenBugsListProps {
+  bugs: OpenBug[]
+}
 
-  useEffect(() => {
-    fetch('/api/dashboard/reports/tasks')
-      .then(r => r.json())
-      .then(data => setBugs(data.openBugs || []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
+export function OpenBugsList({ bugs }: OpenBugsListProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Bug className="w-4 h-4 text-red-500" />
           Bugs Abiertos
-          {!loading && (
-            <Badge variant="secondary" className="ml-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-              {bugs.length}
-            </Badge>
-          )}
+          <Badge variant="secondary" className="ml-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+            {bugs.length}
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-4 flex-1" />
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-20 rounded-full" />
-              </div>
-            ))}
-          </div>
-        ) : bugs.length === 0 ? (
+        {bugs.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">No hay bugs abiertos</p>
         ) : (
           <div className="space-y-2">
@@ -88,9 +67,7 @@ export function OpenBugsList() {
                       <span className="text-xs text-muted-foreground truncate max-w-[120px]">{bug.project.name}</span>
                     )}
                     {bug.task && (
-                      <span className="text-xs text-muted-foreground">
-                        #{bug.task.task_number}
-                      </span>
+                      <span className="text-xs text-muted-foreground">#{bug.task.task_number}</span>
                     )}
                     <Badge variant="secondary" className={`text-xs ${sev.color}`}>{sev.label}</Badge>
                     {bug.assignee ? (

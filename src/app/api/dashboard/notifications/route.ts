@@ -26,14 +26,10 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    // Contar no leídas
-    const { count } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('read', false)
+    // Contar no leídas desde los datos ya obtenidos (evita segunda query)
+    const unreadCount = (notifications || []).filter(n => !n.read).length
 
-    return NextResponse.json({ notifications: notifications || [], unreadCount: count || 0 })
+    return NextResponse.json({ notifications: notifications || [], unreadCount })
   } catch (error) {
     console.error('Error fetching notifications:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })

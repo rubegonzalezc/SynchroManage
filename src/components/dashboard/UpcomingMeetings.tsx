@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Video, Clock, Users, ExternalLink } from 'lucide-react'
+import { Video, Clock, Users } from 'lucide-react'
 import Link from 'next/link'
 import { format, isToday, isTomorrow } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Skeleton } from '@/components/ui/skeleton'
 
 interface Meeting {
   id: string
@@ -32,18 +31,23 @@ const responseColors: Record<string, string> = {
   maybe: 'bg-amber-500',
 }
 
-export function UpcomingMeetings() {
-  const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [loading, setLoading] = useState(true)
+interface UpcomingMeetingsProps {
+  initialMeetings?: Meeting[]
+}
+
+export function UpcomingMeetings({ initialMeetings }: UpcomingMeetingsProps) {
+  const [meetings, setMeetings] = useState<Meeting[]>(initialMeetings?.slice(0, 3) ?? [])
+  const [loading, setLoading] = useState(!initialMeetings)
 
   useEffect(() => {
+    // Si ya tenemos datos iniciales del SSR, no hacer fetch
+    if (initialMeetings) return
+
     const controller = new AbortController()
     const fetchMeetings = async () => {
       try {
         const res = await fetch('/api/dashboard/meetings', { signal: controller.signal })
-        if (!res.ok) {
-          throw new Error(`Error: ${res.status} ${res.statusText}`)
-        }
+        if (!res.ok) throw new Error(`Error: ${res.status}`)
         const data = await res.json()
         setMeetings((data.meetings || []).slice(0, 3))
       } catch (err) {
@@ -55,7 +59,7 @@ export function UpcomingMeetings() {
     }
     fetchMeetings()
     return () => controller.abort()
-  }, [])
+  }, [initialMeetings])
 
   const formatMeetingDate = (date: string) => {
     const d = new Date(date)
@@ -83,29 +87,9 @@ export function UpcomingMeetings() {
         <CardContent>
           <div className="space-y-3">
             {[1, 2].map((i) => (
-              <div key={i} className="p-3 rounded-lg bg-muted/50 space-y-2.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-3/5" />
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-3 w-3 rounded-full" />
-                      <Skeleton className="h-3 w-40" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-8 w-8 rounded-lg flex-shrink-0" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-3 w-3 rounded-full" />
-                    <div className="flex -space-x-1.5">
-                      {[1, 2, 3].map((a) => (
-                        <Skeleton key={a} className="w-6 h-6 rounded-full border-2 border-background" />
-                      ))}
-                    </div>
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                  <Skeleton className="h-5 w-20 rounded-full" />
-                </div>
+              <div key={i} className="p-3 rounded-lg bg-muted/50 space-y-2.5 animate-pulse">
+                <div className="h-4 w-3/5 bg-muted rounded" />
+                <div className="h-3 w-40 bg-muted rounded" />
               </div>
             ))}
           </div>
