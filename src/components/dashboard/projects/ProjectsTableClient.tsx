@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -53,6 +53,11 @@ export function ProjectsTableClient() {
   const router = useRouter()
   const { data: projectsData, error: projectsError, isLoading: loading, mutate: mutateProjects } = useSWR<{ projects: Project[] }>('/api/dashboard/projects')
   const { currentUserRole } = useCurrentUser()
+
+  // Prefetch del detalle de proyecto al hacer hover
+  const handleProjectHover = useCallback((projectId: string) => {
+    router.prefetch(`/projects/${projectId}`)
+  }, [router])
 
   const projects = projectsData?.projects ?? []
   const error = projectsError?.message ?? null
@@ -209,6 +214,7 @@ export function ProjectsTableClient() {
                         key={project.id} 
                         className="hover:bg-muted/50 cursor-pointer"
                         onClick={() => router.push(`/projects/${project.id}`)}
+                        onMouseEnter={() => handleProjectHover(project.id)}
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">

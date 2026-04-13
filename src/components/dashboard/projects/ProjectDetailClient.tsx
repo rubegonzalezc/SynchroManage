@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ArrowLeft, Users, Calendar, Building2, Mail, CheckCircle2, Clock, FolderKanban, GitPullRequest, LayoutGrid, List } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { KanbanBoard } from './KanbanBoard'
-import { TaskListView } from './TaskListView'
 import { TaskFilters } from './TaskFilters'
 import { CreateTaskDialog } from './CreateTaskDialog'
 import { ProjectComments } from './ProjectComments'
@@ -29,6 +27,35 @@ import { BugSection } from './BugSection'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useUsers } from '@/hooks/useUsers'
 import { useProject } from '@/hooks/useProject'
+
+// Lazy load de componentes pesados — solo se cargan cuando se necesitan
+const KanbanBoard = lazy(() => import('./KanbanBoard').then(m => ({ default: m.KanbanBoard })))
+const TaskListView = lazy(() => import('./TaskListView').then(m => ({ default: m.TaskListView })))
+
+function KanbanSkeleton() {
+  return (
+    <div className="flex gap-4 overflow-x-auto pb-4">
+      {[1, 2, 3, 4, 5].map(col => (
+        <div key={col} className="w-72 flex-shrink-0 space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-5 w-6 rounded-full" />
+          </div>
+          {[1, 2, 3].map(card => (
+            <div key={card} className="bg-card border border-border rounded-lg p-3 space-y-2.5">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-3.5 w-4/5" />
+              <div className="flex items-center justify-between pt-1">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="w-6 h-6 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 interface Project {
   id: string
@@ -90,7 +117,7 @@ const statusColors: Record<string, string> = {
 }
 
 export function ProjectDetailClient({ projectId, backHref = '/projects', backLabel = 'Volver a proyectos' }: { projectId: string; backHref?: string; backLabel?: string }) {
-  const { project, isLoading: loading, error: projectError, mutate: mutateProject } = useProject(projectId)
+  const { project, isLoading: loading, error: projectError, mutate: mutateProject, optimisticMoveTask } = useProject(projectId)
   const { users } = useUsers()
   const { currentUserId, currentUserRole } = useCurrentUser()
   const searchParams = useSearchParams()
@@ -654,26 +681,31 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
         </div>
 
         {viewMode === 'kanban' ? (
-          <KanbanBoard
-            tasks={filteredTasks}
-            projectId={project.id}
-            projectName={project.name}
-            members={projectMembers}
-            allUsers={allUsers}
-            currentUserId={currentUserId}
-            onTasksChange={mutateProject}
-            highlightId={highlightId}
-          />
+          <Suspense fallback={<KanbanSkeleton />}>
+            <KanbanBoard
+              tasks={filteredTasks}
+              projectId={project.id}
+              projectName={project.name}
+              members={projectMembers}
+              allUsers={allUsers}
+              currentUserId={currentUserId}
+              onTasksChange={mutateProject}
+              onOptimisticMove={optimisticMoveTask}
+              highlightId={highlightId}
+            />
+          </Suspense>
         ) : (
-          <TaskListView
-            tasks={filteredTasks}
-            projectId={project.id}
-            projectName={project.name}
-            members={projectMembers}
-            allUsers={allUsers}
-            currentUserId={currentUserId}
-            onTasksChange={mutateProject}
-          />
+          <Suspense fallback={<KanbanSkeleton />}>
+            <TaskListView
+              tasks={filteredTasks}
+              projectId={project.id}
+              projectName={project.name}
+              members={projectMembers}
+              allUsers={allUsers}
+              currentUserId={currentUserId}
+              onTasksChange={mutateProject}
+            />
+          </Suspense>
         )}
       </div>
 

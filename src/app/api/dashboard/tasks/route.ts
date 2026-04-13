@@ -272,6 +272,7 @@ export async function POST(request: Request) {
     }
 
     revalidateTag(`project-${body.project_id}`, 'max')
+    revalidateTag('tasks', 'max')
 
     return NextResponse.json({ task: { ...task, assignees } })
   } catch (error) {
@@ -356,6 +357,7 @@ export async function PATCH(request: Request) {
     // Invalidar caché del proyecto para que SWR reciba datos actualizados en el refetch
     if (currentTask?.project_id) {
       revalidateTag(`project-${currentTask.project_id}`, 'max')
+      revalidateTag('tasks', 'max')
     }
 
     return NextResponse.json({ task: { ...task, assignees } })

@@ -10,7 +10,6 @@ import { ProjectStatusChart } from '@/components/dashboard/ProjectStatusChart'
 import { BugStatusChart } from '@/components/dashboard/BugStatusChart'
 import { UnassignedTasks } from '@/components/dashboard/UnassignedTasks'
 import { OpenBugsList } from '@/components/dashboard/OpenBugsList'
-
 const roleLabels: Record<string, string> = {
   admin: 'Administradores',
   pm: 'Project Managers',
@@ -122,6 +121,8 @@ export default async function AdminDashboard() {
   }
 
   // Obtener estadísticas en paralelo (filtradas por rol)
+  // Las queries de bugs se consolidan en una sola para reducir round-trips
+  // Las meetings, unassigned tasks y open bugs se obtienen aquí para evitar fetches client-side
   const [
     { count: usersCount },
     { count: projectsActiveCount },
@@ -138,10 +139,9 @@ export default async function AdminDashboard() {
     { data: recentActivity },
     { data: allProjectsForChart },
     { data: allTasksForChart },
-    { count: bugsOpenCount },
-    { count: bugsInProgressCount },
-    { count: bugsResolvedCount },
-    { count: bugsClosedCount },
+    { data: bugsForChart },
+    meetingsResult,
+    reportsResult,
   ] = await Promise.all([
     // Total usuarios (solo admin)
     isAdmin 
@@ -246,18 +246,62 @@ export default async function AdminDashboard() {
       .select('*, user:profiles(id, full_name, avatar_url)')
       .order('created_at', { ascending: false })
       .limit(8),
-    // Proyectos por estado (para gráfica)
-    supabase.from('projects')
-      .select('status'),
-    // Tareas por estado (para gráfica)
-    supabase.from('tasks')
-      .select('status'),
-    // Bugs por estado (para gráfica)
-    supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'open'),
-    supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'),
-    supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'resolved'),
-    supabase.from('bugs').select('*', { count: 'exact', head: true }).eq('status', 'closed'),
+    // Proyectos por estado (para gráfica) — solo status
+    supabase.from('projects').select('status'),
+    // Tareas por estado (para gráfica) — solo status
+    supabase.from('tasks').select('status'),
+    // Bugs por estado — una sola query con todos los estados (reemplaza 4 queries separadas)
+    supabase.from('bugs').select('status'),
+    // Reuniones próximas (para UpcomingMeetings — evita fetch client-side)
+    !isStakeholder
+      ? (async () => {
+          const { data: attendeeRecords } = await supabase
+            .from('meeting_attendees')
+            .select('meeting_id')
+            .eq('user_id', userId!)
+          const attendeeMeetingIds = attendeeRecords?.map(r => r.meeting_id) || []
+          let q = supabase
+            .from('meetings')
+            .select(`id, title, start_time, end_time, meeting_link,
+              project:projects(id, name),
+              organizer:profiles!meetings_organizer_id_fkey(id, full_name, avatar_url),
+              attendees:meeting_attendees(id, response, user:profiles(id, full_name, avatar_url))`)
+            .gte('end_time', new Date().toISOString())
+            .order('start_time', { ascending: true })
+            .limit(3)
+          if (attendeeMeetingIds.length > 0) {
+            q = q.or(`organizer_id.eq.${userId},id.in.(${attendeeMeetingIds.join(',')})`)
+          } else {
+            q = q.eq('organizer_id', userId!)
+          }
+          return q
+        })()
+      : Promise.resolve({ data: [] }),
+    // Reports (unassigned tasks + open bugs) — solo para admin/pm, evita 2 fetches client-side
+    (isAdmin || isPM)
+      ? (async () => {
+          const [unassignedResult, openBugsResult, taskAssigneeIdsResult] = await Promise.all([
+            supabase.from('tasks')
+              .select('id, task_number, title, status, priority, category, due_date, project:projects(id, name, type)')
+              .is('assignee_id', null),
+            supabase.from('bugs')
+              .select('id, title, severity, status, created_at, project:projects(id, name), task:tasks(id, task_number, title), assignee:profiles!bugs_assignee_id_fkey(id, full_name, avatar_url)')
+              .in('status', ['open', 'in_progress'])
+              .order('created_at', { ascending: false }),
+            supabase.from('task_assignees').select('task_id'),
+          ])
+          const taskIdsWithAssignees = new Set((taskAssigneeIdsResult.data || []).map((t: { task_id: string }) => t.task_id))
+          const trulyUnassigned = (unassignedResult.data || []).filter((t: { id: string }) => !taskIdsWithAssignees.has(t.id))
+          return { unassigned: trulyUnassigned, openBugs: openBugsResult.data || [] }
+        })()
+      : Promise.resolve({ unassigned: [], openBugs: [] }),
   ])
+
+  // Consolidar conteos de bugs desde la query única
+  const bugsOpenCount = (bugsForChart || []).filter((b: { status: string }) => b.status === 'open').length
+  const bugsInProgressCount = (bugsForChart || []).filter((b: { status: string }) => b.status === 'in_progress').length
+  const bugsResolvedCount = (bugsForChart || []).filter((b: { status: string }) => b.status === 'resolved').length
+  const bugsClosedCount = (bugsForChart || []).filter((b: { status: string }) => b.status === 'closed').length
 
   // Contar usuarios por rol
   const roleCounts: Record<string, number> = {}
@@ -756,17 +800,20 @@ export default async function AdminDashboard() {
 
       {/* Reuniones Próximas */}
       {!isStakeholder && (
-        <UpcomingMeetings />
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <UpcomingMeetings initialMeetings={((meetingsResult as any).data ?? []) as any} />
       )}
 
       {/* Tareas sin Asignar */}
       {(isAdmin || isPM) && (
-        <UnassignedTasks />
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <UnassignedTasks tasks={((reportsResult as any).unassigned ?? []) as any} />
       )}
 
       {/* Bugs Abiertos */}
       {(isAdmin || isPM) && (
-        <OpenBugsList />
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <OpenBugsList bugs={((reportsResult as any).openBugs ?? []) as any} />
       )}
     </div>
   )

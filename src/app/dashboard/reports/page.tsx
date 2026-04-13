@@ -445,7 +445,7 @@ export default function ReportsPage() {
       </Card>
 
       {/* Unassigned tasks */}
-      <UnassignedTasks />
+      <UnassignedTasks tasks={unassigned} />
 
       {/* Open bugs list */}
       <Card>

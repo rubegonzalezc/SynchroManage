@@ -30,7 +30,8 @@ export function DashboardLayoutClient({ user, children }: DashboardLayoutClientP
     <SWRConfig value={{
       fetcher,
       revalidateOnFocus: false,
-      dedupingInterval: 10000,
+      revalidateOnReconnect: false,
+      dedupingInterval: 30000,
     }}>
       <SidebarProvider defaultOpen={true}>
         {/* Mobile: navbar fija (ya tiene md:hidden y fixed internamente) */}
