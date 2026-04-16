@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar, Target, Play, CheckCircle2, Loader2 } from 'lucide-react'
@@ -9,6 +9,7 @@ import type { Sprint } from './CreateSprintDialog'
 
 interface SprintHeaderProps {
   sprint: Sprint
+  projectId: string
   nextSprint: Sprint | null
   canManage: boolean
   onSprintStarted: (sprint: Sprint) => void
@@ -21,10 +22,11 @@ const statusConfig = {
   completed: { label: 'Completado', className: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' },
 }
 
-export function SprintHeader({ sprint, nextSprint, canManage, onSprintStarted, onSprintCompleted }: SprintHeaderProps) {
+export function SprintHeader({ sprint, projectId, nextSprint, canManage, onSprintStarted, onSprintCompleted }: SprintHeaderProps) {
   const [startingLoading, setStartingLoading] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
+  const [pendingBugsCount, setPendingBugsCount] = useState(0)
 
   const tasks = sprint.tasks || []
   const doneTasks = tasks.filter(t => t.status === 'done').length
@@ -34,6 +36,27 @@ export function SprintHeader({ sprint, nextSprint, canManage, onSprintStarted, o
 
   const formatDate = (d: string) =>
     new Date(d + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
+
+  // Obtener bugs pendientes del sprint cuando se va a completar
+  const fetchPendingBugs = async () => {
+    try {
+      const res = await fetch(`/api/dashboard/bugs?project_id=${projectId}`)
+      if (!res.ok) return
+      const data = await res.json()
+      const sprintBugs = (data.bugs || []).filter(
+        (b: { sprint_id: string | null; status: string }) =>
+          b.sprint_id === sprint.id && ['open', 'in_progress'].includes(b.status)
+      )
+      setPendingBugsCount(sprintBugs.length)
+    } catch {
+      setPendingBugsCount(0)
+    }
+  }
+
+  const handleOpenCompleteDialog = async () => {
+    await fetchPendingBugs()
+    setCompleteDialogOpen(true)
+  }
 
   const handleStart = async () => {
     setStartingLoading(true)
@@ -94,7 +117,7 @@ export function SprintHeader({ sprint, nextSprint, canManage, onSprintStarted, o
               {sprint.status === 'active' && (
                 <Button
                   size="sm"
-                  onClick={() => setCompleteDialogOpen(true)}
+                  onClick={handleOpenCompleteDialog}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Completar Sprint
@@ -135,6 +158,7 @@ export function SprintHeader({ sprint, nextSprint, canManage, onSprintStarted, o
         sprint={sprint}
         nextSprintName={nextSprint?.name ?? null}
         pendingTasksCount={pendingTasksCount}
+        pendingBugsCount={pendingBugsCount}
         onCompleted={onSprintCompleted}
       />
     </>
