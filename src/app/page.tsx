@@ -19,19 +19,10 @@ export default async function Home() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const roleName = (profile?.role as any)?.name as string | undefined
 
-  // Redirigir según rol
-  switch (roleName) {
-    case 'admin':
-    case 'pm':
-      // Admin y PM usan el dashboard principal
-      redirect('/dashboard')
-    case 'tech_lead':
-      redirect('/tech-lead')
-    case 'developer':
-      redirect('/developer')
-    case 'stakeholder':
-      redirect('/stakeholder')
-    default:
-      redirect('/login')
+  // Redirigir según rol — todos los roles van al dashboard unificado
+  if (roleName && ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'].includes(roleName)) {
+    redirect('/dashboard')
+  } else {
+    redirect('/login')
   }
 }
