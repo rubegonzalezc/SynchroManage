@@ -121,3 +121,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
+
+// Eliminar notificaciones (limpiar historial)
+export async function DELETE(request: Request) {
+  try {
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const onlyRead = searchParams.get('onlyRead') === 'true'
+
+    let query = supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', user.id)
+
+    if (onlyRead) {
+      query = query.eq('read', true)
+    }
+
+    const { error } = await query
+
+    if (error) {
+      console.error('Error deleting notifications:', error)
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting notifications:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
