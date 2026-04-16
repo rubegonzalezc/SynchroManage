@@ -624,6 +624,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             return (
               <SprintHeader
                 sprint={{ ...currentSprint, tasks: project.tasks.filter(t => t.sprint_id === currentSprint.id) }}
+                projectId={project.id}
                 nextSprint={nextSprint ?? null}
                 canManage={['admin', 'pm'].includes(currentUserRole)}
                 onSprintStarted={() => mutateProject()}

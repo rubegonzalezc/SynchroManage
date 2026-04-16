@@ -96,7 +96,15 @@ export async function PUT(
     if ('description' in body) updatePayload.description = body.description || null
     if ('steps_to_reproduce' in body) updatePayload.steps_to_reproduce = body.steps_to_reproduce || null
     if ('severity' in body) updatePayload.severity = body.severity
-    if ('status' in body) updatePayload.status = body.status
+    if ('status' in body) {
+      updatePayload.status = body.status
+      // Registrar cuándo se marcó como resuelto para el cierre automático
+      if (body.status === 'resolved' && currentBug?.status !== 'resolved') {
+        updatePayload.resolved_at = new Date().toISOString()
+      } else if (body.status !== 'resolved') {
+        updatePayload.resolved_at = null
+      }
+    }
     if ('sprint_id' in body) updatePayload.sprint_id = body.sprint_id || null
     if ('task_id' in body) updatePayload.task_id = body.task_id || null
     if ('assignee_id' in body) updatePayload.assignee_id = body.assignee_id || null
