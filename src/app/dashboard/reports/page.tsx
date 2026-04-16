@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CheckCircle2, Clock, RefreshCw, ListTodo, BarChart3, Eye, Inbox, UserX, Calendar, Bug, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { CheckCircle2, Clock, RefreshCw, ListTodo, BarChart3, Eye, Inbox, UserX, Calendar, Bug, AlertTriangle, X } from 'lucide-react'
 import Link from 'next/link'
 import { UnassignedTasks } from '@/components/dashboard/UnassignedTasks'
+import { ReportExportButton } from '@/components/dashboard/reports/ReportExportButton'
 
 interface UserStat {
   user: { id: string; full_name: string; avatar_url: string | null; role: string }
@@ -102,9 +104,17 @@ export default function ReportsPage() {
   const [bugTotals, setBugTotals] = useState<BugTotals>({ open: 0, in_progress: 0, resolved: 0, closed: 0, total: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
-  useEffect(() => {
-    fetch('/api/dashboard/reports/tasks')
+  const fetchReport = useCallback((from: string, to: string) => {
+    setLoading(true)
+    setError(null)
+    const params = new URLSearchParams()
+    if (from) params.set('dateFrom', from)
+    if (to) params.set('dateTo', to)
+    const url = `/api/dashboard/reports/tasks${params.toString() ? `?${params}` : ''}`
+    fetch(url)
       .then(r => r.json())
       .then(data => {
         if (data.error) setError(data.error)
@@ -121,13 +131,75 @@ export default function ReportsPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    fetchReport('', '')
+  }, [fetchReport])
+
+  function handleApplyFilter() {
+    fetchReport(dateFrom, dateTo)
+  }
+
+  function handleClearFilter() {
+    setDateFrom('')
+    setDateTo('')
+    fetchReport('', '')
+  }
+
+  // suppress unused warning
+  void totalTasks
+
   return (
     <div className="space-y-6 pt-6">
-      <div className="flex items-center gap-3">
-        <BarChart3 className="w-6 h-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Reporte</h1>
-          <p className="text-sm text-muted-foreground">Estadísticas del sistema</p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+        <div className="flex items-center gap-3 flex-1">
+          <BarChart3 className="w-6 h-6 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Reporte</h1>
+            <p className="text-sm text-muted-foreground">Estadísticas del sistema</p>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          {/* Date range filter */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                className="text-sm border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                placeholder="Desde"
+              />
+            </div>
+            <span className="text-muted-foreground text-sm">—</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              className="text-sm border border-border rounded-md px-2 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              placeholder="Hasta"
+            />
+            <Button size="sm" onClick={handleApplyFilter} disabled={loading}>
+              Filtrar
+            </Button>
+            {(dateFrom || dateTo) && (
+              <Button size="sm" variant="ghost" onClick={handleClearFilter} className="gap-1 px-2">
+                <X className="w-3.5 h-3.5" />
+                Limpiar
+              </Button>
+            )}
+          </div>
+          {/* Export buttons */}
+          {!loading && !error && (
+            <ReportExportButton
+              stats={stats}
+              globalTotals={globalTotals}
+              bugTotals={bugTotals}
+              dateFrom={dateFrom || undefined}
+              dateTo={dateTo || undefined}
+            />
+          )}
         </div>
       </div>
 
