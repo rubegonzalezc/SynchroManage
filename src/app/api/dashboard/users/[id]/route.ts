@@ -88,8 +88,8 @@ export async function PUT(
     }
 
     // Invalidar caché de usuarios
-    revalidateTag('users')
-    revalidateTag(`user-${id}`)
+    revalidateTag('users', 'max')
+    revalidateTag(`user-${id}`, 'max')
 
     return NextResponse.json({ success: true })
   } catch (error) {
