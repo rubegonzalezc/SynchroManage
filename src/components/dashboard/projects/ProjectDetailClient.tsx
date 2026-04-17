@@ -15,6 +15,7 @@ import { ProjectActivity } from './ProjectActivity'
 import { EditProjectDialog } from './EditProjectDialog'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 import { StakeholderComments } from './StakeholderComments'
+import { StakeholderView } from './StakeholderView'
 import { StakeholderMessagesForPM } from './StakeholderMessagesForPM'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { CreateChangeControlDialog } from '@/components/dashboard/change-controls/CreateChangeControlDialog'
@@ -330,7 +331,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           </Badge>
         </div>
 
-        {/* Info Cards para Stakeholder */}
+        {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {project.company && (
             <div className="bg-card rounded-lg border border-border p-4">
@@ -340,16 +341,14 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               <p className="font-medium text-foreground">{project.company.name}</p>
             </div>
           )}
-
           <div className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Calendar className="w-4 h-4" /> Fechas
             </div>
             <p className="font-medium text-foreground">
-              {formatDate(project.start_date)} - {formatDate(project.end_date)}
+              {formatDate(project.start_date)} — {formatDate(project.end_date)}
             </p>
           </div>
-
           <div className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <CheckCircle2 className="w-4 h-4" /> Tareas Completadas
@@ -358,7 +357,6 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               {hasNoTasks ? 'Sin tareas aún' : `${completedTasks} de ${totalTasks}`}
             </p>
           </div>
-
           <div className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Clock className="w-4 h-4" /> Progreso
@@ -369,57 +367,20 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           </div>
         </div>
 
-        {/* Barra de Progreso */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <h3 className="font-semibold text-foreground mb-4">Progreso del Proyecto</h3>
-          {hasNoTasks ? (
-            <div className="text-center py-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-3">
-                <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-              </div>
-              <p className="text-muted-foreground">
-                El proyecto está en fase de planificación.
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Las tareas aún no han sido definidas por el equipo.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Completado</span>
-                <span className="font-medium text-foreground">{progressPercentage}%</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-3">
-                <div
-                  className="bg-green-500 dark:bg-green-600 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${progressPercentage}%` }}
-                />
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                {completedTasks} tareas completadas de {totalTasks} totales
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Contacto del PM */}
+        {/* PM contact */}
         {project.pm && (
-          <div className="bg-card rounded-lg border border-border p-6">
-            <h3 className="font-semibold text-foreground mb-4">Project Manager</h3>
-            <div className="flex items-center gap-4">
-              <Avatar className="w-12 h-12">
+          <div className="bg-card rounded-lg border border-border p-4">
+            <p className="text-xs text-muted-foreground mb-2">Project Manager</p>
+            <div className="flex items-center gap-3">
+              <Avatar className="w-9 h-9">
                 <AvatarImage src={project.pm.avatar_url || undefined} />
-                <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-sm">
                   {getInitials(project.pm.full_name)}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium text-foreground">{project.pm.full_name}</p>
-                <a 
-                  href={`mailto:${project.pm.email}`}
-                  className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-                >
+                <p className="font-medium text-foreground text-sm">{project.pm.full_name}</p>
+                <a href={`mailto:${project.pm.email}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                   <Mail className="w-3 h-3" /> {project.pm.email}
                 </a>
               </div>
@@ -427,7 +388,20 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           </div>
         )}
 
-        {/* Sección de Comentarios para Stakeholder */}
+        {/* Improved stakeholder view: timeline + tasks per sprint + documents */}
+        <StakeholderView
+          projectId={project.id}
+          sprints={project.sprints || []}
+          tasks={project.tasks.map(t => ({
+            ...t,
+            assignees: t.assignees?.length ? t.assignees : t.assignee ? [t.assignee] : [],
+          }))}
+          progressPercentage={progressPercentage}
+          totalTasks={totalTasks}
+          completedTasks={completedTasks}
+        />
+
+        {/* Stakeholder comments */}
         <StakeholderComments
           projectId={project.id}
           projectName={project.name}

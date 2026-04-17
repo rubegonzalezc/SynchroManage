@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Target, Play, CheckCircle2, Loader2 } from 'lucide-react'
+import { Calendar, Target, Play, CheckCircle2, Loader2, BarChart2, ChevronDown, ChevronUp } from 'lucide-react'
 import { CompleteSprintDialog } from './CompleteSprintDialog'
+import { SprintAnalytics } from './SprintAnalytics'
 import type { Sprint } from './CreateSprintDialog'
 
 interface SprintHeaderProps {
@@ -27,6 +28,7 @@ export function SprintHeader({ sprint, projectId, nextSprint, canManage, onSprin
   const [startError, setStartError] = useState<string | null>(null)
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
   const [pendingBugsCount, setPendingBugsCount] = useState(0)
+  const [analyticsOpen, setAnalyticsOpen] = useState(false)
 
   const tasks = sprint.tasks || []
   const doneTasks = tasks.filter(t => t.status === 'done').length
@@ -149,6 +151,26 @@ export function SprintHeader({ sprint, projectId, nextSprint, canManage, onSprin
 
         {totalTasks === 0 && sprint.status !== 'completed' && (
           <p className="text-xs text-muted-foreground">Sin tareas asignadas a este sprint aún.</p>
+        )}
+
+        {/* Analytics toggle — visible for active and completed sprints */}
+        {sprint.status !== 'planning' && (
+          <div className="pt-1 border-t border-border">
+            <button
+              onClick={() => setAnalyticsOpen(v => !v)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+              Analíticas del sprint
+              {analyticsOpen
+                ? <ChevronUp className="w-3.5 h-3.5" />
+                : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {analyticsOpen && (
+              <SprintAnalytics sprintId={sprint.id} />
+            )}
+          </div>
         )}
       </div>
 
