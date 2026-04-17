@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Pencil, Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { MultiSelectRole } from '@/components/ui/multi-select-role'
 import { getPrimaryRole, type RoleName } from '@/lib/types/roles'
 
@@ -39,7 +38,6 @@ export function EditUserDialog({ user, roles, onSuccess }: EditUserDialogProps) 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [companies, setCompanies] = useState<Company[]>([])
-  const supabase = createClient()
 
   // Inicializar role_ids desde user.roles (nombres) mapeados a IDs
   const getInitialRoleIds = (): string[] => {
@@ -94,39 +92,19 @@ export function EditUserDialog({ user, roles, onSuccess }: EditUserDialogProps) 
       const primaryRole = getPrimaryRole(selectedRoleNames)
       const primaryRoleId = roles.find(r => r.name === primaryRole)?.id
 
-      // Actualizar perfil con rol primario
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
+      const response = await fetch(`/api/dashboard/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           full_name: formData.full_name,
-          role_id: primaryRoleId || parseInt(formData.role_ids[0]),
+          role_ids: formData.role_ids.map(id => parseInt(id)),
+          primary_role_id: primaryRoleId,
           company_id: hasStakeholder ? (formData.company_id || null) : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
+        }),
+      })
 
-      if (updateError) throw updateError
-
-      // Sincronizar user_roles: eliminar existentes e insertar nuevos
-      const { error: deleteError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', user.id)
-
-      if (deleteError) throw deleteError
-
-      const newUserRoles = formData.role_ids.map(roleId => ({
-        user_id: user.id,
-        role_id: parseInt(roleId),
-      }))
-
-      if (newUserRoles.length > 0) {
-        const { error: insertError } = await supabase
-          .from('user_roles')
-          .insert(newUserRoles)
-
-        if (insertError) throw insertError
-      }
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Error al actualizar usuario')
 
       setOpen(false)
       onSuccess?.()
