@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   Dialog, DialogContent, DialogTitle,
 } from '@/components/ui/dialog'
@@ -88,9 +88,10 @@ export function FileAttachments({ taskId, projectId, bugId, currentUserId }: Fil
   }, [taskId, projectId, bugId])
 
   // Cargar al montar
-  useState(() => {
+  useEffect(() => {
     if (!fetched) fetchAttachments()
-  })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleUpload = async (file: File) => {
     setUploading(true)
