@@ -21,7 +21,7 @@ export function PageHeader({ title, description, actions, className }: PageHeade
       }}
     >
       <Box>
-        <Typography variant="h5" fontWeight={650} letterSpacing="-0.03em">{title}</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 650, letterSpacing: '-0.03em' }}>{title}</Typography>
         {description && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{description}</Typography>
         )}

@@ -34,7 +34,7 @@ export function StatCard({
       <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Box>
           <Typography variant="body2" color="text.secondary">{title}</Typography>
-          <Typography variant="h5" fontWeight={700} sx={{ mt: 0.5 }}>{value}</Typography>
+          <Typography variant="h5" sx={{ mt: 0.5, fontWeight: 700 }}>{value}</Typography>
           {description && (
             <Typography variant="caption" color="text.secondary">{description}</Typography>
           )}
@@ -70,7 +70,7 @@ export function EmptyState({
 }) {
   return (
     <Stack spacing={1.5} sx={{ py: 8, px: 3, textAlign: 'center', alignItems: 'center', justifyContent: 'center' }}>
-      <Typography variant="subtitle1" fontWeight={600}>{title}</Typography>
+      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{title}</Typography>
       {description && <Typography variant="body2" color="text.secondary">{description}</Typography>}
       {action}
     </Stack>

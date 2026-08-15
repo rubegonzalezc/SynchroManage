@@ -17,7 +17,7 @@ export function ProjectStatusChart({ data }: Props) {
 
   if (!data.length) {
     return (
-      <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 8 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ py: 8, textAlign: 'center' }}>
         Sin datos
       </Typography>
     )
