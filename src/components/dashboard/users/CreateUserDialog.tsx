@@ -80,8 +80,8 @@ export function CreateUserDialog({ roles, onSuccess }: CreateUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" /> Invitar Usuario
+        <Button>
+          <Plus className="w-4 h-4" /> Invitar usuario
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

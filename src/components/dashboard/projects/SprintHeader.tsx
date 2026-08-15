@@ -54,7 +54,7 @@ export function SprintHeader({ sprint, nextSprint, canManage, onSprintStarted, o
 
   return (
     <>
-      <div className="bg-card rounded-lg border border-border p-4 space-y-3">
+      <div className="rounded-[20px] bg-white/55 dark:bg-white/[0.04] border border-white/70 dark:border-white/10 p-4 space-y-3 backdrop-blur-xl">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

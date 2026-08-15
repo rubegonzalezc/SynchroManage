@@ -1,5 +1,6 @@
 'use client'
 
+import { Box } from '@mui/material'
 import { Input } from '@/components/ui/input'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -35,7 +36,6 @@ const priorityLabels: Record<string, string> = {
   urgent: 'Urgente',
 }
 
-
 export function TaskFilters({
   search, onSearchChange,
   priorityFilter, onPriorityFilterChange,
@@ -44,8 +44,8 @@ export function TaskFilters({
   members, onClearFilters, hasActiveFilters,
 }: TaskFiltersProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="relative flex-1 min-w-[200px] max-w-xs">
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.25 }}>
+      <Box sx={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 280 }}>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Buscar tareas..."
@@ -53,14 +53,14 @@ export function TaskFilters({
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-9"
         />
-      </div>
+      </Box>
 
       <Select value={priorityFilter} onValueChange={onPriorityFilterChange}>
-        <SelectTrigger className="w-[170px]">
+        <SelectTrigger className="w-[168px]">
           <SelectValue placeholder="Prioridad" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Prioridad: Todas</SelectItem>
+          <SelectItem value="all">Todas las prioridades</SelectItem>
           {Object.entries(priorityLabels).map(([key, label]) => (
             <SelectItem key={key} value={key}>{label}</SelectItem>
           ))}
@@ -68,11 +68,11 @@ export function TaskFilters({
       </Select>
 
       <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
-        <SelectTrigger className="w-[170px]">
+        <SelectTrigger className="w-[168px]">
           <SelectValue placeholder="Categoría" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Categoría: Todas</SelectItem>
+          <SelectItem value="all">Todas las categorías</SelectItem>
           {TASK_CATEGORIES.map((cat) => (
             <SelectItem key={cat.slug} value={cat.slug}>{cat.icon} {cat.label}</SelectItem>
           ))}
@@ -84,7 +84,7 @@ export function TaskFilters({
           <SelectValue placeholder="Asignado" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Asignado: Todos</SelectItem>
+          <SelectItem value="all">Todos los asignados</SelectItem>
           <SelectItem value="unassigned">Sin asignar</SelectItem>
           {members.map((m) => (
             <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
@@ -97,6 +97,6 @@ export function TaskFilters({
           <X className="w-4 h-4 mr-1" /> Limpiar
         </Button>
       )}
-    </div>
+    </Box>
   )
 }

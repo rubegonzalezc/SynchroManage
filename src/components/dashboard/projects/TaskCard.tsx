@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Badge } from '@/components/ui/badge'
+import { Box, Typography } from '@mui/material'
 import { AvatarStack } from '@/components/ui/avatar-stack'
 import { Calendar, GripVertical, RefreshCw } from 'lucide-react'
 import { TaskDetailDialog } from './TaskDetailDialog'
-import { categoryIcons, categoryLabels, categoryColors } from '@/lib/constants/categories'
+import { categoryIcons, categoryLabels } from '@/lib/constants/categories'
+import { useTheme } from '@/components/theme-provider'
+import { tokens } from '@/theme/designTokens'
 
 interface Task {
   id: string
@@ -43,25 +45,19 @@ interface TaskCardProps {
   highlightId?: string | null
 }
 
-const priorityColors: Record<string, string> = {
-  low: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-  medium: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-  high: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-  urgent: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+const priorityMeta: Record<string, { label: string; color: string }> = {
+  low: { label: 'Baja', color: '#8E8E93' },
+  medium: { label: 'Media', color: '#0A84FF' },
+  high: { label: 'Alta', color: '#FF9F0A' },
+  urgent: { label: 'Urgente', color: '#FF453A' },
 }
-
-const priorityLabels: Record<string, string> = {
-  low: 'Baja',
-  medium: 'Media',
-  high: 'Alta',
-  urgent: 'Urgente',
-}
-
 
 export function TaskCard({ task, projectId, projectName, members, allUsers, currentUserId, onUpdate, isDragging, highlightId }: TaskCardProps) {
   const [showDetail, setShowDetail] = useState(false)
   const [highlighted, setHighlighted] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
 
   useEffect(() => {
     if (highlightId === task.id) {
@@ -92,84 +88,140 @@ export function TaskCard({ task, projectId, projectName, members, allUsers, curr
     return new Date(date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
   }
 
-  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done'
+  const isOverdue = Boolean(task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done')
+  const priority = priorityMeta[task.priority] || priorityMeta.medium
+  const dimmed = isDragging || isSortableDragging
 
   return (
     <>
-      <div
+      <Box
         ref={(node) => { setNodeRef(node); (cardRef as React.MutableRefObject<HTMLDivElement | null>).current = node }}
         style={style}
-        className={`bg-card rounded-lg border p-3 cursor-pointer hover:shadow-md transition-all ${
-          isDragging || isSortableDragging ? 'opacity-50 shadow-lg' : ''
-        } ${highlighted ? 'border-primary shadow-[0_0_0_2px_hsl(var(--primary))] animate-pulse' : 'border-border'}`}
         onClick={() => setShowDetail(true)}
+        sx={{
+          p: 1.5,
+          borderRadius: '16px',
+          cursor: 'pointer',
+          opacity: dimmed ? 0.55 : 1,
+          bgcolor: isDark ? 'rgba(15, 23, 42, 0.72)' : 'rgba(255, 255, 255, 0.82)',
+          backdropFilter: 'blur(16px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+          border: highlighted
+            ? `1px solid ${tokens.primary}`
+            : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.8)'),
+          boxShadow: highlighted
+            ? `0 0 0 3px rgba(37, 99, 235, 0.22), 0 12px 28px rgba(15,23,42,0.12)`
+            : (isDark
+              ? '0 6px 18px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06)'
+              : '0 6px 18px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255,255,255,0.9)'),
+          transition: `transform 280ms ${tokens.ease}, box-shadow 280ms ${tokens.ease}`,
+          '&:hover': {
+            transform: dimmed ? undefined : 'translateY(-1px)',
+            boxShadow: isDark
+              ? '0 12px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08)'
+              : '0 14px 32px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255,255,255,1)',
+          },
+        }}
       >
-        <div className="flex items-start gap-2">
-          <button
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+          <Box
+            component="button"
+            type="button"
             {...attributes}
             {...listeners}
-            className="mt-0.5 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            sx={{
+              mt: 0.25,
+              p: 0,
+              border: 0,
+              bgcolor: 'transparent',
+              color: 'text.secondary',
+              cursor: 'grab',
+              '&:active': { cursor: 'grabbing' },
+            }}
           >
             <GripVertical className="w-4 h-4" />
-          </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              {task.task_number && (
-                <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+              {task.task_number != null && (
+                <Box
+                  sx={{
+                    fontSize: 11,
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    color: 'text.secondary',
+                    bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.05)',
+                    px: 0.75,
+                    py: 0.15,
+                    borderRadius: 1,
+                    flexShrink: 0,
+                  }}
+                >
                   #{task.task_number}
-                </span>
+                </Box>
               )}
-              <p className="font-medium text-foreground text-sm truncate">{task.title}</p>
-            </div>
+              <Typography noWrap sx={{ fontWeight: 600, fontSize: 13.5, letterSpacing: '-0.02em' }}>
+                {task.title}
+              </Typography>
+            </Box>
+
             {task.description && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
+              <Typography
+                sx={{
+                  fontSize: 12,
+                  color: 'text.secondary',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  mb: 1,
+                }}
+              >
+                {task.description}
+              </Typography>
             )}
-            
-            <div className="flex items-center gap-2 flex-wrap">
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
               {task.is_carry_over && (
-                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 gap-1">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, fontSize: 11, color: '#FF9F0A', fontWeight: 600 }}>
                   <RefreshCw className="w-3 h-3" />
-                  Carry Over
-                </Badge>
+                  Carry
+                </Box>
               )}
 
-              <Badge variant="secondary" className={`text-xs ${priorityColors[task.priority]}`}>
-                {priorityLabels[task.priority]}
-              </Badge>
-              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: 11, color: 'text.secondary' }}>
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: priority.color }} />
+                {priority.label}
+              </Box>
+
               {task.category && (
-                <Badge variant="secondary" className={`text-xs ${categoryColors[task.category] || categoryColors.task}`}>
+                <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
                   {categoryIcons[task.category]} {categoryLabels[task.category] || 'Tarea'}
-                </Badge>
+                </Typography>
               )}
 
               {task.complexity != null ? (
-                <Badge variant="secondary" className="text-xs bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 font-mono">
-                  ⚡ {task.complexity}
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 font-mono">
-                  ⚡ ?
-                </Badge>
-              )}
-              
+                <Typography sx={{ fontSize: 11, color: 'text.secondary', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+                  {task.complexity} pts
+                </Typography>
+              ) : null}
+
               {task.due_date && (
-                <span className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, fontSize: 11, color: isOverdue ? '#FF453A' : 'text.secondary', fontWeight: isOverdue ? 600 : 400 }}>
                   <Calendar className="w-3 h-3" />
                   {formatDate(task.due_date)}
-                </span>
+                </Box>
               )}
-            </div>
+            </Box>
 
             {task.assignees.length > 0 && (
-              <div className="mt-2">
+              <Box sx={{ mt: 1 }}>
                 <AvatarStack assignees={task.assignees} maxVisible={3} />
-              </div>
+              </Box>
             )}
-          </div>
-        </div>
-      </div>
+          </Box>
+        </Box>
+      </Box>
 
       <TaskDetailDialog
         taskId={task.id}

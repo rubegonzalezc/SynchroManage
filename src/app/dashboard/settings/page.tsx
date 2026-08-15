@@ -1,21 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { 
-  Settings, Bell, Palette, Shield, Database, 
-  CheckCircle, Building2, Mail, Globe
-} from 'lucide-react'
-import { Loader2 } from 'lucide-react'
+import { Mail, Globe, CheckCircle, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
+import { GlassPanel } from '@/components/ui/glass-panel'
 
 interface SystemSettings {
   id: string
@@ -43,7 +38,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<SystemStats | null>(null)
-  
+
   const [settings, setSettings] = useState<SystemSettings>({
     id: '',
     company_name: 'SynchroManage',
@@ -64,7 +59,6 @@ export default function SettingsPage() {
 
   const fetchData = async () => {
     try {
-      // Cargar settings desde la API
       const settingsRes = await fetch('/api/dashboard/settings')
       if (settingsRes.ok) {
         const settingsData = await settingsRes.json()
@@ -73,7 +67,6 @@ export default function SettingsPage() {
         }
       }
 
-      // Cargar estadísticas
       const [users, projects, tasks, companies, notifications] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('projects').select('*', { count: 'exact', head: true }),
@@ -120,28 +113,63 @@ export default function SettingsPage() {
     }
   }
 
+  const systemTiles = stats ? [
+    { title: 'Usuarios', value: stats.total_users, accent: '#0A84FF' },
+    { title: 'Proyectos', value: stats.total_projects, accent: '#BF5AF2' },
+    { title: 'Tareas', value: stats.total_tasks, accent: '#30D158' },
+    { title: 'Empresas', value: stats.total_companies, accent: '#FF9F0A' },
+    { title: 'Notificaciones', value: stats.total_notifications, accent: '#FF453A' },
+  ] : []
+
   return (
-    <div className="space-y-6 pt-6">
-      <div className="flex items-center gap-3">
-        <Settings className="w-6 h-6 text-primary flex-shrink-0" />
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
-          <p className="text-sm text-muted-foreground">Administra la configuración del sistema</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Configuración</h1>
+          <p className="text-[15px] text-muted-foreground mt-1">Administra la configuración del sistema</p>
         </div>
+        <Button onClick={saveSettings} disabled={saving}>
+          {saving ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+          ) : saved ? (
+            <><CheckCircle className="w-4 h-4" /> Guardado</>
+          ) : (
+            'Guardar'
+          )}
+        </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Información de la Organización */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="w-5 h-5" /> Organización
-            </CardTitle>
-            <CardDescription>Información general de la organización</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      {error && (
+        <GlassPanel padding={2}>
+          <p className="text-[13px] text-red-600 dark:text-red-400">{error}</p>
+        </GlassPanel>
+      )}
+
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <GlassPanel key={i} padding={2.25}>
+              <Skeleton className="h-3 w-16 mb-2" />
+              <Skeleton className="h-7 w-10" />
+            </GlassPanel>
+          ))
+        ) : (
+          systemTiles.map((tile) => (
+            <GlassPanel key={tile.title} padding={2.25}>
+              <p className="text-[12px] font-medium text-muted-foreground tracking-tight">{tile.title}</p>
+              <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: tile.accent }}>{tile.value}</p>
+            </GlassPanel>
+          ))
+        )}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <GlassPanel>
+          <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Organización</h3>
+          <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Información general de la organización</p>
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="company_name">Nombre de la Organización</Label>
+              <Label htmlFor="company_name">Nombre de la organización</Label>
               <Input
                 id="company_name"
                 value={settings.company_name}
@@ -150,9 +178,9 @@ export default function SettingsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company_email">Email de Contacto</Label>
+              <Label htmlFor="company_email">Email de contacto</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
                 <Input
                   id="company_email"
                   type="email"
@@ -164,9 +192,9 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company_website">Sitio Web</Label>
+              <Label htmlFor="company_website">Sitio web</Label>
               <div className="relative">
-                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
                 <Input
                   id="company_website"
                   value={settings.company_website || ''}
@@ -176,18 +204,13 @@ export default function SettingsPage() {
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassPanel>
 
-        {/* Valores por Defecto */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="w-5 h-5" /> Valores por Defecto
-            </CardTitle>
-            <CardDescription>Configuración predeterminada para nuevos elementos</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <GlassPanel>
+          <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Valores por defecto</h3>
+          <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Configuración predeterminada para nuevos elementos</p>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label>Estado inicial de proyectos</Label>
               <Select
@@ -220,18 +243,13 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassPanel>
 
-        {/* Notificaciones */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5" /> Notificaciones
-            </CardTitle>
-            <CardDescription>Configuración del sistema de notificaciones</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <GlassPanel>
+          <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Notificaciones</h3>
+          <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Retención y tiempo real</p>
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="retention_days">Retención de notificaciones (días)</Label>
               <Input
@@ -242,121 +260,43 @@ export default function SettingsPage() {
                 value={settings.notifications_retention_days}
                 onChange={(e) => setSettings({ ...settings, notifications_retention_days: parseInt(e.target.value) || 15 })}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[12px] text-muted-foreground">
                 Las notificaciones se eliminan automáticamente después de este período
               </p>
             </div>
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p className="text-sm text-blue-700 dark:text-blue-400">
-                <strong>Supabase Realtime</strong> está habilitado para notificaciones y comentarios en tiempo real.
+            <div className="rounded-2xl px-3 py-3 bg-blue-50/80 dark:bg-blue-900/20">
+              <p className="text-[13px] text-blue-700 dark:text-blue-400">
+                Supabase Realtime está habilitado para notificaciones y comentarios.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </GlassPanel>
 
-        {/* Seguridad */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" /> Seguridad
-            </CardTitle>
-            <CardDescription>Configuración de seguridad y acceso</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-              <div>
-                <p className="font-medium text-foreground">Registro público</p>
-                <p className="text-xs text-muted-foreground">Permitir que usuarios se registren solos</p>
-              </div>
-              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800">
-                Deshabilitado
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-              <div>
-                <p className="font-medium text-foreground">Verificación de email</p>
-                <p className="text-xs text-muted-foreground">Requerir verificación al registrarse</p>
-              </div>
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
-                Habilitado
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-              <div>
-                <p className="font-medium text-foreground">Row Level Security (RLS)</p>
-                <p className="text-xs text-muted-foreground">Políticas de seguridad en base de datos</p>
-              </div>
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
-                Activo
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Estadísticas del Sistema */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5" /> Estadísticas del Sistema
-            </CardTitle>
-            <CardDescription>Información sobre el uso del sistema</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="text-center p-4 bg-muted/50 rounded-lg space-y-2">
-                    <Skeleton className="h-8 w-12 mx-auto" />
-                    <Skeleton className="h-3 w-16 mx-auto" />
-                  </div>
-                ))}
-              </div>
-            ) : stats ? (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{stats.total_users}</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-500">Usuarios</p>
+        <GlassPanel>
+          <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Seguridad</h3>
+          <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Acceso y políticas del sistema</p>
+          <div className="space-y-1">
+            {[
+              { title: 'Registro público', description: 'Permitir que usuarios se registren solos', status: 'Deshabilitado', on: false },
+              { title: 'Verificación de email', description: 'Requerir verificación al registrarse', status: 'Habilitado', on: true },
+              { title: 'Row Level Security (RLS)', description: 'Políticas de seguridad en base de datos', status: 'Activo', on: true },
+            ].map((item) => (
+              <div key={item.title} className="flex items-center justify-between gap-3 rounded-2xl px-3 py-3">
+                <div className="min-w-0">
+                  <p className="text-[14px] font-medium text-foreground">{item.title}</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">{item.description}</p>
                 </div>
-                <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-400">{stats.total_projects}</p>
-                  <p className="text-xs text-indigo-600 dark:text-indigo-500">Proyectos</p>
-                </div>
-                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-green-700 dark:text-green-400">{stats.total_tasks}</p>
-                  <p className="text-xs text-green-600 dark:text-green-500">Tareas</p>
-                </div>
-                <div className="text-center p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{stats.total_companies}</p>
-                  <p className="text-xs text-amber-600 dark:text-amber-500">Empresas</p>
-                </div>
-                <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{stats.total_notifications}</p>
-                  <p className="text-xs text-purple-600 dark:text-purple-500">Notificaciones</p>
-                </div>
+                <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 flex-shrink-0 ${
+                  item.on
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                }`}>
+                  {item.status}
+                </span>
               </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Botón Guardar */}
-      <div className="flex items-center justify-between">
-        {error && (
-          <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
-        )}
-        <div className="flex-1" />
-        <Button 
-          onClick={saveSettings} 
-          disabled={saving}
-        >
-          {saving ? (
-            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando...</>
-          ) : saved ? (
-            <><CheckCircle className="w-4 h-4 mr-2" /> Guardado</>
-          ) : (
-            'Guardar Configuración'
-          )}
-        </Button>
+            ))}
+          </div>
+        </GlassPanel>
       </div>
     </div>
   )

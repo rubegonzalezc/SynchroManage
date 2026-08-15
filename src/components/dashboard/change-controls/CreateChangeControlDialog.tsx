@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Plus, Loader2, GitPullRequest, CheckCircle, X, Sparkles } from 'lucide-react'
+import { Plus, Loader2, CheckCircle, X, Sparkles } from 'lucide-react'
 
 interface Company { id: string; name: string }
 interface User { id: string; full_name: string; email: string; role: { name: string } | null; roles?: string[] }
@@ -199,16 +199,14 @@ export function CreateChangeControlDialog({ onCreated, onCancelled, preselectedP
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true) }}>
       <DialogTrigger asChild>
         {trigger ?? (
-          <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" /> Nuevo CC
+          <Button>
+            <Plus className="w-4 h-4" /> Nuevo control
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <GitPullRequest className="w-5 h-5" /> Nuevo Control de Cambios
-          </DialogTitle>
+          <DialogTitle>Nuevo control de cambios</DialogTitle>
           <DialogDescription>
             {isPreselected
               ? `Creando CC a partir de "${preselectedProject.name}". El equipo fue importado automáticamente.`

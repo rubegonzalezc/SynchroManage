@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -10,12 +9,13 @@ import {
 } from '@/components/ui/popover'
 import {
   Search, ExternalLink, AlertTriangle, CheckCircle2,
-  Clock, RefreshCw, GitBranch, Layers, X, ChevronDown, Zap, Bug,
+  RefreshCw, GitBranch, Layers, X, ChevronDown, Zap, Bug,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { TaskDetailDialogStandalone } from '@/components/dashboard/tasks/TaskDetailDialogStandalone'
 import { getBranchName } from '@/lib/utils/branch-name'
+import { GlassPanel } from '@/components/ui/glass-panel'
 
 export interface Task {
   id: string
@@ -58,13 +58,6 @@ const statusColors: Record<string, string> = {
   done: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
 }
 
-const priorityColors: Record<string, string> = {
-  low: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-  medium: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-  high: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-  urgent: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-}
-
 const priorityLabels: Record<string, string> = {
   low: 'Baja', medium: 'Media', high: 'Alta', urgent: 'Urgente',
 }
@@ -89,8 +82,14 @@ const categoryConfig: Record<string, { label: string; color: string; icon: strin
   chore:       { label: 'Chore',     color: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',           icon: '🔨' },
 }
 
+const listPanelSx = {
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  minHeight: 0,
+} as const
 
-// Helper para toggle de sets multi-select
 function toggleSet(set: Set<string>, value: string): Set<string> {
   const next = new Set(set)
   if (next.has(value)) next.delete(value)
@@ -98,7 +97,6 @@ function toggleSet(set: Set<string>, value: string): Set<string> {
   return next
 }
 
-// Componente de filtro multi-select reutilizable
 function MultiSelectFilter({
   label,
   options,
@@ -119,13 +117,15 @@ function MultiSelectFilter({
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className={`h-8 gap-1.5 text-sm font-normal px-3 ${isActive ? 'border-primary text-primary bg-primary/5' : 'text-muted-foreground'}`}
+          className={`h-8 gap-1.5 text-[13px] font-medium px-3 rounded-full ${
+            isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
+          }`}
         >
           {label}
           {isActive && (
-            <span className="bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center font-semibold leading-none">
+            <span className="bg-primary text-primary-foreground text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-semibold leading-none">
               {count}
             </span>
           )}
@@ -136,7 +136,7 @@ function MultiSelectFilter({
         {options.map(opt => (
           <label
             key={opt.value}
-            className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer transition-colors"
+            className="flex items-center gap-2.5 px-2 py-1.5 rounded-2xl hover:bg-black/[0.04] dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
           >
             <Checkbox
               checked={selected.has(opt.value)}
@@ -144,20 +144,19 @@ function MultiSelectFilter({
               className="flex-shrink-0"
             />
             {opt.dot && <span className={`w-2 h-2 rounded-full flex-shrink-0 ${opt.dot}`} />}
-            <span className="text-sm">{opt.label}</span>
+            <span className="text-[13px]">{opt.label}</span>
           </label>
         ))}
         {isActive && (
-          <>
-            <div className="border-t border-border mt-1 pt-1">
-              <button
-                onClick={onClear}
-                className="w-full text-xs text-muted-foreground hover:text-foreground text-left px-2 py-1.5 rounded-md hover:bg-muted transition-colors"
-              >
-                Limpiar selección
-              </button>
-            </div>
-          </>
+          <div className="border-t border-border mt-1 pt-1">
+            <button
+              type="button"
+              onClick={onClear}
+              className="w-full text-[12px] text-muted-foreground hover:text-foreground text-left px-2 py-1.5 rounded-2xl hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+            >
+              Limpiar selección
+            </button>
+          </div>
         )}
       </PopoverContent>
     </Popover>
@@ -192,32 +191,26 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
         return matchesSearch && matchesStatus && matchesPriority && matchesCategory
       })
       .sort((a, b) => {
-        // 1. Tareas "done" siempre al final
         const aDone = a.status === 'done' ? 1 : 0
         const bDone = b.status === 'done' ? 1 : 0
         if (aDone !== bDone) return aDone - bDone
 
-        // 2. Carry Over tiene prioridad máxima dentro de su grupo de sprint
         const aCarry = a.is_carry_over ? 0 : 1
         const bCarry = b.is_carry_over ? 0 : 1
         if (aCarry !== bCarry) return aCarry - bCarry
 
-        // 3. Orden por estado del sprint: activo → planning → backlog
         const aSprintOrder = a.sprint ? (SPRINT_ORDER[a.sprint.status] ?? 2) : 3
         const bSprintOrder = b.sprint ? (SPRINT_ORDER[b.sprint.status] ?? 2) : 3
         if (aSprintOrder !== bSprintOrder) return aSprintOrder - bSprintOrder
 
-        // 4. Dentro del mismo sprint: primero vencidas
         const aOverdue = isOverdue(a.due_date, a.status) ? 0 : 1
         const bOverdue = isOverdue(b.due_date, b.status) ? 0 : 1
         if (aOverdue !== bOverdue) return aOverdue - bOverdue
 
-        // 5. Prioridad (urgent → high → medium → low)
         const aPriority = PRIORITY_ORDER[a.priority] ?? 99
         const bPriority = PRIORITY_ORDER[b.priority] ?? 99
         if (aPriority !== bPriority) return aPriority - bPriority
 
-        // 6. Fecha de entrega más próxima primero
         if (a.due_date && b.due_date) {
           return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
         }
@@ -240,103 +233,71 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
     return new Date(date + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
   }
 
+  const clearFilters = () => {
+    setSearch('')
+    setStatusFilter(new Set())
+    setPriorityFilter(new Set())
+    setCategoryFilter(new Set())
+  }
+
   if (loading) {
     return (
-      <div className="h-full flex flex-col bg-card rounded-xl border border-border overflow-hidden">
-        {/* Stats skeleton */}
-        <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
+      <GlassPanel padding={2.25} className="h-full" sx={listPanelSx}>
+        <div className="grid grid-cols-4 gap-3 pb-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center gap-2.5 px-4 py-3">
-              <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
-              <div className="space-y-1.5">
-                <Skeleton className="h-5 w-8" />
-                <Skeleton className="h-3 w-16" />
-              </div>
+            <div key={i}>
+              <Skeleton className="h-3 w-16 mb-2" />
+              <Skeleton className="h-7 w-10" />
             </div>
           ))}
         </div>
-        {/* Filters skeleton */}
-        <div className="p-3 border-b border-border flex gap-2">
-          <Skeleton className="h-8 flex-1 min-w-[160px]" />
-          <Skeleton className="h-8 w-20" />
-          <Skeleton className="h-8 w-24" />
-          <Skeleton className="h-8 w-24" />
+        <div className="flex gap-2 pb-3">
+          <Skeleton className="h-8 flex-1 min-w-[160px] rounded-full" />
+          <Skeleton className="h-8 w-20 rounded-full" />
+          <Skeleton className="h-8 w-24 rounded-full" />
         </div>
-        {/* Task list skeleton */}
-        <div className="flex-1 overflow-y-auto divide-y divide-border">
+        <div className="flex-1 space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-3.5 w-8" />
-                <Skeleton className="h-5 w-20 rounded-full" />
-                <Skeleton className="h-3 w-14" />
-                <Skeleton className="h-3 w-16 ml-auto" />
-              </div>
+            <div key={i} className="rounded-2xl px-3 py-3 space-y-2">
+              <Skeleton className="h-3 w-24" />
               <Skeleton className="h-4 w-3/4" />
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-5 w-28 rounded-full" />
-                <Skeleton className="h-5 w-10 rounded-full" />
-                <Skeleton className="h-5 w-10 rounded-full" />
-                <Skeleton className="h-5 w-24 rounded-full" />
-              </div>
+              <Skeleton className="h-5 w-40 rounded-full" />
             </div>
           ))}
         </div>
-      </div>
+      </GlassPanel>
     )
   }
 
   return (
-    <div className="h-full flex flex-col bg-card rounded-xl border border-border overflow-hidden">
-      {/* Stats row */}
-      <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
-        <div className="flex items-center gap-2.5 px-4 py-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-            <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <p className="text-lg font-bold text-foreground leading-none">{pendingCount}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Pendientes</p>
-          </div>
+    <GlassPanel padding={2.25} className="h-full" sx={listPanelSx}>
+      <div className="grid grid-cols-4 gap-3 pb-4 flex-shrink-0">
+        <div>
+          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Pendientes</p>
+          <p className="text-[22px] font-semibold tracking-tight leading-none mt-1.5" style={{ color: '#0A84FF' }}>{pendingCount}</p>
         </div>
-        <div className="flex items-center gap-2.5 px-4 py-3">
-          <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-            <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-          </div>
-          <div>
-            <p className="text-lg font-bold text-foreground leading-none">{completedCount}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Completadas</p>
-          </div>
+        <div>
+          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Completadas</p>
+          <p className="text-[22px] font-semibold tracking-tight leading-none mt-1.5" style={{ color: '#30D158' }}>{completedCount}</p>
         </div>
-        <div className="flex items-center gap-2.5 px-4 py-3">
-          <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-          </div>
-          <div>
-            <p className="text-lg font-bold text-foreground leading-none">{overdueCount}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Vencidas</p>
-          </div>
+        <div>
+          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Vencidas</p>
+          <p className="text-[22px] font-semibold tracking-tight leading-none mt-1.5" style={{ color: '#FF453A' }}>{overdueCount}</p>
         </div>
-        <div className="flex items-center gap-2.5 px-4 py-3">
-          <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-            <RefreshCw className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-          </div>
-          <div>
-            <p className="text-lg font-bold text-foreground leading-none">{carryOverCount}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Carry Over</p>
-          </div>
+        <div>
+          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Carry Over</p>
+          <p className="text-[22px] font-semibold tracking-tight leading-none mt-1.5" style={{ color: '#FF9F0A' }}>{carryOverCount}</p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="p-3 border-b border-border flex flex-wrap gap-2 items-center">
+      <div className="flex flex-wrap gap-2 items-center pb-3 flex-shrink-0">
         <div className="relative flex-1 min-w-[160px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground z-10" />
           <Input
             placeholder="Buscar tarea..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-8 text-sm"
+            className="pl-9 h-8 text-sm"
           />
         </div>
 
@@ -382,44 +343,40 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2 text-muted-foreground hover:text-foreground gap-1"
-            onClick={() => { setSearch(''); setStatusFilter(new Set()); setPriorityFilter(new Set()); setCategoryFilter(new Set()) }}
+            className="h-8 px-2 text-muted-foreground hover:text-foreground gap-1 rounded-full"
+            onClick={clearFilters}
           >
             <X className="w-3.5 h-3.5" />
-            <span className="text-xs">Limpiar</span>
+            <span className="text-[12px]">Limpiar</span>
           </Button>
         )}
       </div>
 
-      {/* Task list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
         {filteredTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-16 text-center">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-              <CheckCircle2 className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground text-sm">
+            <CheckCircle2 className="w-8 h-8 text-muted-foreground/50 mb-3" />
+            <p className="text-muted-foreground text-[14px]">
               {tasks.length === 0 ? 'No tienes tareas asignadas' : 'Sin resultados para los filtros aplicados'}
             </p>
             {hasActiveFilters && (
               <Button
-                variant="link"
+                variant="ghost"
                 size="sm"
-                className="mt-2 text-xs"
-                onClick={() => { setSearch(''); setStatusFilter(new Set()); setPriorityFilter(new Set()); setCategoryFilter(new Set()) }}
+                className="mt-2 text-[13px] rounded-full"
+                onClick={clearFilters}
               >
                 Limpiar filtros
               </Button>
             )}
           </div>
         ) : (
-          <div className="divide-y divide-border">
+          <div className="space-y-0.5">
             {filteredTasks.map((task, idx) => {
               const cat = categoryConfig[task.category || 'task'] ?? categoryConfig.task
               const overdue = isOverdue(task.due_date, task.status)
               const branchName = task.branch_name || getBranchName(task)
 
-              // Determinar si hay cambio de grupo de sprint respecto a la tarea anterior
               const getSprintGroup = (t: Task) => {
                 if (t.status === 'done') return 'done'
                 if (!t.sprint) return 'backlog'
@@ -428,7 +385,6 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
               const prevTask = filteredTasks[idx - 1]
               const groupChanged = idx > 0 && getSprintGroup(task) !== getSprintGroup(prevTask)
 
-              // Etiqueta del grupo
               const getGroupLabel = () => {
                 if (task.status === 'done') return null
                 if (!task.sprint) return { label: 'Backlog', color: 'text-muted-foreground', dot: 'bg-slate-400' }
@@ -442,108 +398,99 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
 
               return (
                 <div key={task.id}>
-                  {/* Separador de grupo de sprint */}
                   {groupLabel && (
-                    <div className={`flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border ${idx > 0 ? 'border-t border-border' : ''}`}>
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${groupLabel.dot}`} />
-                      <span className={`text-xs font-semibold ${groupLabel.color}`}>{groupLabel.label}</span>
+                    <div className={`flex items-center gap-2 px-2 py-2 ${idx > 0 ? 'mt-2' : ''}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${groupLabel.dot}`} />
+                      <span className={`text-[12px] font-semibold ${groupLabel.color}`}>{groupLabel.label}</span>
                     </div>
                   )}
-                <div
-                  onClick={() => setSelectedTaskId(task.id)}
-                  className="group p-4 hover:bg-muted/40 cursor-pointer transition-colors"
-                >
-                  {/* Top row: number + status + priority */}
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className="text-xs font-mono text-muted-foreground">#{task.task_number}</span>
-                    <Badge variant="secondary" className={`text-xs px-2 py-0 h-5 ${statusColors[task.status]}`}>
-                      {statusLabels[task.status]}
-                    </Badge>
-                    <div className="flex items-center gap-1">
-                      <span className={`w-1.5 h-1.5 rounded-full ${priorityDot[task.priority] || 'bg-slate-400'}`} />
-                      <span className="text-xs text-muted-foreground">{priorityLabels[task.priority]}</span>
-                    </div>
-                    {task.is_carry_over && (
-                      <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
-                        <RefreshCw className="w-3 h-3" />
-                        <span className="font-medium">Carry Over</span>
+                  <div
+                    onClick={() => setSelectedTaskId(task.id)}
+                    className="group rounded-2xl px-3 py-2.5 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span className="text-[11px] text-muted-foreground">#{task.task_number}</span>
+                      <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${statusColors[task.status]}`}>
+                        {statusLabels[task.status]}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className={`w-1.5 h-1.5 rounded-full ${priorityDot[task.priority] || 'bg-slate-400'}`} />
+                        <span className="text-[12px] text-muted-foreground">{priorityLabels[task.priority]}</span>
                       </div>
-                    )}
-                    {task.due_date && (
-                      <div className={`ml-auto text-xs flex items-center gap-1 flex-shrink-0 ${
-                        overdue ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'
-                      }`}>
-                        {overdue && <AlertTriangle className="w-3 h-3" />}
-                        {formatDate(task.due_date)}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Title */}
-                  <p className="font-medium text-foreground text-sm leading-snug mb-2.5 group-hover:text-primary transition-colors">
-                    {task.title}
-                  </p>
-
-                  {/* Bottom row: branch | complexity | bugs | sprint | project */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {/* 1. Rama */}
-                    <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${cat.color}`}>
-                      <GitBranch className="w-3 h-3" />
-                      <span className="font-mono">{branchName}</span>
+                      {task.is_carry_over && (
+                        <div className="flex items-center gap-1 text-[12px] text-orange-600 dark:text-orange-400">
+                          <RefreshCw className="w-3 h-3" />
+                          <span className="font-medium">Carry Over</span>
+                        </div>
+                      )}
+                      {task.due_date && (
+                        <div className={`ml-auto text-[12px] flex items-center gap-1 flex-shrink-0 ${
+                          overdue ? 'text-red-500 font-semibold' : 'text-muted-foreground'
+                        }`}>
+                          {overdue && <AlertTriangle className="w-3 h-3" />}
+                          {formatDate(task.due_date)}
+                        </div>
+                      )}
                     </div>
 
-                    {/* 2. Complejidad */}
-                    {task.complexity != null ? (
-                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium">
-                        <Zap className="w-3 h-3" />
-                        <span>{task.complexity}</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        <Zap className="w-3 h-3" />
-                        <span>-</span>
-                      </div>
-                    )}
+                    <p className="font-medium text-foreground text-[14px] leading-snug mb-2 group-hover:text-primary transition-colors">
+                      {task.title}
+                    </p>
 
-                    {/* 3. Bugs abiertos */}
-                    {(task.open_bugs_count ?? 0) > 0 ? (
-                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-medium">
-                        <Bug className="w-3 h-3" />
-                        <span>{task.open_bugs_count}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium ${cat.color}`}>
+                        <GitBranch className="w-3 h-3" />
+                        <span className="font-mono">{branchName}</span>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        <Bug className="w-3 h-3" />
-                        <span>0</span>
-                      </div>
-                    )}
 
-                    {/* 4. Sprint */}
-                    {task.sprint ? (
-                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                        <Layers className="w-3 h-3" />
-                        <span>{task.sprint.name}</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        <Layers className="w-3 h-3" />
-                        <span>Backlog</span>
-                      </div>
-                    )}
+                      {task.complexity != null ? (
+                        <div className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium">
+                          <Zap className="w-3 h-3" />
+                          <span>{task.complexity}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          <Zap className="w-3 h-3" />
+                          <span>-</span>
+                        </div>
+                      )}
 
-                    {/* Proyecto (solo en vista "Todas") */}
-                    {showProject && task.project && (
-                      <Link
-                        href={task.project.type === 'change_control' ? `/change-controls/${task.project.id}` : `/projects/${task.project.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto"
-                      >
-                        <span className="truncate max-w-[120px]">{task.project.name}</span>
-                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                      </Link>
-                    )}
+                      {(task.open_bugs_count ?? 0) > 0 ? (
+                        <div className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-medium">
+                          <Bug className="w-3 h-3" />
+                          <span>{task.open_bugs_count}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          <Bug className="w-3 h-3" />
+                          <span>0</span>
+                        </div>
+                      )}
+
+                      {task.sprint ? (
+                        <div className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                          <Layers className="w-3 h-3" />
+                          <span>{task.sprint.name}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          <Layers className="w-3 h-3" />
+                          <span>Backlog</span>
+                        </div>
+                      )}
+
+                      {showProject && task.project && (
+                        <Link
+                          href={task.project.type === 'change_control' ? `/change-controls/${task.project.id}` : `/projects/${task.project.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors ml-auto"
+                        >
+                          <span className="truncate max-w-[120px]">{task.project.name}</span>
+                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                </div>
                 </div>
               )
             })}
@@ -551,7 +498,6 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
         )}
       </div>
 
-      {/* Task Detail Dialog */}
       {selectedTaskId && (
         <TaskDetailDialogStandalone
           taskId={selectedTaskId}
@@ -560,6 +506,6 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
           onTaskUpdated={onTaskUpdated}
         />
       )}
-    </div>
+    </GlassPanel>
   )
 }

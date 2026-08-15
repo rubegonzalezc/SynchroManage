@@ -10,7 +10,7 @@ import { MyTasksProjectSelector } from './MyTasksProjectSelector'
 import { ProjectSprintBanner } from './ProjectSprintBanner'
 import { ProjectOrderDialog } from './ProjectOrderDialog'
 import { Button } from '@/components/ui/button'
-import { Plus, CalendarDays, ListTodo, Settings2, ClipboardList } from 'lucide-react'
+import { Plus, CalendarDays, ListTodo, Settings2 } from 'lucide-react'
 import { useSprints } from '@/hooks/useSprints'
 
 const STORAGE_KEY = 'synchro-project-order'
@@ -165,46 +165,48 @@ export function MyTasksClient() {
   })), [filteredTasks])
 
   return (
-    <div className="h-full flex flex-col gap-4 pt-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <ClipboardList className="w-6 h-6 text-primary flex-shrink-0" />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Mis Tareas</h1>
-            <p className="text-sm text-muted-foreground">Todas tus tareas y reuniones agendadas</p>
-          </div>
+    <div className="flex flex-col gap-5 h-[calc(100svh-8rem)]">
+      <div className="flex items-start justify-between gap-3 flex-shrink-0">
+        <div>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Mis Tareas</h1>
+          <p className="text-[15px] text-muted-foreground mt-1">Tus tareas asignadas y reuniones agendadas</p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Mobile view toggle */}
-          <div className="flex md:hidden border border-border rounded-lg overflow-hidden">
-            <Button
-              variant={mobileView === 'list' ? 'default' : 'ghost'}
-              size="sm"
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex md:hidden rounded-full p-0.5 bg-black/[0.04] dark:bg-white/[0.06]">
+            <button
+              type="button"
               onClick={() => setMobileView('list')}
-              className="rounded-none"
+              className={`p-2 rounded-full transition-colors ${
+                mobileView === 'list'
+                  ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
+                  : 'text-muted-foreground'
+              }`}
+              aria-label="Ver lista"
             >
               <ListTodo className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={mobileView === 'calendar' ? 'default' : 'ghost'}
-              size="sm"
+            </button>
+            <button
+              type="button"
               onClick={() => setMobileView('calendar')}
-              className="rounded-none"
+              className={`p-2 rounded-full transition-colors ${
+                mobileView === 'calendar'
+                  ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
+                  : 'text-muted-foreground'
+              }`}
+              aria-label="Ver calendario"
             >
               <CalendarDays className="w-4 h-4" />
-            </Button>
+            </button>
           </div>
           <Button onClick={() => { setSelectedDate(null); setCreateMeetingOpen(true) }}>
-            <Plus className="w-4 h-4 mr-2" />
-            Agendar Reunión
+            <Plus className="w-4 h-4" />
+            Agendar reunión
           </Button>
         </div>
       </div>
 
-      {/* Project selector + botón de ordenar */}
       {projectsWithTasks.length > 0 && (
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-2 flex-shrink-0">
           <div className="flex-1 min-w-0">
             <MyTasksProjectSelector
               projects={projectsWithTasks}
@@ -236,10 +238,9 @@ export function MyTasksClient() {
         />
       )}
 
-      {/* Split: lista + calendario */}
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Tasks list */}
-        <div className={`flex-1 min-w-0 ${mobileView === 'calendar' ? 'hidden md:flex md:flex-col' : 'flex flex-col'}`}>
+        <div className={`flex-1 min-w-0 h-full ${mobileView === 'calendar' ? 'hidden md:flex md:flex-col' : 'flex flex-col'}`}>
           <TasksList
             tasks={filteredTasks}
             loading={tasksLoading}
@@ -249,7 +250,7 @@ export function MyTasksClient() {
         </div>
 
         {/* Calendar */}
-        <div className={`w-full md:w-[380px] lg:w-[420px] flex-shrink-0 ${mobileView === 'list' ? 'hidden md:block' : ''}`}>
+        <div className={`w-full md:w-[380px] lg:w-[420px] flex-shrink-0 h-full ${mobileView === 'list' ? 'hidden md:block' : 'flex flex-col'}`}>
           <TasksCalendar
             tasks={calendarTasks}
             meetings={meetings}

@@ -40,9 +40,6 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { NotificationsDropdown } from './NotificationsDropdown'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { useTheme } from '@/components/theme-provider'
 
 interface MenuItem {
   title: string
@@ -125,7 +122,6 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const router = useRouter()
   const supabase = createClient()
   const userRole = user.role || 'admin'
-  const { resolvedTheme } = useTheme()
 
   // Filtrar items del menú según el rol del usuario
   const filteredMenuItems = menuItems.filter(item => {
@@ -147,42 +143,37 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
   }
 
   return (
-    <Sidebar className="border-r border-border">
-      <SidebarHeader className="border-b border-border">
+    <Sidebar className="border-r-0">
+      <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-3 p-4">
-          <div className="relative w-10 h-10 flex-shrink-0 transition-opacity duration-300">
+          <div className="relative w-10 h-10 flex-shrink-0">
             <Image
-              src={resolvedTheme === 'dark' ? '/logo/isotipo-blanco.png' : '/logo/isotipo-negro.png'}
+              src="/logo/isotipo-blanco.png"
               alt="SynchroManage"
               fill
               className="object-contain"
             />
           </div>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="font-semibold text-foreground">SynchroManage</span>
-            <span className="text-xs text-muted-foreground">Panel</span>
+            <span className="font-semibold text-sidebar-foreground tracking-tight">SynchroManage</span>
+            <span className="text-xs text-sidebar-foreground/50">Panel</span>
           </div>
-        </div>
-        
-        {/* Controles del sidebar */}
-        <div className="flex items-center justify-center gap-1 px-4 pb-4 pt-2">
-          <ThemeToggle />
-          <NotificationsDropdown />
-          <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 h-9 w-9" />
+          <SidebarTrigger className="text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-300 h-8 w-8 rounded-full" />
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-2 pt-3">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground">Menú Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/40 text-[11px] uppercase tracking-wider px-3">
+            Menú
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               {filteredMenuItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
                     isActive={item.exact ? pathname === item.href : (pathname === item.href || pathname.startsWith(item.href + '/'))}
-                    className="data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
                   >
                     <Link href={item.href}>
                       <item.icon className="w-4 h-4" />
@@ -196,30 +187,30 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border">
+      <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild suppressHydrationWarning>
-                <SidebarMenuButton className="h-auto py-3">
+                <SidebarMenuButton className="h-auto py-3 rounded-2xl data-[active=true]:bg-sidebar-accent">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={user.avatar_url || undefined} />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                    <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs">
                       {getInitials(user.full_name, user.email)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start text-left flex-1 min-w-0">
-                    <span className="text-sm font-medium text-foreground truncate max-w-full">
+                    <span className="text-sm font-medium text-sidebar-foreground truncate max-w-full">
                       {user.full_name || user.email}
                     </span>
-                    <span className="text-xs text-muted-foreground truncate max-w-full">
+                    <span className="text-xs text-sidebar-foreground/50 truncate max-w-full">
                       {roleLabels[userRole] || userRole}
                     </span>
                   </div>
-                  <ChevronUp className="ml-auto w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <ChevronUp className="ml-auto w-4 h-4 text-sidebar-foreground/40 flex-shrink-0" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="start" className="w-56">
+              <DropdownMenuContent side="top" align="start" className="w-56 rounded-2xl">
                 <DropdownMenuItem asChild>
                   <Link href="/profile" className="flex items-center cursor-pointer">
                     <UserCircle className="w-4 h-4 mr-2" />

@@ -1,47 +1,46 @@
 'use client'
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { Box, Typography } from '@mui/material'
+import { appleChart, chartTick, getChartTooltipStyle } from '@/theme/chartTheme'
+import { useTheme } from '@/components/theme-provider'
 
 interface Props {
   data: { name: string; count: number; color: string }[]
 }
 
+const FALLBACK = [appleChart.gray, appleChart.blue, appleChart.orange, appleChart.green, appleChart.red]
+
 export function ProjectStatusChart({ data }: Props) {
-  if (!data.length) return (
-    <p className="text-sm text-muted-foreground text-center py-8">Sin datos</p>
-  )
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
+  if (!data.length) {
+    return (
+      <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 8 }}>
+        Sin datos
+      </Typography>
+    )
+  }
 
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <BarChart data={data} barSize={32} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-        <XAxis
-          dataKey="name"
-          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-          axisLine={false}
-          tickLine={false}
-          allowDecimals={false}
-        />
+    <Box sx={{ width: '100%', minWidth: 0, height: 180 }}>
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} barSize={26} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+        <XAxis dataKey="name" tick={chartTick} axisLine={false} tickLine={false} />
+        <YAxis tick={chartTick} axisLine={false} tickLine={false} allowDecimals={false} />
         <Tooltip
-          cursor={{ fill: 'hsl(var(--muted))', radius: 4 }}
-          contentStyle={{
-            backgroundColor: 'hsl(var(--card))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '8px',
-            color: 'hsl(var(--foreground))',
-            fontSize: '12px',
-          }}
+          cursor={{ fill: isDark ? 'rgba(10,132,255,0.08)' : 'rgba(10,132,255,0.06)' }}
+          contentStyle={getChartTooltipStyle(isDark)}
+          itemStyle={{ color: isDark ? '#F5F5F7' : '#1C1C1E' }}
         />
-        <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+        <Bar dataKey="count" radius={[10, 10, 6, 6]}>
           {data.map((entry, i) => (
-            <Cell key={i} fill={entry.color} />
+            <Cell key={i} fill={entry.color || FALLBACK[i % FALLBACK.length]} />
           ))}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
+    </Box>
   )
 }

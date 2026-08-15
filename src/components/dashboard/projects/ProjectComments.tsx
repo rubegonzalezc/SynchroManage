@@ -219,7 +219,7 @@ export function ProjectComments({ projectId, projectName, users, currentUserId }
 
   return (
     <>
-      <div className="bg-card rounded-lg border border-border p-6">
+      <div className="rounded-[24px] bg-white/55 dark:bg-white/[0.04] border border-white/70 dark:border-white/10 p-6 backdrop-blur-xl">
         <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
           <MessageSquare className="w-5 h-5" /> Comentarios del Proyecto
         </h3>

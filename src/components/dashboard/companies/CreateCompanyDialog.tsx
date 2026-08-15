@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Plus, Loader2, Building2, CheckCircle } from 'lucide-react'
+import { Plus, Loader2, CheckCircle } from 'lucide-react'
 import { formatRut } from '@/lib/utils/formatRut'
 
 interface CreateCompanyDialogProps {
@@ -59,15 +59,13 @@ export function CreateCompanyDialog({ onCompanyCreated }: CreateCompanyDialogPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" /> Nueva Empresa
+        <Button>
+          <Plus className="w-4 h-4" /> Nueva empresa
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="w-5 h-5" /> Nueva Empresa
-          </DialogTitle>
+          <DialogTitle>Nueva empresa</DialogTitle>
           <DialogDescription>Registra una nueva empresa cliente</DialogDescription>
         </DialogHeader>
 

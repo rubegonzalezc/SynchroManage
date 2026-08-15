@@ -1,13 +1,10 @@
-import { cn } from "@/lib/utils"
+'use client'
 
-function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="skeleton"
-      className={cn("bg-accent animate-pulse rounded-md", className)}
-      {...props}
-    />
-  )
+import { Skeleton as MuiSkeleton } from '@mui/material'
+import { cn } from '@/lib/utils'
+
+function Skeleton({ className, ...props }: React.ComponentProps<'div'>) {
+  return <MuiSkeleton className={cn('rounded-xl', className)} {...props} />
 }
 
 export { Skeleton }

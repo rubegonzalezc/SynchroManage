@@ -1,10 +1,10 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { CalendarDays, Zap, CheckCircle2, Clock, RefreshCw } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { GlassPanel } from '@/components/ui/glass-panel'
 
 interface Sprint {
   id: string
@@ -52,85 +52,69 @@ export function ProjectSprintBanner({ sprints, tasks, projectName }: ProjectSpri
 
   if (!activeSprint) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-border bg-muted/30 text-muted-foreground text-sm">
-        <Clock className="w-4 h-4 flex-shrink-0" />
-        <span>No hay un sprint activo en <span className="font-medium text-foreground">{projectName}</span></span>
-      </div>
+      <GlassPanel padding={2} className="flex-shrink-0">
+        <p className="text-[14px] text-muted-foreground">
+          No hay un sprint activo en <span className="font-semibold text-foreground">{projectName}</span>
+        </p>
+      </GlassPanel>
     )
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/3 to-transparent p-4">
-      {/* Decorative element */}
-      <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-primary/5 -translate-y-1/2 translate-x-1/2" />
-
-      <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-        {/* Sprint info */}
+    <GlassPanel padding={2.25} className="flex-shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <div className="flex items-center gap-1.5 text-primary">
-              <Zap className="w-4 h-4" />
-              <span className="text-xs font-semibold uppercase tracking-wide">Sprint Activo</span>
-            </div>
-            <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-              Activo
-            </Badge>
-          </div>
-          <h3 className="font-semibold text-foreground text-base truncate">{activeSprint.name}</h3>
+          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Sprint activo</p>
+          <h3 className="text-[17px] font-semibold tracking-tight text-foreground truncate mt-0.5">{activeSprint.name}</h3>
           {activeSprint.goal && (
-            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">{activeSprint.goal}</p>
+            <p className="text-[13px] text-muted-foreground mt-0.5 line-clamp-1">{activeSprint.goal}</p>
           )}
-          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 mt-1.5 text-[12px] text-muted-foreground">
             <CalendarDays className="w-3.5 h-3.5" />
             <span>{formatDate(activeSprint.start_date)} — {formatDate(activeSprint.end_date)}</span>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0">
-          <div className="flex items-center gap-2 text-center">
-            <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-            <div>
-              <p className="text-lg font-bold text-foreground leading-none">{doneTasks}/{totalTasks}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Completadas</p>
-            </div>
+        <div className="flex items-center gap-5 flex-shrink-0">
+          <div>
+            <p className="text-[22px] font-semibold tracking-tight leading-none" style={{ color: '#30D158' }}>
+              {doneTasks}/{totalTasks}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">Completadas</p>
           </div>
 
           {pendingCount > 0 && (
-            <div className="flex items-center gap-2 text-center">
-              <Clock className="w-4 h-4 text-amber-500 flex-shrink-0" />
-              <div>
-                <p className="text-lg font-bold text-foreground leading-none">{pendingCount}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Pendientes</p>
-              </div>
+            <div>
+              <p className="text-[22px] font-semibold tracking-tight leading-none" style={{ color: '#FF9F0A' }}>
+                {pendingCount}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">Pendientes</p>
             </div>
           )}
 
           {carryOverCount > 0 && (
-            <div className="flex items-center gap-2 text-center">
-              <RefreshCw className="w-4 h-4 text-orange-500 flex-shrink-0" />
-              <div>
-                <p className="text-lg font-bold text-foreground leading-none">{carryOverCount}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Carry Over</p>
-              </div>
+            <div>
+              <p className="text-[22px] font-semibold tracking-tight leading-none" style={{ color: '#FF9F0A' }}>
+                {carryOverCount}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">Carry Over</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="mt-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+        <div className="flex items-center justify-between text-[12px] text-muted-foreground mb-1.5">
           <span>Progreso del sprint</span>
           <span className="font-semibold text-foreground">{progress}%</span>
         </div>
-        <div className="w-full h-2 bg-primary/10 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-black/[0.06] dark:bg-white/[0.08] rounded-full overflow-hidden">
           <div
-            className="h-full bg-primary rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${progress}%`, backgroundColor: '#2563EB' }}
           />
         </div>
       </div>
-    </div>
+    </GlassPanel>
   )
 }

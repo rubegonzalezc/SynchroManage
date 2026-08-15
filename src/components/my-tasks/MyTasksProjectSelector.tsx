@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -9,6 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { GlassPanel } from '@/components/ui/glass-panel'
 import { FolderKanban, GitPullRequest, LayoutGrid, ChevronDown, Check, Search, Building2 } from 'lucide-react'
 
 const MAX_VISIBLE_TABS = 4
@@ -36,18 +36,24 @@ function ProjectIcon({ type, className }: { type?: string; className?: string })
 function PendingBadge({ count, isSelected }: { count: number; isSelected: boolean }) {
   if (count === 0) return null
   return (
-    <Badge
-      variant="secondary"
-      className={`text-xs px-1.5 py-0 h-5 min-w-[20px] flex items-center justify-center border-0 flex-shrink-0 ${
+    <span
+      className={`text-[11px] font-semibold rounded-full px-1.5 min-w-[20px] h-5 inline-flex items-center justify-center flex-shrink-0 ${
         isSelected
-          ? 'bg-primary-foreground/20 text-primary-foreground'
+          ? 'bg-white/20 text-white'
           : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
       }`}
     >
       {count}
-    </Badge>
+    </span>
   )
 }
+
+const pillClass = (selected: boolean) =>
+  `inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${
+    selected
+      ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
+      : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground'
+  }`
 
 export function MyTasksProjectSelector({
   projects,
@@ -61,7 +67,6 @@ export function MyTasksProjectSelector({
 
   const totalPending = Object.values(taskCountByProject).reduce((a, b) => a + b, 0)
 
-  // Cuando abre el popover, enfocar el buscador
   useEffect(() => {
     if (popoverOpen) {
       setTimeout(() => searchRef.current?.focus(), 50)
@@ -70,7 +75,6 @@ export function MyTasksProjectSelector({
     }
   }, [popoverOpen])
 
-  // Tabs visibles vs overflow
   const { visibleProjects, overflowProjects } = useMemo(() => {
     if (projects.length <= MAX_VISIBLE_TABS) {
       return { visibleProjects: projects, overflowProjects: [] }
@@ -82,7 +86,6 @@ export function MyTasksProjectSelector({
         overflowProjects: projects.slice(MAX_VISIBLE_TABS),
       }
     }
-    // El seleccionado está en overflow → moverlo al frente de los visibles
     const selected = projects[selectedIdx]
     const rest = projects.filter((_, i) => i !== selectedIdx)
     return {
@@ -91,7 +94,6 @@ export function MyTasksProjectSelector({
     }
   }, [projects, selectedProjectId])
 
-  // Filtrar overflow según búsqueda (por nombre o cliente)
   const filteredOverflow = useMemo(() => {
     if (!search.trim()) return overflowProjects
     const q = search.toLowerCase()
@@ -101,7 +103,6 @@ export function MyTasksProjectSelector({
     )
   }, [overflowProjects, search])
 
-  // También filtrar visibles si hay búsqueda (para mostrar resultados de tabs también en el popover)
   const filteredVisible = useMemo(() => {
     if (!search.trim()) return []
     const q = search.toLowerCase()
@@ -120,91 +121,61 @@ export function MyTasksProjectSelector({
   const allSearchResults = [...filteredVisible, ...filteredOverflow]
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {/* Tab: Todas */}
+    <GlassPanel padding={1} sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
       <button
+        type="button"
         onClick={() => onSelect(null)}
-        className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${
-          selectedProjectId === null
-            ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-            : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-        }`}
+        className={pillClass(selectedProjectId === null)}
       >
         <LayoutGrid className="w-3.5 h-3.5" />
-        Todas mis tareas
+        Todas
         {totalPending > 0 && (
           <PendingBadge count={totalPending} isSelected={selectedProjectId === null} />
         )}
       </button>
 
-      {/* Separador */}
-      {projects.length > 0 && (
-        <div className="w-px h-6 bg-border" />
-      )}
-
-      {/* Tabs visibles */}
       {visibleProjects.map((project) => {
         const isSelected = selectedProjectId === project.id
         const pendingCount = taskCountByProject[project.id] ?? 0
 
         return (
           <button
+            type="button"
             key={project.id}
             onClick={() => onSelect(project.id)}
             title={project.company?.name ? `${project.name} · ${project.company.name}` : project.name}
-            className={`flex flex-col items-start gap-0 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all border ${
-              isSelected
-                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-            }`}
+            className={pillClass(isSelected)}
           >
-            <div className="flex items-center gap-2">
-              <ProjectIcon type={project.type} className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="max-w-[130px] truncate">{project.name}</span>
-              <PendingBadge count={pendingCount} isSelected={isSelected} />
-            </div>
-            {project.company?.name && (
-              <span className={`text-[10px] leading-tight pl-[22px] max-w-[130px] truncate ${
-                isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/70'
-              }`}>
-                {project.company.name}
-              </span>
-            )}
+            <ProjectIcon type={project.type} className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="max-w-[140px] truncate">{project.name}</span>
+            <PendingBadge count={pendingCount} isSelected={isSelected} />
           </button>
         )
       })}
 
-      {/* Popover de overflow con buscador */}
       {overflowProjects.length > 0 && (
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className={`h-auto py-1.5 rounded-full gap-2 px-4 text-sm font-medium border transition-all ${
+              className={`h-auto py-1.5 rounded-full gap-1.5 px-3.5 text-[13px] font-medium ${
                 overflowSelected
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/90 hover:text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)] hover:bg-primary/90 hover:text-primary-foreground'
+                  : 'text-muted-foreground'
               }`}
             >
               {overflowSelected && selectedOverflowProject ? (
-                <div className="flex flex-col items-start gap-0">
-                  <div className="flex items-center gap-2">
-                    <ProjectIcon type={selectedOverflowProject.type} className="w-3.5 h-3.5" />
-                    <span className="max-w-[120px] truncate">{selectedOverflowProject.name}</span>
-                    <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                  {selectedOverflowProject.company?.name && (
-                    <span className="text-[10px] leading-tight pl-[22px] text-primary-foreground/70 max-w-[120px] truncate">
-                      {selectedOverflowProject.company.name}
-                    </span>
-                  )}
-                </div>
+                <>
+                  <ProjectIcon type={selectedOverflowProject.type} className="w-3.5 h-3.5" />
+                  <span className="max-w-[120px] truncate">{selectedOverflowProject.name}</span>
+                  <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                </>
               ) : (
                 <>
-                  <span>+{overflowProjects.length} proyectos</span>
+                  <span>+{overflowProjects.length}</span>
                   {overflowPendingTotal > 0 && (
-                    <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
+                    <span className="text-[11px] font-semibold rounded-full px-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                       {overflowPendingTotal}
                     </span>
                   )}
@@ -215,61 +186,40 @@ export function MyTasksProjectSelector({
           </PopoverTrigger>
 
           <PopoverContent align="start" className="w-72 p-0" sideOffset={8}>
-            {/* Buscador */}
             <div className="p-2 border-b border-border">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground z-10" />
                 <Input
                   ref={searchRef}
                   placeholder="Buscar proyecto o cliente..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8 h-8 text-sm border-0 focus-visible:ring-0 bg-muted/40"
+                  className="pl-9 h-8 text-sm"
                 />
               </div>
             </div>
 
-            {/* Lista de proyectos */}
             <div className="max-h-64 overflow-y-auto py-1">
               {search.trim() && allSearchResults.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">Sin resultados</p>
-              ) : search.trim() ? (
-                /* Resultados de búsqueda (incluye tabs visibles) */
-                allSearchResults.map((project) => {
-                  const isSelected = selectedProjectId === project.id
-                  const pendingCount = taskCountByProject[project.id] ?? 0
-                  return (
-                    <ProjectItem
-                      key={project.id}
-                      project={project}
-                      isSelected={isSelected}
-                      pendingCount={pendingCount}
-                      onSelect={() => { onSelect(project.id); setPopoverOpen(false) }}
-                    />
-                  )
-                })
-              ) : (
-                /* Sin búsqueda: solo overflow */
-                filteredOverflow.map((project) => {
-                  const isSelected = selectedProjectId === project.id
-                  const pendingCount = taskCountByProject[project.id] ?? 0
-                  return (
-                    <ProjectItem
-                      key={project.id}
-                      project={project}
-                      isSelected={isSelected}
-                      pendingCount={pendingCount}
-                      onSelect={() => { onSelect(project.id); setPopoverOpen(false) }}
-                    />
-                  )
-                })
-              )}
+              ) : (search.trim() ? allSearchResults : filteredOverflow).map((project) => {
+                const isSelected = selectedProjectId === project.id
+                const pendingCount = taskCountByProject[project.id] ?? 0
+                return (
+                  <ProjectItem
+                    key={project.id}
+                    project={project}
+                    isSelected={isSelected}
+                    pendingCount={pendingCount}
+                    onSelect={() => { onSelect(project.id); setPopoverOpen(false) }}
+                  />
+                )
+              })}
             </div>
 
-            {/* Footer: total */}
             {!search.trim() && (
               <div className="border-t border-border px-3 py-2">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[12px] text-muted-foreground">
                   {overflowProjects.length} proyecto{overflowProjects.length !== 1 ? 's' : ''} más
                 </p>
               </div>
@@ -277,7 +227,7 @@ export function MyTasksProjectSelector({
           </PopoverContent>
         </Popover>
       )}
-    </div>
+    </GlassPanel>
   )
 }
 
@@ -294,28 +244,29 @@ function ProjectItem({
 }) {
   return (
     <button
+      type="button"
       onClick={onSelect}
-      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted/60 transition-colors text-left"
+      className="w-full flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors text-left"
     >
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+      <div className={`w-8 h-8 rounded-2xl flex items-center justify-center flex-shrink-0 ${
         isSelected ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
       }`}>
         <ProjectIcon type={project.type} className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+        <p className={`text-[14px] font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
           {project.name}
         </p>
         {project.company?.name && (
           <div className="flex items-center gap-1 mt-0.5">
             <Building2 className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-            <p className="text-xs text-muted-foreground truncate">{project.company.name}</p>
+            <p className="text-[12px] text-muted-foreground truncate">{project.company.name}</p>
           </div>
         )}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {pendingCount > 0 && (
-          <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
+          <span className="text-[11px] font-semibold rounded-full px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
             {pendingCount}
           </span>
         )}

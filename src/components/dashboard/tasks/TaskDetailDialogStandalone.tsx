@@ -347,7 +347,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {task && (
@@ -553,7 +553,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   </button>
                 )}
 
-                <div className="space-y-3 max-h-48 overflow-y-auto mb-3">
+                <div className="space-y-3 mb-3">
                   {task.comments.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">Sin comentarios</p>
                   ) : (

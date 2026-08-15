@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Plus, Loader2, FolderKanban, CheckCircle, X } from 'lucide-react'
+import { Plus, Loader2, CheckCircle, X } from 'lucide-react'
 
 interface Company { id: string; name: string }
 interface User { id: string; full_name: string; email: string; role: { name: string } | null; roles?: string[] }
@@ -137,19 +137,29 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" /> Nuevo Proyecto
+        <Button>
+          <Plus className="w-4 h-4" /> Nuevo proyecto
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="sm:max-w-lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="create-project-form" disabled={loading || success}>
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Creando...</> : 'Crear proyecto'}
+            </Button>
+          </div>
+        }
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FolderKanban className="w-5 h-5" /> Nuevo Proyecto
-          </DialogTitle>
-          <DialogDescription>Crea un nuevo proyecto y asigna el equipo</DialogDescription>
+          <DialogTitle>Nuevo proyecto</DialogTitle>
+          <DialogDescription>Crea un proyecto y asigna el equipo</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="create-project-form" onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 px-4 py-3 rounded-lg text-sm">{error}</div>
           )}
@@ -350,15 +360,6 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
                 disabled={loading || success}
               />
             </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading || success} className="bg-primary hover:bg-primary/90">
-              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creando...</> : 'Crear Proyecto'}
-            </Button>
           </div>
         </form>
       </DialogContent>

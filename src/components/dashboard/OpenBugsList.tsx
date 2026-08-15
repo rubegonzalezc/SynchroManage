@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Bug, Calendar } from 'lucide-react'
+import { Calendar } from 'lucide-react'
+import { DashboardSection } from '@/components/dashboard/DashboardSection'
 
 interface OpenBug {
   id: string
@@ -43,78 +42,74 @@ export function OpenBugsList() {
   }, [])
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Bug className="w-4 h-4 text-red-500" />
-          Bugs Abiertos
-          {!loading && (
-            <Badge variant="secondary" className="ml-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-              {bugs.length}
-            </Badge>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-4 flex-1" />
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-20 rounded-full" />
-              </div>
-            ))}
-          </div>
-        ) : bugs.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">No hay bugs abiertos</p>
-        ) : (
-          <div className="space-y-2">
-            {bugs.map(bug => {
-              const sev = severityConfig[bug.severity] ?? severityConfig.medium
-              const href = bug.project ? `/projects/${bug.project.id}?tab=bugs` : '#'
-              return (
-                <Link
-                  key={bug.id}
-                  href={href}
-                  className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-lg border border-border hover:bg-muted/30 hover:border-red-200 dark:hover:border-red-800 transition-colors"
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <Bug className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                    <span className="text-sm font-medium text-foreground truncate">{bug.title}</span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap shrink-0">
-                    {bug.project && (
-                      <span className="text-xs text-muted-foreground truncate max-w-[120px]">{bug.project.name}</span>
-                    )}
-                    {bug.task && (
-                      <span className="text-xs text-muted-foreground">
-                        #{bug.task.task_number}
-                      </span>
-                    )}
-                    <Badge variant="secondary" className={`text-xs ${sev.color}`}>{sev.label}</Badge>
-                    {bug.assignee ? (
-                      <div className="flex items-center gap-1">
-                        <Avatar className="w-5 h-5">
-                          <AvatarImage src={bug.assignee.avatar_url || undefined} />
-                          <AvatarFallback className="text-[9px]">{getInitials(bug.assignee.full_name)}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-muted-foreground">{bug.assignee.full_name}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground italic">Sin asignar</span>
-                    )}
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(bug.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })}
+    <DashboardSection
+      title="Bugs abiertos"
+      description="Incidencias pendientes de resolución"
+      action={
+        !loading ? (
+          <span className="text-[12px] font-semibold rounded-full px-2.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+            {bugs.length}
+          </span>
+        ) : null
+      }
+    >
+      {loading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex items-center gap-3 rounded-2xl px-2 py-2.5">
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+          ))}
+        </div>
+      ) : bugs.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-8">No hay bugs abiertos</p>
+      ) : (
+        <div className="space-y-1">
+          {bugs.map(bug => {
+            const sev = severityConfig[bug.severity] ?? severityConfig.medium
+            const href = bug.project ? `/projects/${bug.project.id}?tab=bugs` : '#'
+            return (
+              <Link
+                key={bug.id}
+                href={href}
+                className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-2xl px-2 py-2.5 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+              >
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-[14px] font-medium text-foreground truncate">{bug.title}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  {bug.project && (
+                    <span className="text-[12px] text-muted-foreground truncate max-w-[120px]">{bug.project.name}</span>
+                  )}
+                  {bug.task && (
+                    <span className="text-[12px] text-muted-foreground">
+                      #{bug.task.task_number}
                     </span>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                  )}
+                  <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${sev.color}`}>{sev.label}</span>
+                  {bug.assignee ? (
+                    <div className="flex items-center gap-1.5">
+                      <Avatar className="w-5 h-5">
+                        <AvatarImage src={bug.assignee.avatar_url || undefined} />
+                        <AvatarFallback className="text-[9px]">{getInitials(bug.assignee.full_name)}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-[12px] text-muted-foreground">{bug.assignee.full_name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-[12px] text-muted-foreground italic">Sin asignar</span>
+                  )}
+                  <span className="text-[12px] text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(bug.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })}
+                  </span>
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </DashboardSection>
   )
 }

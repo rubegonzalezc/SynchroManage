@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { ChevronLeft, ChevronRight, Video, MapPin, Clock, Plus } from 'lucide-react'
 import { es } from 'date-fns/locale'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths } from 'date-fns'
+import { GlassPanel } from '@/components/ui/glass-panel'
 
 interface Task {
   id: string
@@ -70,31 +70,38 @@ export function TasksCalendar({ tasks, meetings, onMeetingClick, onDateClick, on
   }
 
   return (
-    <div className="h-full flex flex-col bg-card rounded-lg border border-border">
-      {/* Calendar Header */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-foreground capitalize">
-            {format(currentMonth, 'MMMM yyyy', { locale: es })}
-          </h2>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+    <GlassPanel
+      padding={2.25}
+      className="h-full"
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        minHeight: 0,
+      }}
+    >
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <h2 className="text-[17px] font-semibold tracking-tight text-foreground capitalize">
+          {format(currentMonth, 'MMMM yyyy', { locale: es })}
+        </h2>
+        <div className="flex gap-0.5">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
         </div>
+      </div>
 
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2">
+      <div className="flex-shrink-0">
+        <div className="grid grid-cols-7 gap-1 text-center text-[11px] mb-1">
           {['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'].map(day => (
             <div key={day} className="text-muted-foreground font-medium py-1">{day}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
-          {/* Empty cells for days before month starts */}
           {Array.from({ length: (days[0].getDay() + 6) % 7 }).map((_, i) => (
             <div key={`empty-${i}`} className="aspect-square" />
           ))}
@@ -103,17 +110,18 @@ export function TasksCalendar({ tasks, meetings, onMeetingClick, onDateClick, on
             const dayMeetings = getMeetingsForDay(day)
             const hasItems = dayTasks.length > 0 || dayMeetings.length > 0
             const isSelected = isSameDay(day, selectedDate)
-            
+
             return (
               <button
+                type="button"
                 key={day.toISOString()}
                 onClick={() => setSelectedDate(day)}
                 className={`
-                  aspect-square rounded-lg text-sm flex flex-col items-center justify-center relative
-                  transition-colors hover:bg-muted
+                  aspect-square rounded-full text-[13px] flex flex-col items-center justify-center relative
+                  transition-colors
                   ${!isSameMonth(day, currentMonth) ? 'text-muted-foreground/50' : 'text-foreground'}
-                  ${isToday(day) && !isSelected ? 'bg-primary/20 text-primary font-semibold' : ''}
-                  ${isSelected ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
+                  ${isToday(day) && !isSelected ? 'bg-primary/15 text-primary font-semibold' : ''}
+                  ${isSelected ? 'bg-primary text-primary-foreground font-semibold shadow-[0_6px_16px_rgba(37,99,235,0.28)]' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'}
                 `}
               >
                 {day.getDate()}
@@ -129,20 +137,20 @@ export function TasksCalendar({ tasks, meetings, onMeetingClick, onDateClick, on
         </div>
       </div>
 
-      {/* Selected Day Activities */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto min-h-0 mt-4 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-foreground capitalize">
+          <h3 className="text-[14px] font-semibold tracking-tight text-foreground capitalize">
             {isToday(selectedDate)
               ? 'Hoy'
               : format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}
           </h3>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="h-8 rounded-full text-[13px]"
             onClick={() => onDateClick(selectedDate)}
           >
-            <Plus className="w-3 h-3 mr-1" />
+            <Plus className="w-3.5 h-3.5" />
             Reunión
           </Button>
         </div>
@@ -154,34 +162,33 @@ export function TasksCalendar({ tasks, meetings, onMeetingClick, onDateClick, on
 
           if (!hasItems) {
             return (
-              <p className="text-sm text-muted-foreground text-center py-6">
+              <p className="text-[14px] text-muted-foreground text-center py-8">
                 Sin actividades para este día
               </p>
             )
           }
 
           return (
-            <div className="space-y-2">
-              {/* Reuniones del día */}
+            <div className="space-y-1">
               {dayMeetings.map(meeting => (
                 <div
                   key={meeting.id}
                   onClick={() => onMeetingClick(meeting.id)}
-                  className="p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="p-3 rounded-2xl hover:bg-black/[0.04] dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className="font-medium text-foreground text-sm line-clamp-1">{meeting.title}</p>
-                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 flex-shrink-0">
-                      <Video className="w-3 h-3 mr-1" />
+                    <p className="font-medium text-foreground text-[14px] line-clamp-1">{meeting.title}</p>
+                    <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 flex-shrink-0 inline-flex items-center gap-1">
+                      <Video className="w-3 h-3" />
                       Reunión
-                    </Badge>
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                     <Clock className="w-3 h-3" />
                     <span>{formatTime(meeting.start_time)} - {formatTime(meeting.end_time)}</span>
                   </div>
                   {meeting.project && (
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <p className="text-[12px] text-muted-foreground mt-1 flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
                       {meeting.project.name}
                     </p>
@@ -189,20 +196,19 @@ export function TasksCalendar({ tasks, meetings, onMeetingClick, onDateClick, on
                 </div>
               ))}
 
-              {/* Tareas del día */}
               {dayTasks.map(task => (
                 <div
                   key={task.id}
                   onClick={() => onTaskClick?.(task.id)}
-                  className="p-3 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="p-3 rounded-2xl hover:bg-black/[0.04] dark:hover:bg-white/[0.06] cursor-pointer transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className="font-medium text-foreground text-sm line-clamp-1">{task.title}</p>
-                    <Badge variant="secondary" className={`text-xs flex-shrink-0 ${priorityColors[task.priority]}`}>
+                    <p className="font-medium text-foreground text-[14px] line-clamp-1">{task.title}</p>
+                    <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 flex-shrink-0 ${priorityColors[task.priority]}`}>
                       {priorityLabels[task.priority]}
-                    </Badge>
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                     <Clock className="w-3 h-3" />
                     <span>Vence hoy</span>
                     <span>·</span>
@@ -216,6 +222,6 @@ export function TasksCalendar({ tasks, meetings, onMeetingClick, onDateClick, on
           )
         })()}
       </div>
-    </div>
+    </GlassPanel>
   )
 }

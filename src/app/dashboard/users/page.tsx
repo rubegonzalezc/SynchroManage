@@ -10,8 +10,6 @@ export default async function UsersPage() {
     .order('id')
 
   return (
-    <div className="space-y-6">
-      <UsersTableClient roles={roles || []} />
-    </div>
+    <UsersTableClient roles={roles || []} />
   )
 }

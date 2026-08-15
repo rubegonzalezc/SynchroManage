@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { format } from 'date-fns'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -101,6 +101,19 @@ const roleLabels: Record<string, string> = {
   tech_lead: 'Tech Lead',
   developer: 'Dev',
   stakeholder: 'Stakeholder',
+}
+
+function SheetSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground px-0.5">
+        {title}
+      </p>
+      <div className="rounded-[18px] bg-white/55 dark:bg-white/[0.04] border border-white/70 dark:border-white/10 p-4 space-y-4 min-w-0 w-full">
+        {children}
+      </div>
+    </div>
+  )
 }
 
 export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenChange, members, allUsers, currentUserId, onUpdate }: TaskDetailDialogProps) {
@@ -393,21 +406,37 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent
+        className="sm:max-w-2xl"
+        footer={task && !loading ? (
+          <div className="flex justify-between gap-2">
+            <Button variant="destructive" onClick={() => setDeleteTaskDialogOpen(true)} disabled={deleting}>
+              {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Eliminar
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Guardar
+              </Button>
+            </div>
+          </div>
+        ) : undefined}
+      >
+        <DialogHeader className="pr-8">
           <DialogTitle>
             {task?.task_number ? `Tarea #${task.task_number}` : 'Detalle de Tarea'}
           </DialogTitle>
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-16">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : task ? (
-          <div className="space-y-6">
-            {/* Form */}
-            <div className="space-y-4">
+          <div className="space-y-5">
+            <SheetSection title="Información">
               <div className="space-y-2">
                 <Label>Título</Label>
                 <Input
@@ -415,18 +444,19 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
               </div>
-
               <div className="space-y-2">
                 <Label>Descripción</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe la tarea en detalle..."
-                  className="min-h-[100px] resize-y"
+                  className="min-h-[88px] resize-y"
                 />
               </div>
+            </SheetSection>
 
-              <div className="grid grid-cols-2 gap-4">
+            <SheetSection title="Planificación">
+              <div className="grid grid-cols-2 gap-4 min-w-0">
                 <div className="space-y-2">
                   <Label>Estado</Label>
                   <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
@@ -440,7 +470,6 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
                   <Label>Prioridad</Label>
                   <Select value={formData.priority} onValueChange={(v) => setFormData({ ...formData, priority: v })}>
@@ -453,7 +482,6 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
                   <Label>Categoría</Label>
                   <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
@@ -467,7 +495,6 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
                   <Label>Complejidad</Label>
                   <Select
@@ -483,9 +510,38 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Fecha límite</Label>
+                  <DatePicker
+                    value={formData.due_date ? new Date(formData.due_date + 'T00:00:00') : null}
+                    onChange={(date) => setFormData({ ...formData, due_date: date ? format(date, 'yyyy-MM-dd') : '' })}
+                    placeholder="Seleccionar fecha"
+                  />
+                </div>
+                {projectSprints.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Sprint</Label>
+                    <Select
+                      value={formData.sprint_id || 'none'}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, sprint_id: v === 'none' ? '' : v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Sin sprint (Backlog)" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin sprint (Backlog)</SelectItem>
+                        {projectSprints.map(s => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}{s.status === 'active' ? ' (Activo)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
+            </SheetSection>
 
-              <div className="grid grid-cols-2 gap-4">
+            <SheetSection title="Personas">
+              <div className="grid grid-cols-2 gap-4 min-w-0">
                 <div className="space-y-2">
                   <Label>Asignados</Label>
                   <MultiSelectDeveloper
@@ -495,22 +551,10 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                     placeholder="Buscar desarrollador..."
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Fecha límite</Label>
-                  <DatePicker
-                    value={formData.due_date ? new Date(formData.due_date + 'T00:00:00') : null}
-                    onChange={(date) => setFormData({ ...formData, due_date: date ? format(date, 'yyyy-MM-dd') : '' })}
-                    placeholder="Seleccionar fecha"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5">
                     Revisor (QA)
-                    <span className="text-[10px] font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">opcional</span>
+                    <span className="text-[10px] font-normal text-muted-foreground">opcional</span>
                   </Label>
                   <SingleSelectUser
                     users={members}
@@ -521,108 +565,58 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                   />
                 </div>
               </div>
+            </SheetSection>
 
-              {projectSprints.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Sprint</Label>
-                  <Select
-                    value={formData.sprint_id || 'none'}
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, sprint_id: v === 'none' ? '' : v }))}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Sin sprint (Backlog)" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin sprint (Backlog)</SelectItem>
-                      {projectSprints.map(s => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.name}{s.status === 'active' ? ' (Activo)' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-1.5">
-                    <GitBranch className="w-3.5 h-3.5" />
-                    Nombre de rama
-                  </Label>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="autoBranchEdit" 
-                      checked={autoBranchName} 
-                      onCheckedChange={(checked) => setAutoBranchName(checked === true)}
-                      disabled={saving}
-                    />
-                    <Label
-                      htmlFor="autoBranchEdit"
-                      className="text-xs text-muted-foreground font-normal cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Autocompletar
-                    </Label>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={formData.branch_name}
-                    onChange={(e) => {
-                      setFormData({ ...formData, branch_name: e.target.value })
-                      if (autoBranchName) setAutoBranchName(false)
-                    }}
-                    placeholder="feat/nombre-de-la-tarea"
-                    disabled={saving || autoBranchName}
+            <SheetSection title="Desarrollo">
+              <div className="flex items-center justify-between mb-1">
+                <Label className="flex items-center gap-1.5">
+                  <GitBranch className="w-3.5 h-3.5" />
+                  Nombre de rama
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="autoBranchEdit"
+                    checked={autoBranchName}
+                    onCheckedChange={(checked) => setAutoBranchName(checked === true)}
+                    disabled={saving}
                   />
-                  <CopyButton value={formData.branch_name} />
+                  <Label htmlFor="autoBranchEdit" className="text-xs text-muted-foreground font-normal cursor-pointer">
+                    Autocompletar
+                  </Label>
                 </div>
               </div>
-            </div>
-
-            {/* Assignees display */}
-            {task.assignees && task.assignees.length > 0 && (
-              <div className="border-t border-border pt-4">
-                <h4 className="font-medium text-foreground mb-3">Asignados</h4>
-                <div className="flex flex-wrap gap-2">
-                  {task.assignees.map((assignee) => (
-                    <div key={assignee.id} className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5">
-                      <Avatar className="w-6 h-6">
-                        <AvatarImage src={assignee.avatar_url || undefined} />
-                        <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                          {getInitials(assignee.full_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm text-foreground">{assignee.full_name}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="flex gap-2">
+                <Input
+                  value={formData.branch_name}
+                  onChange={(e) => {
+                    setFormData({ ...formData, branch_name: e.target.value })
+                    if (autoBranchName) setAutoBranchName(false)
+                  }}
+                  placeholder="feat/nombre-de-la-tarea"
+                  disabled={saving || autoBranchName}
+                />
+                <CopyButton value={formData.branch_name} />
               </div>
-            )}
+            </SheetSection>
 
-            {/* Attachments */}
-            <div className="border-t border-border pt-4">
-              <FileAttachments
-                taskId={taskId}
-                currentUserId={currentUserId}
-              />
-            </div>
+            <SheetSection title="Archivos">
+              <FileAttachments taskId={taskId} currentUserId={currentUserId} />
+            </SheetSection>
 
-            {/* Comments */}
-            <div className="border-t border-border pt-4">
-              <h4 className="font-medium text-foreground mb-3">Comentarios</h4>
-              
+            <SheetSection title="Comentarios">
               {hasNewComments && (
                 <button
                   onClick={fetchTask}
-                  className="w-full mb-3 py-2 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 text-xs font-medium flex items-center justify-center gap-2 transition-colors"
+                  className="w-full py-2 px-3 rounded-xl bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-medium flex items-center justify-center gap-2"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  Hay nuevos comentarios. Click para actualizar
+                  Hay nuevos comentarios. Toca para actualizar
                 </button>
               )}
-              
-              <div className="space-y-3 max-h-48 overflow-y-auto mb-4">
+
+              <div className="space-y-3">
                 {task.comments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No hay comentarios</p>
+                  <p className="text-sm text-muted-foreground text-center py-3">No hay comentarios</p>
                 ) : (
                   task.comments.map((comment) => (
                     <div key={comment.id} className="flex gap-3 group">
@@ -660,7 +654,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                 )}
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-1">
                 <MentionInput
                   value={newComment}
                   onChange={setNewComment}
@@ -673,22 +667,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                   {sendingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex justify-between pt-4 border-t border-border">
-              <Button variant="destructive" onClick={() => setDeleteTaskDialogOpen(true)} disabled={deleting}>
-                {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                Eliminar
-              </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90">
-                  {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Guardar
-                </Button>
-              </div>
-            </div>
+            </SheetSection>
           </div>
         ) : null}
       </DialogContent>

@@ -1,0 +1,174 @@
+/* SynchroManage — Apple Liquid Enterprise */
+
+:root {
+  --ease-liquid: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-soft: 0 8px 32px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-lift: 0 16px 40px rgba(15, 23, 42, 0.1), 0 2px 6px rgba(15, 23, 42, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.65);
+}
+
+.dark {
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --glass-bg: rgba(15, 23, 42, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.12);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans), "Plus Jakarta Sans", system-ui, sans-serif;
+  background-color: var(--background);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.08), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(96, 165, 250, 0.07), transparent 45%);
+  background-attachment: fixed;
+  transition: background-color 400ms var(--ease-liquid), color 400ms var(--ease-liquid);
+}
+
+.dark body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(96, 165, 250, 0.06), transparent 45%);
+}
+
+.liquid-ease {
+  transition-timing-function: var(--ease-liquid);
+}
+
+.liquid-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-soft);
+  border-radius: 24px;
+  position: relative;
+}
+
+.liquid-glass::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, transparent 40%);
+  opacity: 0.7;
+}
+
+.dark .liquid-glass::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 40%);
+}
+
+.hover-lift {
+  transition: transform 400ms var(--ease-liquid), box-shadow 400ms var(--ease-liquid);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: var(--shadow-lift);
+}
+
+.hover-lift:active {
+  transform: scale(0.992);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 560ms var(--ease-liquid) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 420ms var(--ease-liquid) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 480ms var(--ease-liquid) both;
+}
+
+.stagger-1 { animation-delay: 40ms; }
+.stagger-2 { animation-delay: 80ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 160ms; }
+.stagger-5 { animation-delay: 200ms; }
+.stagger-6 { animation-delay: 240ms; }
+.stagger-7 { animation-delay: 280ms; }
+.stagger-8 { animation-delay: 320ms; }
+
+/* Entrada de cada pantalla: las secciones suben en cascada */
+.page-enter > * > * {
+  animation: fade-up 620ms var(--ease-liquid) both;
+}
+
+.page-enter > * > *:nth-child(1) { animation-delay: 0ms; }
+.page-enter > * > *:nth-child(2) { animation-delay: 55ms; }
+.page-enter > * > *:nth-child(3) { animation-delay: 110ms; }
+.page-enter > * > *:nth-child(4) { animation-delay: 165ms; }
+.page-enter > * > *:nth-child(5) { animation-delay: 220ms; }
+.page-enter > * > *:nth-child(6) { animation-delay: 275ms; }
+.page-enter > * > *:nth-child(7) { animation-delay: 330ms; }
+.page-enter > * > *:nth-child(8) { animation-delay: 385ms; }
+
+a,
+button {
+  transition: color 280ms var(--ease-liquid), background-color 280ms var(--ease-liquid),
+    border-color 280ms var(--ease-liquid), box-shadow 280ms var(--ease-liquid),
+    transform 280ms var(--ease-liquid), opacity 280ms var(--ease-liquid);
+}
+
+.transition-colors {
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, transform, box-shadow, opacity;
+  transition-duration: 280ms;
+  transition-timing-function: var(--ease-liquid);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .page-enter > * > *,
+  .page-enter > * > .grid > *,
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-scale-in,
+  .hover-lift {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  a,
+  button,
+  .transition-colors {
+    transition: none !important;
+  }
+}

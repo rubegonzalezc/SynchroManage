@@ -1,6 +1,9 @@
 'use client'
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { Box, Typography } from '@mui/material'
+import { appleChart, getChartTooltipStyle } from '@/theme/chartTheme'
+import { useTheme } from '@/components/theme-provider'
 
 interface Props {
   done: number
@@ -10,9 +13,12 @@ interface Props {
   backlog: number
 }
 
-const COLORS = ['#22c55e', '#3b82f6', '#a855f7', '#f59e0b', '#94a3b8']
+const COLORS = [appleChart.green, appleChart.blue, appleChart.purple, appleChart.orange, appleChart.gray]
 
 export function TaskStatusChart({ done, inProgress, review, pending, backlog }: Props) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
   const data = [
     { name: 'Completadas', value: done },
     { name: 'En Progreso', value: inProgress },
@@ -21,43 +27,68 @@ export function TaskStatusChart({ done, inProgress, review, pending, backlog }: 
     { name: 'Backlog', value: backlog },
   ].filter(d => d.value > 0)
 
-  if (data.length === 0) return (
-    <p className="text-sm text-muted-foreground text-center py-8">Sin datos</p>
-  )
+  const total = data.reduce((s, d) => s + d.value, 0)
+
+  if (data.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 8 }}>
+        Sin datos
+      </Typography>
+    )
+  }
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          innerRadius={55}
-          outerRadius={85}
-          paddingAngle={3}
-          dataKey="value"
-        >
-          {data.map((_, i) => (
-            <Cell key={i} fill={COLORS[i % COLORS.length]} strokeWidth={0} />
-          ))}
-        </Pie>
-        <Tooltip
-          contentStyle={{
-            backgroundColor: 'hsl(var(--card))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '8px',
-            color: 'hsl(var(--foreground))',
-            fontSize: '12px',
+    <Box>
+      <Box sx={{ position: 'relative', height: 210, width: '100%', minWidth: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={62}
+              outerRadius={88}
+              paddingAngle={4}
+              cornerRadius={6}
+              dataKey="value"
+              stroke="none"
+            >
+              {data.map((_, i) => (
+                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={getChartTooltipStyle(isDark)}
+              itemStyle={{ color: isDark ? '#F5F5F7' : '#1C1C1E' }}
+              cursor={false}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-        />
-        <Legend
-          iconType="circle"
-          iconSize={8}
-          formatter={(value) => (
-            <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: '12px' }}>{value}</span>
-          )}
-        />
-      </PieChart>
-    </ResponsiveContainer>
+        >
+          <Typography sx={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1 }}>
+            {total}
+          </Typography>
+          <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25 }}>tareas</Typography>
+        </Box>
+      </Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1.25, mt: 0.5 }}>
+        {data.map((d, i) => (
+          <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLORS[i % COLORS.length] }} />
+            <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{d.name}</Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
   )
 }

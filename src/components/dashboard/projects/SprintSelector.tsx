@@ -1,76 +1,71 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Plus, Package } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { GlassPanel } from '@/components/ui/glass-panel'
 import type { Sprint } from './CreateSprintDialog'
 
 interface SprintSelectorProps {
   sprints: Sprint[]
-  selectedSprintId: string | null   // null = Backlog
+  selectedSprintId: string | null
   onSelect: (sprintId: string | null) => void
   canManage: boolean
   onNewSprint: () => void
 }
 
-const statusBadge: Record<string, { label: string; className: string }> = {
-  planning: { label: 'Plan.', className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' },
-  active: { label: 'Activo', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  completed: { label: 'Completado', className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
+const statusLabel: Record<string, string> = {
+  planning: 'Plan.',
+  active: 'Activo',
+  completed: 'Hecho',
 }
 
 export function SprintSelector({ sprints, selectedSprintId, onSelect, canManage, onNewSprint }: SprintSelectorProps) {
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {/* Tab: Backlog */}
+    <GlassPanel padding={1} sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
       <button
+        type="button"
         onClick={() => onSelect(null)}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border
+        className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors
           ${selectedSprintId === null
-            ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-            : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+            ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
+            : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground'
           }`}
       >
         <Package className="w-3.5 h-3.5" />
         Backlog
       </button>
 
-      {/* Tabs: sprints */}
       {sprints.map(sprint => {
-        const badge = statusBadge[sprint.status] ?? statusBadge.planning
         const isSelected = selectedSprintId === sprint.id
         return (
           <button
+            type="button"
             key={sprint.id}
             onClick={() => onSelect(sprint.id)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors
               ${isSelected
-                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
+                : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground'
               }`}
           >
             <span className="max-w-[140px] truncate">{sprint.name}</span>
-            <Badge
-              variant="secondary"
-              className={`text-[10px] px-1.5 py-0 h-4 ${isSelected ? 'bg-white/20 text-inherit' : badge.className}`}
-            >
-              {badge.label}
-            </Badge>
+            <span className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>
+              {statusLabel[sprint.status] ?? 'Plan.'}
+            </span>
           </button>
         )
       })}
 
-      {/* Botón nuevo sprint (PM/admin) */}
       {canManage && (
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={onNewSprint}
-          className="h-8 gap-1.5 text-sm"
+          className="h-8 gap-1.5 text-[13px] rounded-full ml-auto"
         >
           <Plus className="w-3.5 h-3.5" /> Nuevo Sprint
         </Button>
       )}
-    </div>
+    </GlassPanel>
   )
 }

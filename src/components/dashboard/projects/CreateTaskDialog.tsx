@@ -149,13 +149,25 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
           <Plus className="w-4 h-4 mr-2" /> Nueva Tarea
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-2xl"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="create-task-form" disabled={loading || success}>
+              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creando...</> : 'Crear Tarea'}
+            </Button>
+          </div>
+        }
+      >
         <DialogHeader>
           <DialogTitle>Nueva Tarea</DialogTitle>
           <DialogDescription>Agrega una tarea al proyecto</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form id="create-task-form" onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 px-4 py-3 rounded-lg text-sm">{error}</div>
           )}
@@ -359,15 +371,6 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
               />
               <CopyButton value={autoBranchName ? generatedPreview : formData.branch_name} />
             </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading || success} className="bg-primary hover:bg-primary/90">
-              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creando...</> : 'Crear Tarea'}
-            </Button>
           </div>
         </form>
       </DialogContent>

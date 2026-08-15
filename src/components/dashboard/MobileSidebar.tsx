@@ -26,7 +26,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { createClient } from '@/lib/supabase/client'
-import { useTheme } from '@/components/theme-provider'
 
 interface MenuItem {
   title: string
@@ -69,7 +68,6 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-  const { resolvedTheme } = useTheme()
   const userRole = user.role || 'admin'
   const [mounted, setMounted] = useState(false)
 
@@ -105,29 +103,29 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
 
       {/* Drawer */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-sidebar border-r border-border flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-50 h-full w-72 bg-[#0F172A] border-r border-white/10 flex flex-col transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Header del sidebar: solo logo + botón cerrar */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="relative w-9 h-9 flex-shrink-0">
               <Image
-                src={resolvedTheme === 'dark' ? '/logo/isotipo-blanco.png' : '/logo/isotipo-negro.png'}
+                src="/logo/isotipo-blanco.png"
                 alt="SynchroManage"
                 fill
                 className="object-contain"
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold text-sm text-sidebar-foreground">SynchroManage</span>
-              <span className="text-xs text-muted-foreground">Panel</span>
+              <span className="font-semibold text-sm text-white">SynchroManage</span>
+              <span className="text-xs text-white/50">Panel</span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -135,7 +133,7 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
 
         {/* Menú principal */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <p className="text-xs text-muted-foreground px-2 mb-2 font-medium">Menú Principal</p>
+          <p className="text-[11px] uppercase tracking-wider text-white/40 px-2 mb-2 font-medium">Menú</p>
           <ul className="space-y-1">
             {filteredMenuItems.map((item) => {
               const isActive = item.exact 
@@ -146,10 +144,10 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
                   <Link
                     href={item.href}
                     onClick={onClose}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-full text-sm transition-all duration-300 ${
                       isActive
-                        ? 'bg-accent text-accent-foreground font-medium'
-                        : 'text-sidebar-foreground hover:bg-accent/60 hover:text-accent-foreground'
+                        ? 'bg-primary text-white font-medium'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -162,26 +160,26 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
         </nav>
 
         {/* Footer: perfil con dropdown */}
-        <div className="border-t border-border px-3 py-3">
+        <div className="border-t border-white/10 px-3 py-3">
           {mounted ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent transition-colors text-left">
+              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-white/10 transition-colors text-left">
                 <Avatar className="w-8 h-8 flex-shrink-0">
                   <AvatarImage src={user.avatar_url || undefined} />
-                  <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                  <AvatarFallback className="bg-white/10 text-white text-xs">
                     {getInitials(user.full_name, user.email)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-sm font-medium text-foreground truncate">
+                  <span className="text-sm font-medium text-white truncate">
                     {user.full_name || user.email}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate">
+                  <span className="text-xs text-white/50 truncate">
                     {roleLabels[userRole] || userRole}
                   </span>
                 </div>
-                <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <ChevronUp className="w-4 h-4 text-white/40 flex-shrink-0" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-56">

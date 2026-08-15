@@ -114,8 +114,8 @@ export default function LoginPage() {
   // Mostrar loading mientras verifica sesión
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -123,10 +123,10 @@ export default function LoginPage() {
   // Mostrar página de enlace expirado
   if (linkExpired) {
     return (
-      <div className="min-h-screen relative flex items-center justify-center bg-background">
+      <div className="min-h-screen relative flex items-center justify-center">
         {/* Theme Toggle - Posición fija */}
         <div className="fixed top-6 right-6 z-50">
-          <div className="flex items-center gap-2 bg-card border border-border rounded-lg p-1 shadow-sm">
+          <div className="flex items-center gap-1 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-full p-1 shadow-[0_8px_32px_rgba(15,23,42,0.06)]">
             <Button
               variant={theme === 'light' ? 'secondary' : 'ghost'}
               size="icon"
@@ -155,7 +155,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-md mx-4">
-          <Card className="border-border shadow-lg">
+        <Card className="border-0">
             <CardHeader className="text-center pt-8 pb-4">
               <div className="relative w-32 h-32 mx-auto mb-4 transition-opacity duration-500">
                 <Image
@@ -199,13 +199,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-background">
+    <div className="min-h-screen relative flex items-center justify-center">
       {/* Grid sutil de fondo */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
       
       {/* Theme Toggle - Posición fija */}
       <div className="fixed top-6 right-6 z-50">
-        <div className="flex items-center gap-2 bg-card border border-border rounded-lg p-1 shadow-sm">
+        <div className="flex items-center gap-1 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-full p-1 shadow-[0_8px_32px_rgba(15,23,42,0.06)]">
           <Button
             variant={theme === 'light' ? 'secondary' : 'ghost'}
             size="icon"
@@ -239,7 +239,7 @@ export default function LoginPage() {
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
       >
-        <Card className="border-border shadow-lg">
+        <Card className="border-0">
           <CardHeader className="text-center pt-8 pb-6 space-y-4">
             {/* Logo */}
             <div 

@@ -2,29 +2,17 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { EditUserDialog } from './EditUserDialog'
 import { DeleteUserDialog } from './DeleteUserDialog'
 import { CreateUserDialog } from './CreateUserDialog'
-import { Search, ChevronLeft, ChevronRight, X, RefreshCw, Loader2, Users } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, X, RefreshCw, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { GlassPanel } from '@/components/ui/glass-panel'
 
 interface Role {
   id: number
@@ -57,11 +45,11 @@ interface UsersTableClientProps {
 }
 
 const roleBadgeColors: Record<string, string> = {
-  admin: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
-  pm: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-  tech_lead: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
-  developer: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
-  stakeholder: 'bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800',
+  admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  pm: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  tech_lead: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  developer: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  stakeholder: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
 }
 
 const roleLabels: Record<string, string> = {
@@ -81,14 +69,12 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
   const [resendingUserId, setResendingUserId] = useState<string | null>(null)
   const [resendSuccess, setResendSuccess] = useState<string | null>(null)
   const [resendError, setResendError] = useState<string | null>(null)
-  
-  // Filtros
+
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [companyFilter, setCompanyFilter] = useState<string>('all')
-  
-  // Paginación
+
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
@@ -144,32 +130,29 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
     fetchUsers()
   }, [refreshKey])
 
-  // Filtrar usuarios
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      const matchesSearch = search === '' || 
+      const matchesSearch = search === '' ||
         user.full_name?.toLowerCase().includes(search.toLowerCase()) ||
         user.email?.toLowerCase().includes(search.toLowerCase())
-      
-      const matchesRole = roleFilter === 'all' || 
+
+      const matchesRole = roleFilter === 'all' ||
         (user.roles && user.roles.length > 0 ? user.roles.includes(roleFilter) : user.role?.name === roleFilter)
-      const matchesStatus = statusFilter === 'all' || 
+      const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'confirmed' && user.email_confirmed) ||
         (statusFilter === 'pending' && !user.email_confirmed)
       const matchesCompany = companyFilter === 'all' || user.company_id === companyFilter
-      
+
       return matchesSearch && matchesRole && matchesStatus && matchesCompany
     })
   }, [users, search, roleFilter, statusFilter, companyFilter])
 
-  // Paginación
   const totalPages = Math.ceil(filteredUsers.length / pageSize)
   const paginatedUsers = useMemo(() => {
     const start = (currentPage - 1) * pageSize
     return filteredUsers.slice(start, start + pageSize)
   }, [filteredUsers, currentPage, pageSize])
 
-  // Reset página cuando cambian filtros
   useEffect(() => {
     setCurrentPage(1)
   }, [search, roleFilter, statusFilter, companyFilter, pageSize])
@@ -193,87 +176,61 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
     return new Date(date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
   }
 
-  if (loading) {
+  const confirmedCount = users.filter(u => u.email_confirmed).length
+  const pendingCount = users.filter(u => !u.email_confirmed).length
+
+  const pillClass = (selected: boolean) =>
+    `px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${
+      selected
+        ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
+        : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground'
+    }`
+
+  if (error && users.length === 0 && !loading) {
     return (
-      <div className="space-y-4 pt-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1.5">
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-4 w-52" />
-          </div>
-          <Skeleton className="h-9 w-32 rounded-md" />
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Skeleton className="h-9 flex-1 min-w-[200px] max-w-sm" />
-          <Skeleton className="h-9 w-[160px]" />
-          <Skeleton className="h-9 w-[160px]" />
-          <Skeleton className="h-9 w-[180px]" />
-        </div>
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-12" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-                <TableHead><Skeleton className="h-4 w-28" /></TableHead>
-                <TableHead className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <TableRow key={i}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
-                      <div className="space-y-1.5">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-44" />
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Skeleton className="w-8 h-8 rounded-md" />
-                      <Skeleton className="w-8 h-8 rounded-md" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+      <div className="space-y-5">
+        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Usuarios</h1>
+        <GlassPanel>
+          <p className="text-[14px] text-red-600 dark:text-red-400">{error}</p>
+        </GlassPanel>
       </div>
     )
   }
 
-  if (error) {
-    return <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg">{error}</div>
-  }
-
   return (
-    <div className="space-y-4 pt-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Users className="w-6 h-6 text-primary flex-shrink-0" />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Usuarios</h1>
-            <p className="text-sm text-muted-foreground">Gestiona los usuarios del sistema</p>
-          </div>
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Usuarios</h1>
+          <p className="text-[15px] text-muted-foreground mt-1">Gestiona los usuarios del sistema</p>
         </div>
         <CreateUserDialog roles={roles} onSuccess={refreshUsers} />
       </div>
 
-      {/* Filtros */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+        <GlassPanel padding={2.25}>
+          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Total</p>
+          {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
+            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#0A84FF' }}>{users.length}</p>
+          )}
+        </GlassPanel>
+        <GlassPanel padding={2.25}>
+          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Confirmados</p>
+          {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
+            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#30D158' }}>{confirmedCount}</p>
+          )}
+        </GlassPanel>
+        <GlassPanel padding={2.25} className="col-span-2 lg:col-span-1">
+          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Pendientes</p>
+          {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
+            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#FF9F0A' }}>{pendingCount}</p>
+          )}
+        </GlassPanel>
+      </div>
+
+      <GlassPanel padding={1} sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
           <Input
             placeholder="Buscar por nombre o email..."
             value={search}
@@ -281,35 +238,29 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
             className="pl-9"
           />
         </div>
-        
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Filtrar por rol" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los roles</SelectItem>
-            {roles.map((role) => (
-              <SelectItem key={role.id} value={role.name}>
-                {roleLabels[role.name] || role.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Filtrar por estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="confirmed">Confirmado</SelectItem>
-            <SelectItem value="pending">Pendiente</SelectItem>
-          </SelectContent>
-        </Select>
+        <button type="button" onClick={() => setRoleFilter('all')} className={pillClass(roleFilter === 'all')}>
+          Todos
+        </button>
+        {roles.map((role) => (
+          <button type="button" key={role.id} onClick={() => setRoleFilter(role.name)} className={pillClass(roleFilter === role.name)}>
+            {roleLabels[role.name] || role.name}
+          </button>
+        ))}
+
+        <button type="button" onClick={() => setStatusFilter('all')} className={pillClass(statusFilter === 'all')}>
+          Todos los estados
+        </button>
+        <button type="button" onClick={() => setStatusFilter('confirmed')} className={pillClass(statusFilter === 'confirmed')}>
+          Confirmado
+        </button>
+        <button type="button" onClick={() => setStatusFilter('pending')} className={pillClass(statusFilter === 'pending')}>
+          Pendiente
+        </button>
 
         <Select value={companyFilter} onValueChange={setCompanyFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filtrar por empresa" />
+          <SelectTrigger className="w-[180px] h-8">
+            <SelectValue placeholder="Empresa" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las empresas</SelectItem>
@@ -320,155 +271,141 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
         </Select>
 
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
-            <X className="w-4 h-4 mr-1" /> Limpiar
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground rounded-full">
+            <X className="w-4 h-4" /> Limpiar
           </Button>
         )}
-      </div>
+      </GlassPanel>
 
-      {/* Notificaciones de reenvío */}
       {resendSuccess && (
-        <div className="bg-green-50 border border-green-200 text-green-600 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 px-4 py-3 rounded-lg text-sm">
-          {resendSuccess}
-        </div>
+        <GlassPanel padding={2}>
+          <p className="text-[13px] text-green-600 dark:text-green-400">{resendSuccess}</p>
+        </GlassPanel>
       )}
       {resendError && (
-        <div className="bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
-          {resendError}
-        </div>
+        <GlassPanel padding={2}>
+          <p className="text-[13px] text-red-600 dark:text-red-400">{resendError}</p>
+        </GlassPanel>
       )}
 
-      {/* Tabla */}
-      <div className="rounded-lg border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>Usuario</TableHead>
-              <TableHead>Rol</TableHead>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Fecha Registro</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedUsers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  {hasActiveFilters ? 'No se encontraron usuarios con los filtros aplicados' : 'No hay usuarios registrados'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedUsers.map((user) => (
-                <TableRow key={user.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-9 h-9">
-                        <AvatarImage src={user.avatar_url || undefined} />
-                        <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                          {getInitials(user.full_name, user.email)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-foreground">{user.full_name || 'Sin nombre'}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {user.roles && user.roles.length > 0 ? (
-                        user.roles.map((roleName) => (
-                          <Badge key={roleName} variant="outline" className={roleBadgeColors[roleName] || 'bg-muted text-muted-foreground'}>
-                            {roleLabels[roleName] || roleName}
-                          </Badge>
-                        ))
-                      ) : (
-                        <Badge variant="outline" className={roleBadgeColors[user.role?.name || ''] || 'bg-muted text-muted-foreground'}>
-                          {roleLabels[user.role?.name || ''] || user.role?.name || 'Sin rol'}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {user.company?.name || '-'}
-                  </TableCell>
-                  <TableCell>
-                    {user.email_confirmed ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">Confirmado</Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">Pendiente</Badge>
+      <GlassPanel padding={2.25}>
+        {loading ? (
+          <div className="space-y-1">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-3 rounded-2xl px-3 py-3">
+                <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-44" />
+                </div>
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+            ))}
+          </div>
+        ) : paginatedUsers.length === 0 ? (
+          <p className="text-[14px] text-muted-foreground text-center py-12">
+            {hasActiveFilters ? 'No se encontraron usuarios' : 'No hay usuarios registrados'}
+          </p>
+        ) : (
+          <div className="space-y-0.5">
+            {paginatedUsers.map((user) => {
+              const userRoles = user.roles && user.roles.length > 0
+                ? user.roles
+                : user.role?.name ? [user.role.name] : []
+
+              return (
+                <div
+                  key={user.id}
+                  className="flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+                >
+                  <Avatar className="w-9 h-9 flex-shrink-0">
+                    <AvatarImage src={user.avatar_url || undefined} />
+                    <AvatarFallback className="text-[11px]">
+                      {getInitials(user.full_name, user.email)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-medium text-foreground truncate">{user.full_name || 'Sin nombre'}</p>
+                    <p className="text-[12px] text-muted-foreground truncate mt-0.5">
+                      {[user.email, user.company?.name].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                  <div className="hidden sm:flex flex-wrap gap-1 flex-shrink-0">
+                    {userRoles.length > 0 ? userRoles.map((roleName) => (
+                      <span key={roleName} className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${roleBadgeColors[roleName] || 'bg-muted text-muted-foreground'}`}>
+                        {roleLabels[roleName] || roleName}
+                      </span>
+                    )) : (
+                      <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-muted text-muted-foreground">Sin rol</span>
                     )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(user.created_at)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {!user.email_confirmed && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleResendInvite(user.id)}
-                          disabled={resendingUserId === user.id}
-                          title="Reenviar invitación"
-                        >
-                          {resendingUserId === user.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="w-4 h-4" />
-                          )}
-                        </Button>
-                      )}
-                      <EditUserDialog user={user} roles={roles} onSuccess={refreshUsers} />
-                      <DeleteUserDialog user={user} onSuccess={refreshUsers} />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </div>
+                  <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 flex-shrink-0 ${
+                    user.email_confirmed
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                  }`}>
+                    {user.email_confirmed ? 'Confirmado' : 'Pendiente'}
+                  </span>
+                  <span className="hidden md:block text-[12px] text-muted-foreground flex-shrink-0 w-[100px] text-right">
+                    {formatDate(user.created_at)}
+                  </span>
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    {!user.email_confirmed && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full"
+                        onClick={() => handleResendInvite(user.id)}
+                        disabled={resendingUserId === user.id}
+                        title="Reenviar invitación"
+                      >
+                        {resendingUserId === user.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
+                    <EditUserDialog user={user} roles={roles} onSuccess={refreshUsers} />
+                    <DeleteUserDialog user={user} onSuccess={refreshUsers} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
-      {/* Paginación */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Mostrar</span>
-          <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
-            <SelectTrigger className="w-[70px] h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5</SelectItem>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="20">20</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-            </SelectContent>
-          </Select>
-          <span>de {filteredUsers.length} usuarios</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <span className="text-sm text-muted-foreground min-w-[100px] text-center">
-            Página {currentPage} de {totalPages || 1}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage >= totalPages}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
+        {!loading && filteredUsers.length > 0 && (
+          <div className="flex items-center justify-between gap-3 pt-4 mt-2">
+            <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+              <span>Mostrar</span>
+              <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="w-[72px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+              <span>de {filteredUsers.length}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-[13px] text-muted-foreground min-w-[88px] text-center">
+                {currentPage} / {totalPages || 1}
+              </span>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </GlassPanel>
     </div>
   )
 }

@@ -1,15 +1,15 @@
 ﻿import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Users, FolderKanban, CheckCircle, ListTodo, Building2, AlertCircle, Activity, Code2, Bug } from 'lucide-react'
 import Link from 'next/link'
 import { UpcomingMeetings } from '@/components/dashboard/UpcomingMeetings'
 import { TaskStatusChart } from '@/components/dashboard/TaskStatusChart'
 import { ProjectStatusChart } from '@/components/dashboard/ProjectStatusChart'
 import { BugStatusChart } from '@/components/dashboard/BugStatusChart'
+import { UsersRoleChart } from '@/components/dashboard/UsersRoleChart'
 import { UnassignedTasks } from '@/components/dashboard/UnassignedTasks'
 import { OpenBugsList } from '@/components/dashboard/OpenBugsList'
+import { DashboardStatTile } from '@/components/dashboard/DashboardStatTile'
+import { DashboardSection } from '@/components/dashboard/DashboardSection'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administradores',
@@ -17,14 +17,6 @@ const roleLabels: Record<string, string> = {
   tech_lead: 'Tech Leads',
   developer: 'Desarrolladores',
   stakeholder: 'Stakeholders',
-}
-
-const roleColors: Record<string, string> = {
-  admin: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  pm: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  tech_lead: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  developer: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  stakeholder: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
 }
 
 const statusLabels: Record<string, string> = {
@@ -275,18 +267,12 @@ export default async function AdminDashboard() {
       title: 'Mis Proyectos',
       value: projectsTotalCount || 0,
       description: `${projectsActiveCount || 0} activos`,
-      icon: FolderKanban,
-      color: 'text-indigo-600 dark:text-indigo-400',
-      bg: 'bg-indigo-50 dark:bg-indigo-900/30',
       href: '/projects',
     },
     {
       title: 'Progreso General',
       value: tasksTotalCount ? Math.round(((tasksCompletedCount || 0) / tasksTotalCount) * 100) : 0,
       description: '% completado',
-      icon: CheckCircle,
-      color: 'text-green-600 dark:text-green-400',
-      bg: 'bg-green-50 dark:bg-green-900/30',
       href: '/projects',
     },
   ] : isDeveloper ? [
@@ -294,27 +280,18 @@ export default async function AdminDashboard() {
       title: 'Mis Tareas',
       value: myTasksCount || 0,
       description: 'Pendientes',
-      icon: ListTodo,
-      color: 'text-blue-600 dark:text-blue-400',
-      bg: 'bg-blue-50 dark:bg-blue-900/30',
       href: '/projects',
     },
     {
       title: 'Completadas',
       value: myTasksCompletedCount || 0,
       description: 'Tareas finalizadas',
-      icon: CheckCircle,
-      color: 'text-green-600 dark:text-green-400',
-      bg: 'bg-green-50 dark:bg-green-900/30',
       href: '/projects',
     },
     {
       title: 'Mis Proyectos',
       value: projectsTotalCount || 0,
       description: `${projectsActiveCount || 0} activos`,
-      icon: FolderKanban,
-      color: 'text-indigo-600 dark:text-indigo-400',
-      bg: 'bg-indigo-50 dark:bg-indigo-900/30',
       href: '/projects',
     },
   ] : isTechLead ? [
@@ -322,27 +299,18 @@ export default async function AdminDashboard() {
       title: 'Mis Proyectos',
       value: projectsTotalCount || 0,
       description: `${projectsActiveCount || 0} activos`,
-      icon: FolderKanban,
-      color: 'text-indigo-600 dark:text-indigo-400',
-      bg: 'bg-indigo-50 dark:bg-indigo-900/30',
       href: '/projects',
     },
     {
       title: 'En Revisión',
       value: tasksInReviewCount || 0,
       description: 'Tareas por revisar',
-      icon: Code2,
-      color: 'text-purple-600 dark:text-purple-400',
-      bg: 'bg-purple-50 dark:bg-purple-900/30',
       href: '/projects',
     },
     {
       title: 'Tareas Completadas',
       value: tasksCompletedCount || 0,
       description: `de ${tasksTotalCount || 0} totales`,
-      icon: CheckCircle,
-      color: 'text-green-600 dark:text-green-400',
-      bg: 'bg-green-50 dark:bg-green-900/30',
       href: '/projects',
     },
   ] : isPM ? [
@@ -350,27 +318,18 @@ export default async function AdminDashboard() {
       title: 'Mis Proyectos',
       value: projectsTotalCount || 0,
       description: `${projectsActiveCount || 0} activos`,
-      icon: FolderKanban,
-      color: 'text-indigo-600 dark:text-indigo-400',
-      bg: 'bg-indigo-50 dark:bg-indigo-900/30',
       href: '/projects',
     },
     {
       title: 'Tareas Completadas',
       value: tasksCompletedCount || 0,
       description: `de ${tasksTotalCount || 0} totales`,
-      icon: CheckCircle,
-      color: 'text-green-600 dark:text-green-400',
-      bg: 'bg-green-50 dark:bg-green-900/30',
       href: '/projects',
     },
     {
       title: 'Tareas Pendientes',
       value: (tasksTotalCount || 0) - (tasksCompletedCount || 0),
       description: 'Por completar',
-      icon: ListTodo,
-      color: 'text-amber-600 dark:text-amber-400',
-      bg: 'bg-amber-50 dark:bg-amber-900/30',
       href: '/projects',
     },
   ] : [
@@ -378,56 +337,41 @@ export default async function AdminDashboard() {
       title: 'Usuarios',
       value: usersCount || 0,
       description: 'Total registrados',
-      icon: Users,
-      color: 'text-blue-600 dark:text-blue-400',
-      bg: 'bg-blue-50 dark:bg-blue-900/30',
       href: '/dashboard/users',
     },
     {
       title: 'Proyectos Activos',
       value: projectsActiveCount || 0,
       description: `de ${projectsTotalCount || 0} totales`,
-      icon: FolderKanban,
-      color: 'text-indigo-600 dark:text-indigo-400',
-      bg: 'bg-indigo-50 dark:bg-indigo-900/30',
       href: '/projects',
     },
     {
       title: 'Tareas Completadas',
       value: tasksCompletedCount || 0,
       description: `de ${tasksTotalCount || 0} totales`,
-      icon: CheckCircle,
-      color: 'text-green-600 dark:text-green-400',
-      bg: 'bg-green-50 dark:bg-green-900/30',
       href: '/projects',
     },
     {
       title: 'Empresas',
       value: companiesCount || 0,
       description: 'Activas',
-      icon: Building2,
-      color: 'text-amber-600 dark:text-amber-400',
-      bg: 'bg-amber-50 dark:bg-amber-900/30',
       href: '/dashboard/companies',
     },
     {
       title: 'Bugs Abiertos',
       value: (bugsOpenCount ?? 0) + (bugsInProgressCount ?? 0),
       description: `de ${(bugsOpenCount ?? 0) + (bugsInProgressCount ?? 0) + (bugsResolvedCount ?? 0) + (bugsClosedCount ?? 0)} total`,
-      icon: Bug,
-      color: 'text-red-600 dark:text-red-400',
-      bg: 'bg-red-50 dark:bg-red-900/30',
       href: '/dashboard/reports',
     },
   ]
 
   // Datos para gráfica de proyectos por estado
   const projectStatusData = [
-    { name: 'Planif.', key: 'planning', color: '#94a3b8' },
-    { name: 'Activo', key: 'in_progress', color: '#3b82f6' },
-    { name: 'Pausado', key: 'paused', color: '#f59e0b' },
-    { name: 'Completado', key: 'completed', color: '#22c55e' },
-    { name: 'Cancelado', key: 'cancelled', color: '#ef4444' },
+    { name: 'Planif.', key: 'planning', color: '#8E8E93' },
+    { name: 'Activo', key: 'in_progress', color: '#0A84FF' },
+    { name: 'Pausado', key: 'paused', color: '#FF9F0A' },
+    { name: 'Completado', key: 'completed', color: '#30D158' },
+    { name: 'Cancelado', key: 'cancelled', color: '#FF453A' },
   ].map(s => ({
     name: s.name,
     color: s.color,
@@ -478,70 +422,53 @@ export default async function AdminDashboard() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
+  const statAccents = ['#0A84FF', '#BF5AF2', '#30D158', '#FF9F0A', '#FF453A']
+
   return (
-    <div className="space-y-5 w-full overflow-x-hidden pt-6">
-      <div className="flex items-center gap-3">
-        <Activity className="w-6 h-6 text-primary flex-shrink-0" />
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Panel de administración</p>
-        </div>
+    <div className="space-y-6 w-full overflow-x-hidden">
+      <div>
+        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Dashboard</h1>
+        <p className="text-[15px] text-muted-foreground mt-1">
+          {isAdmin
+            ? 'Vista general de usuarios, proyectos, tareas y bugs'
+            : 'Resumen de tu operación y actividad reciente'}
+        </p>
       </div>
 
-      {/* Stats Grid */}
       <div className={`grid gap-3 grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : isStakeholder ? 'lg:grid-cols-2' : 'md:grid-cols-3'}`}>
-        {stats.map((stat) => (
-          <Link key={stat.title} href={stat.href}>
-            <Card className="hover:shadow-md transition-all cursor-pointer h-full">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
-                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground leading-tight">
-                  {stat.title}
-                </CardTitle>
-                <div className={`p-1.5 md:p-2 rounded-lg flex-shrink-0 ${stat.bg}`}>
-                  <stat.icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${stat.color}`} />
-                </div>
-              </CardHeader>
-              <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-                <div className={`text-xl md:text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
-              </CardContent>
-            </Card>
-          </Link>
+        {stats.map((stat, i) => (
+          <DashboardStatTile
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            description={stat.description}
+            href={stat.href}
+            accent={statAccents[i % statAccents.length]}
+          />
         ))}
       </div>
 
-      {/* Segunda fila */}
-      <div className={`grid gap-4 ${isStakeholder ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
-        {/* Actividad Reciente - No para Stakeholder */}
+      <div className={`grid gap-3 ${isStakeholder ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {!isStakeholder && (
-          <Card className="overflow-hidden">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Activity className="w-4 h-4 text-violet-500 flex-shrink-0" /> Actividad Reciente
-              </CardTitle>
-              <CardDescription>Últimas acciones en el sistema</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!recentActivity || recentActivity.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  No hay actividad reciente
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {recentActivity.map((activity) => {
-                    const userData = activity.user as { avatar_url: string | null; full_name: string | null } | { avatar_url: string | null; full_name: string | null }[] | null
-                    const user = Array.isArray(userData) ? userData[0] : userData
-                    return (
-                    <div key={activity.id} className="flex items-start gap-2 min-w-0">
+          <DashboardSection title="Actividad" description="Últimas acciones en el sistema">
+            {!recentActivity || recentActivity.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No hay actividad reciente</p>
+            ) : (
+              <div className="space-y-1">
+                {recentActivity.map((activity) => {
+                  const userData = activity.user as { avatar_url: string | null; full_name: string | null } | { avatar_url: string | null; full_name: string | null }[] | null
+                  const user = Array.isArray(userData) ? userData[0] : userData
+                  return (
+                    <div key={activity.id} className="flex items-start gap-2.5 rounded-2xl px-2 py-2 min-w-0">
                       <Avatar className="w-7 h-7 flex-shrink-0 mt-0.5">
                         <AvatarImage src={user?.avatar_url || undefined} />
-                        <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                        <AvatarFallback className="text-[10px]">
                           {getInitials(user?.full_name || null)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-foreground leading-snug break-words">
-                          <span className="font-medium">{user?.full_name || 'Usuario'}</span>
+                        <p className="text-[13px] text-foreground leading-snug break-words">
+                          <span className="font-semibold">{user?.full_name || 'Usuario'}</span>
                           {' '}
                           <span className={actionColors[activity.action] || 'text-muted-foreground'}>
                             {actionLabels[activity.action] || activity.action}
@@ -552,219 +479,147 @@ export default async function AdminDashboard() {
                             <span className="font-medium"> &quot;{activity.entity_name}&quot;</span>
                           )}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{formatTimeAgo(activity.created_at)}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{formatTimeAgo(activity.created_at)}</p>
                       </div>
                     </div>
-                  )})}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Proyectos Recientes */}
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FolderKanban className="w-4 h-4 text-indigo-500 flex-shrink-0" /> Proyectos Recientes
-            </CardTitle>
-            <CardDescription>Últimos proyectos creados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!recentProjects || recentProjects.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                No hay proyectos registrados
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {recentProjects.map((project) => (
-                  <Link
-                    key={project.id}
-                    href={`/projects/${project.id}`}
-                    className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{project.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{(() => {
-                        const companyData = project.company as { name: string } | { name: string }[] | null
-                        return Array.isArray(companyData) ? companyData[0]?.name : companyData?.name || 'Sin empresa'
-                      })()}</p>
-                    </div>
-                    <Badge variant="outline" className={`text-xs flex-shrink-0 ${statusColors[project.status]}`}>
-                      {statusLabels[project.status]}
-                    </Badge>
-                  </Link>
-                ))}
+                  )
+                })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </DashboardSection>
+        )}
 
-        {/* Tareas Urgentes / Mis Tareas - No para Stakeholder */}
+        <DashboardSection
+          title="Proyectos"
+          description="Últimos proyectos creados"
+          action={
+            <Link href="/projects" className="text-[13px] font-semibold text-primary hover:opacity-80 transition-opacity">
+              Ver todos
+            </Link>
+          }
+        >
+          {!recentProjects || recentProjects.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No hay proyectos registrados</p>
+          ) : (
+            <div className="space-y-1">
+              {recentProjects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="flex items-center gap-3 rounded-2xl px-2 py-2.5 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-medium text-foreground truncate">{project.name}</p>
+                    <p className="text-[12px] text-muted-foreground truncate">{(() => {
+                      const companyData = project.company as { name: string } | { name: string }[] | null
+                      return Array.isArray(companyData) ? companyData[0]?.name : companyData?.name || 'Sin empresa'
+                    })()}</p>
+                  </div>
+                  <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 flex-shrink-0 ${statusColors[project.status]}`}>
+                    {statusLabels[project.status]}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </DashboardSection>
+
         {!isStakeholder && (
-          <Card className="overflow-hidden">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                {isDeveloper ? (
-                  <><ListTodo className="w-4 h-4 text-blue-500 flex-shrink-0" /> Mis Tareas</>
-                ) : (
-                  <><AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" /> Tareas Prioritarias</>
-                )}
-              </CardTitle>
-              <CardDescription>
-                {isDeveloper ? 'Tareas asignadas a ti' : 'Tareas urgentes o de alta prioridad'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!urgentTasks || urgentTasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  No hay tareas urgentes pendientes
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {urgentTasks.map((task) => {
-                    const projectData = task.project as { id: string; name: string } | { id: string; name: string }[] | null
-                    const project = Array.isArray(projectData) ? projectData[0] : projectData
-                    return (
+          <DashboardSection
+            title={isDeveloper ? 'Mis Tareas' : 'Prioritarias'}
+            description={isDeveloper ? 'Tareas asignadas a ti' : 'Urgentes o de alta prioridad'}
+          >
+            {!urgentTasks || urgentTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No hay tareas urgentes pendientes</p>
+            ) : (
+              <div className="space-y-1">
+                {urgentTasks.map((task) => {
+                  const projectData = task.project as { id: string; name: string } | { id: string; name: string }[] | null
+                  const project = Array.isArray(projectData) ? projectData[0] : projectData
+                  return (
                     <Link
                       key={task.id}
                       href={`/projects/${project?.id}`}
-                      className="block p-2.5 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      className="block rounded-2xl px-2 py-2.5 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
                     >
                       <div className="flex items-center justify-between gap-2 min-w-0">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-xs text-muted-foreground flex-shrink-0">#{task.task_number}</span>
-                            <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
+                            <span className="text-[11px] text-muted-foreground flex-shrink-0">#{task.task_number}</span>
+                            <p className="text-[14px] font-medium text-foreground truncate">{task.title}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">{project?.name}</p>
+                          <p className="text-[12px] text-muted-foreground truncate mt-0.5">{project?.name}</p>
                         </div>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
                           {task.due_date && (
-                            <span className={`text-xs ${isOverdue(task.due_date) ? 'text-red-600 dark:text-red-400 font-medium' : 'text-muted-foreground'}`}>
+                            <span className={`text-[11px] ${isOverdue(task.due_date) ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>
                               {formatDate(task.due_date)}
                             </span>
                           )}
-                          <Badge variant="outline" className={`text-xs ${task.priority === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}>
+                          <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${task.priority === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}>
                             {task.priority === 'urgent' ? 'Urgente' : 'Alta'}
-                          </Badge>
+                          </span>
                         </div>
                       </div>
                     </Link>
-                  )})}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  )
+                })}
+              </div>
+            )}
+          </DashboardSection>
         )}
       </div>
 
-      {/* Tercera fila - Gráficas + Resumen */}
       {!isStakeholder && (
-        <div className={`grid gap-4 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
-          {/* Gráfica de tareas por estado */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ListTodo className="w-4 h-4 text-green-500 flex-shrink-0" />
-                {isDeveloper ? 'Mi Progreso' : 'Estado de Tareas'}
-              </CardTitle>
-              <CardDescription>Distribución por estado</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TaskStatusChart
-                done={isDeveloper ? (myTasksCompletedCount || 0) : tasksDone}
-                inProgress={tasksInProgressChart}
-                review={tasksReviewChart}
-                pending={tasksTodoChart}
-                backlog={tasksBacklogChart}
-              />
-            </CardContent>
-          </Card>
+        <div className={`grid gap-3 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+          <DashboardSection title={isDeveloper ? 'Mi Progreso' : 'Tareas'} description="Distribución por estado">
+            <TaskStatusChart
+              done={isDeveloper ? (myTasksCompletedCount || 0) : tasksDone}
+              inProgress={tasksInProgressChart}
+              review={tasksReviewChart}
+              pending={tasksTodoChart}
+              backlog={tasksBacklogChart}
+            />
+          </DashboardSection>
 
-          {/* Gráfica de proyectos por estado */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FolderKanban className="w-4 h-4 text-indigo-500 flex-shrink-0" /> Proyectos por Estado
-              </CardTitle>
-              <CardDescription>Distribución de proyectos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ProjectStatusChart data={projectStatusData} />
-            </CardContent>
-          </Card>
+          <DashboardSection title="Proyectos" description="Por estado">
+            <ProjectStatusChart data={projectStatusData} />
+          </DashboardSection>
 
-          {/* Gráfica de bugs por estado */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Bug className="w-4 h-4 text-red-500 flex-shrink-0" /> Estado de Bugs
-              </CardTitle>
-              <CardDescription>
-                {bugsTotal > 0 ? `${bugsOpen + bugsInProgress} activos de ${bugsTotal} total` : 'Sin bugs registrados'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BugStatusChart
-                open={bugsOpen}
-                inProgress={bugsInProgress}
-                resolved={bugsResolved}
-                closed={bugsClosed}
-              />
-            </CardContent>
-          </Card>
+          <DashboardSection
+            title="Bugs"
+            description={bugsTotal > 0 ? `${bugsOpen + bugsInProgress} activos de ${bugsTotal}` : 'Sin bugs registrados'}
+          >
+            <BugStatusChart
+              open={bugsOpen}
+              inProgress={bugsInProgress}
+              resolved={bugsResolved}
+              closed={bugsClosed}
+            />
+          </DashboardSection>
 
-          {/* Usuarios por Rol - Solo Admin */}
           {isAdmin && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Users className="w-4 h-4 text-blue-500 flex-shrink-0" /> Usuarios por Rol
-                </CardTitle>
-                <CardDescription>Distribución de roles en el sistema</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(roleCounts).map(([role, count]) => {
-                    const total = Object.values(roleCounts).reduce((a, b) => a + b, 0)
-                    const pct = total > 0 ? Math.round((count / total) * 100) : 0
-                    return (
-                      <div key={role}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${roleColors[role]?.split(' ')[0] || 'bg-muted'}`} />
-                            <span className="text-sm text-foreground">{roleLabels[role] || role}</span>
-                          </div>
-                          <span className="text-sm font-semibold text-foreground">{count}</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${roleColors[role]?.split(' ')[0] || 'bg-primary'}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+            <DashboardSection title="Usuarios" description="Distribución de roles">
+              <UsersRoleChart
+                data={Object.entries(roleCounts).map(([role, count]) => ({
+                  role,
+                  label: roleLabels[role] || role,
+                  count,
+                }))}
+              />
+            </DashboardSection>
           )}
         </div>
       )}
 
-      {/* Reuniones Próximas */}
       {!isStakeholder && (
         <UpcomingMeetings />
       )}
 
-      {/* Tareas sin Asignar */}
       {(isAdmin || isPM) && (
         <UnassignedTasks />
       )}
 
-      {/* Bugs Abiertos */}
       {(isAdmin || isPM) && (
         <OpenBugsList />
       )}

@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { SWRConfig } from 'swr'
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
-import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar'
-import { MobileNavbar } from '@/components/dashboard/MobileNavbar'
-import { MobileSidebar } from '@/components/dashboard/MobileSidebar'
+import { Box } from '@mui/material'
+import { AppSidebar } from '@/components/layout/Sidebar'
+import { AppHeader, SIDEBAR_WIDTH } from '@/components/layout/Header'
+import { PageTransition } from '@/components/layout/PageTransition'
 
 const fetcher = (url: string) =>
   fetch(url).then(res => {
@@ -24,7 +24,7 @@ interface DashboardLayoutClientProps {
 }
 
 export function DashboardLayoutClient({ user, children }: DashboardLayoutClientProps) {
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <SWRConfig value={{
@@ -32,25 +32,28 @@ export function DashboardLayoutClient({ user, children }: DashboardLayoutClientP
       revalidateOnFocus: false,
       dedupingInterval: 10000,
     }}>
-      <SidebarProvider defaultOpen={true}>
-        {/* Mobile: navbar fija (ya tiene md:hidden y fixed internamente) */}
-        <MobileNavbar onMenuClick={() => setMobileSidebarOpen(true)} />
-        <MobileSidebar
-          open={mobileSidebarOpen}
-          onClose={() => setMobileSidebarOpen(false)}
+      <Box sx={{ display: 'flex', minHeight: '100svh' }}>
+        <AppSidebar
           user={user}
+          mobileOpen={mobileOpen}
+          onMobileClose={() => setMobileOpen(false)}
         />
 
-        {/* Desktop: sidebar (ya tiene hidden md:block internamente) */}
-        <DashboardSidebar user={user} />
-
-        {/* Contenido — renderizado una sola vez */}
-        <SidebarInset>
-          <main className="flex-1 bg-muted/50 pt-14 md:pt-0 p-4 md:p-6">
-            {children}
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            width: { md: `calc(100% - ${SIDEBAR_WIDTH}px)` },
+            minWidth: 0,
+            px: { xs: 2, md: 4 },
+            py: { xs: 1, md: 3 },
+            pb: 4,
+          }}
+        >
+          <AppHeader onMenuClick={() => setMobileOpen(true)} />
+          <PageTransition>{children}</PageTransition>
+        </Box>
+      </Box>
     </SWRConfig>
   )
 }

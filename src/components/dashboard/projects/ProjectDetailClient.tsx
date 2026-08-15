@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ArrowLeft, Users, Calendar, Building2, Mail, CheckCircle2, Clock, FolderKanban, GitPullRequest, LayoutGrid, List } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,7 +15,7 @@ import { ProjectComments } from './ProjectComments'
 import { ProjectActivity } from './ProjectActivity'
 import { EditProjectDialog } from './EditProjectDialog'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
-import { StakeholderComments } from './StakeholderComments'
+import { GlassPanel } from '@/components/ui/glass-panel'
 import { StakeholderMessagesForPM } from './StakeholderMessagesForPM'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { CreateChangeControlDialog } from '@/components/dashboard/change-controls/CreateChangeControlDialog'
@@ -284,67 +283,62 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
 
   if (currentUserRole === 'stakeholder') {
     return (
-      <div className="space-y-6 pt-8">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <Link href={backHref}>
-              <Button variant="ghost" size="sm" className="mb-2">
-                <ArrowLeft className="w-4 h-4 mr-2" /> {backLabel}
-              </Button>
+      <div className="space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <Link href={backHref} className="inline-flex items-center gap-1 text-[15px] font-medium text-primary mb-2">
+              <ArrowLeft className="w-4 h-4" /> {backLabel}
             </Link>
-            <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
+            <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-[1.15]">{project.name}</h1>
             {project.description && (
-              <p className="text-muted-foreground">{project.description}</p>
+              <p className="text-[15px] text-muted-foreground mt-1.5 max-w-2xl">{project.description}</p>
             )}
           </div>
-          <Badge variant="outline" className={statusColors[project.status]}>
+          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold mt-7 ${statusColors[project.status]}`}>
             {statusLabels[project.status]}
-          </Badge>
+          </span>
         </div>
 
-        {/* Info Cards para Stakeholder */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {project.company && (
-            <div className="bg-card rounded-lg border border-border p-4">
-              <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                <Building2 className="w-4 h-4" /> Empresa
+            <GlassPanel>
+              <div className="flex items-center gap-2 text-muted-foreground text-[12px] mb-1">
+                <Building2 className="w-3.5 h-3.5" /> Empresa
               </div>
-              <p className="font-medium text-foreground">{project.company.name}</p>
-            </div>
+              <p className="font-semibold text-foreground tracking-tight">{project.company.name}</p>
+            </GlassPanel>
           )}
 
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <Calendar className="w-4 h-4" /> Fechas
+          <GlassPanel>
+            <div className="flex items-center gap-2 text-muted-foreground text-[12px] mb-1">
+              <Calendar className="w-3.5 h-3.5" /> Fechas
             </div>
-            <p className="font-medium text-foreground">
-              {formatDate(project.start_date)} - {formatDate(project.end_date)}
+            <p className="font-semibold text-foreground tracking-tight">
+              {formatDate(project.start_date)} – {formatDate(project.end_date)}
             </p>
-          </div>
+          </GlassPanel>
 
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <CheckCircle2 className="w-4 h-4" /> Tareas Completadas
+          <GlassPanel>
+            <div className="flex items-center gap-2 text-muted-foreground text-[12px] mb-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Tareas Completadas
             </div>
-            <p className="font-medium text-foreground">
+            <p className="font-semibold text-foreground tracking-tight">
               {hasNoTasks ? 'Sin tareas aún' : `${completedTasks} de ${totalTasks}`}
             </p>
-          </div>
+          </GlassPanel>
 
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <Clock className="w-4 h-4" /> Progreso
+          <GlassPanel>
+            <div className="flex items-center gap-2 text-muted-foreground text-[12px] mb-1">
+              <Clock className="w-3.5 h-3.5" /> Progreso
             </div>
-            <p className="font-medium text-foreground">
+            <p className="font-semibold text-foreground tracking-tight">
               {hasNoTasks ? 'En planificación' : `${progressPercentage}%`}
             </p>
-          </div>
+          </GlassPanel>
         </div>
 
-        {/* Barra de Progreso */}
-        <div className="bg-card rounded-lg border border-border p-6">
-          <h3 className="font-semibold text-foreground mb-4">Progreso del Proyecto</h3>
+        <GlassPanel>
+          <h3 className="font-semibold text-foreground mb-4 tracking-tight">Progreso del Proyecto</h3>
           {hasNoTasks ? (
             <div className="text-center py-4">
               <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-3">
@@ -374,12 +368,11 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               </p>
             </div>
           )}
-        </div>
+        </GlassPanel>
 
-        {/* Contacto del PM */}
         {project.pm && (
-          <div className="bg-card rounded-lg border border-border p-6">
-            <h3 className="font-semibold text-foreground mb-4">Project Manager</h3>
+          <GlassPanel>
+            <h3 className="font-semibold text-foreground mb-4 tracking-tight">Project Manager</h3>
             <div className="flex items-center gap-4">
               <Avatar className="w-12 h-12">
                 <AvatarImage src={project.pm.avatar_url || undefined} />
@@ -397,7 +390,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
                 </a>
               </div>
             </div>
-          </div>
+          </GlassPanel>
         )}
 
         {/* Sección de Comentarios para Stakeholder */}
@@ -413,24 +406,21 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   }
 
   return (
-    <div className="space-y-6 pt-8">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <Link href={backHref}>
-            <Button variant="ghost" size="sm" className="mb-2">
-              <ArrowLeft className="w-4 h-4 mr-2" /> {backLabel}
-            </Button>
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <Link href={backHref} className="inline-flex items-center gap-1 text-[15px] font-medium text-primary mb-2">
+            <ArrowLeft className="w-4 h-4" /> {backLabel}
           </Link>
-          <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-[1.15]">{project.name}</h1>
           {project.description && (
-            <p className="text-muted-foreground">{project.description}</p>
+            <p className="text-[15px] text-muted-foreground mt-1.5 max-w-2xl">{project.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className={statusColors[project.status]}>
+        <div className="flex items-center gap-2 flex-shrink-0 pt-7">
+          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusColors[project.status]}`}>
             {statusLabels[project.status]}
-          </Badge>
+          </span>
           {['admin', 'pm', 'tech_lead'].includes(currentUserRole) && (
             <EditProjectDialog
               project={project}
@@ -438,7 +428,6 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               onCompletedWithPending={(ids) => {
                 mutateProject()
                 setPendingTaskIds(ids)
-                // Step 1: ask about CC first
                 setCreateCCPrompt(true)
               }}
               onCompleted={() => {
@@ -452,15 +441,12 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               <Button
                 variant="outline"
                 size="sm"
-                className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-900/20"
                 onClick={() => {
-                  // Calcular tareas pendientes en el momento de hacer clic
                   const pendingStatuses = ['backlog', 'todo', 'in_progress', 'review']
                   const ids = project.tasks
                     .filter(t => pendingStatuses.includes(t.status))
                     .map(t => t.id)
                   setPendingTaskIds(ids)
-                  // Ir directo al paso de tareas si hay pendientes, sino al formulario CC
                   if (ids.length > 0) {
                     setPendingTasksWithCC(true)
                   } else {
@@ -476,7 +462,6 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
                 size="sm"
                 disabled
                 title="Solo disponible cuando el proyecto está completado"
-                className="border-orange-200 text-orange-400 opacity-50 cursor-not-allowed dark:border-orange-800 dark:text-orange-600"
               >
                 <GitPullRequest className="w-4 h-4 mr-2" /> Crear CC
               </Button>
@@ -492,40 +477,39 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
         </div>
       </div>
 
-      {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         {project.company && (
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <Building2 className="w-4 h-4" /> Empresa
+          <GlassPanel>
+            <div className="flex items-center gap-2 text-muted-foreground text-[12px] mb-1">
+              <Building2 className="w-3.5 h-3.5" /> Empresa
             </div>
-            <p className="font-medium text-foreground">{project.company.name}</p>
-          </div>
+            <p className="font-semibold text-foreground tracking-tight">{project.company.name}</p>
+          </GlassPanel>
         )}
 
         {project.parent_project && (
-          <div className="bg-card rounded-lg border border-border p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <FolderKanban className="w-4 h-4" /> Proyecto Origen
+          <GlassPanel>
+            <div className="flex items-center gap-2 text-muted-foreground text-[12px] mb-1">
+              <FolderKanban className="w-3.5 h-3.5" /> Proyecto Origen
             </div>
-            <Link href={`/projects/${project.parent_project.id}`} className="font-medium text-foreground hover:underline" onClick={(e) => e.stopPropagation()}>
+            <Link href={`/projects/${project.parent_project.id}`} className="font-semibold text-foreground tracking-tight hover:underline">
               {project.parent_project.name}
             </Link>
-          </div>
+          </GlassPanel>
         )}
 
-        <div className="bg-card rounded-lg border border-border p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-            <Calendar className="w-4 h-4" /> Fechas
+        <GlassPanel>
+          <div className="flex items-center gap-2 text-muted-foreground text-[12px] mb-1">
+            <Calendar className="w-3.5 h-3.5" /> Fechas
           </div>
-          <p className="font-medium text-foreground">
-            {formatDate(project.start_date)} - {formatDate(project.end_date)}
+          <p className="font-semibold text-foreground tracking-tight">
+            {formatDate(project.start_date)} – {formatDate(project.end_date)}
           </p>
-        </div>
+        </GlassPanel>
 
-        <div className="bg-card rounded-lg border border-border p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-            <Users className="w-4 h-4" /> Equipo
+        <GlassPanel>
+          <div className="flex items-center gap-2 text-muted-foreground text-[12px] mb-2">
+            <Users className="w-3.5 h-3.5" /> Equipo
           </div>
           <div className="flex -space-x-2">
             {project.pm && (
@@ -561,10 +545,10 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               </div>
             )}
           </div>
-        </div>
+        </GlassPanel>
 
         {['admin', 'pm', 'tech_lead'].includes(currentUserRole) && (
-          <div className="bg-card rounded-lg border border-border p-4">
+          <GlassPanel sx={{ display: 'flex', alignItems: 'center' }}>
             <CreateTaskDialog
               projectId={project.id}
               projectName={project.name}
@@ -573,7 +557,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               initialSprintId={resolvedSprintId}
               onTaskCreated={mutateProject}
             />
-          </div>
+          </GlassPanel>
         )}
       </div>
 
@@ -611,7 +595,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           {/* View toggle */}
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <div className="flex items-center gap-1 rounded-full p-1 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/70 dark:border-white/10 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
             <Button
               variant={viewMode === 'kanban' ? 'default' : 'ghost'}
               size="sm"
@@ -677,8 +661,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
         )}
       </div>
 
-      {/* Bugs Section */}
-      <div className="bg-card rounded-lg border border-border p-6">
+      <GlassPanel>
         <BugSection
           projectId={project.id}
           members={projectMembers}
@@ -688,15 +671,14 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           sprints={project.sprints || []}
           tasks={project.tasks.map(t => ({ id: t.id, task_number: t.task_number, title: t.title, sprint_id: t.sprint_id }))}
         />
-      </div>
+      </GlassPanel>
 
-      {/* Project Attachments */}
-      <div className="bg-card rounded-lg border border-border p-6">
+      <GlassPanel>
         <FileAttachments
           projectId={project.id}
           currentUserId={currentUserId}
         />
-      </div>
+      </GlassPanel>
 
       {/* Comments Section */}
       <ProjectComments 

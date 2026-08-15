@@ -3,13 +3,14 @@
 import React from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { ReactNode } from 'react'
+import { Box, Typography } from '@mui/material'
+import { useTheme } from '@/components/theme-provider'
+import { tokens } from '@/theme/designTokens'
 
 const ITEMS_PER_SUBCOL = 10
-// Inner card content width: outer 288px (w-72) minus 2×8px padding = 272px
 const INNER_CARD_WIDTH_PX = 272
-// Horizontal padding of the content area (p-2 = 8px on each side = 16px total)
 const CONTENT_PADDING_PX = 16
-const GAP_PX = 8           // gap-2 = 0.5rem = 8px
+const GAP_PX = 8
 
 interface KanbanColumnProps {
   id: string
@@ -17,63 +18,107 @@ interface KanbanColumnProps {
   color: string
   count: number
   children: ReactNode
-  /** True when a card from a different column is being dragged over this column */
   isDragTarget?: boolean
 }
 
 export function KanbanColumn({ id, title, color, count, children, isDragTarget }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id })
   const highlighted = isOver || isDragTarget
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
 
-  // Split children into chunks of ITEMS_PER_SUBCOL
   const childArray = React.Children.toArray(children)
   const chunks: ReactNode[][] = []
   for (let i = 0; i < childArray.length; i += ITEMS_PER_SUBCOL) {
     chunks.push(childArray.slice(i, i + ITEMS_PER_SUBCOL))
   }
-  // Always at least one sub-column (for empty columns to remain droppable)
   if (chunks.length === 0) chunks.push([])
 
   const subColCount = chunks.length
   const totalWidth = CONTENT_PADDING_PX + subColCount * INNER_CARD_WIDTH_PX + (subColCount - 1) * GAP_PX
 
   return (
-    <div
+    <Box
       ref={setNodeRef}
-      style={{ width: `${totalWidth}px` }}
-      className={`flex-shrink-0 bg-muted/50 rounded-lg border transition-all duration-200 ${
-        highlighted
-          ? 'border-blue-400 ring-2 ring-blue-400/40 bg-blue-50/10'
-          : 'border-border'
-      }`}
+      sx={{
+        width: totalWidth,
+        flexShrink: 0,
+        borderRadius: '24px',
+        overflow: 'hidden',
+        bgcolor: highlighted
+          ? (isDark ? 'rgba(37, 99, 235, 0.16)' : 'rgba(37, 99, 235, 0.08)')
+          : (isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.58)'),
+        backdropFilter: 'blur(28px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+        border: highlighted
+          ? '1px solid rgba(37, 99, 235, 0.4)'
+          : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.7)'),
+        boxShadow: highlighted
+          ? '0 16px 40px rgba(37, 99, 235, 0.16), inset 0 1px 0 rgba(255,255,255,0.2)'
+          : (isDark
+            ? '0 12px 36px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08)'
+            : '0 12px 36px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255,255,255,0.7)'),
+        backgroundImage: isDark
+          ? 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 36%)'
+          : 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, transparent 36%)',
+        transition: `border-color 280ms ${tokens.ease}, box-shadow 280ms ${tokens.ease}, background-color 280ms ${tokens.ease}`,
+      }}
     >
-      {/* Column header */}
-      <div className="p-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className={`w-3 h-3 rounded-full ${color}`} />
-          <h3 className="font-medium text-foreground">{title}</h3>
-          {subColCount > 1 && (
-            <span className="text-xs text-muted-foreground">
-              ({subColCount} columnas)
-            </span>
-          )}
-          <span className="ml-auto text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-            {count}
-          </span>
-        </div>
-      </div>
+      <Box
+        sx={{
+          px: 1.75,
+          py: 1.4,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(215, 226, 240, 0.7)',
+        }}
+      >
+        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: color, boxShadow: `0 0 0 3px ${color}22` }} />
+        <Typography sx={{ fontWeight: 600, fontSize: 13.5, letterSpacing: '-0.02em' }}>
+          {title}
+        </Typography>
+        {subColCount > 1 && (
+          <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
+            ({subColCount} columnas)
+          </Typography>
+        )}
+        <Box
+          sx={{
+            ml: 'auto',
+            minWidth: 22,
+            height: 22,
+            px: 0.75,
+            borderRadius: 999,
+            display: 'grid',
+            placeItems: 'center',
+            fontSize: 11,
+            fontWeight: 650,
+            color: 'text.secondary',
+            bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.06)',
+          }}
+        >
+          {count}
+        </Box>
+      </Box>
 
-      {/* Task grid: sub-columns of up to 10 items each */}
-      <div className="p-2 flex gap-2">
+      <Box sx={{ p: 1, display: 'flex', gap: 1 }}>
         {chunks.map((chunk, i) => (
-          <div
+          <Box
             key={i}
-            className="flex-1 flex flex-col gap-2 min-h-[200px] min-w-0"
+            sx={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              minHeight: 200,
+              minWidth: 0,
+            }}
           >
             {chunk}
-          </div>
+          </Box>
         ))}
-      </div>
-    </div>
+      </Box>
+    </Box>
   )
 }

@@ -57,10 +57,10 @@ function SortableItem({ project }: { project: Project }) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+      className={`flex items-center gap-3 p-3 rounded-2xl transition-colors ${
         isDragging
-          ? 'bg-primary/5 border-primary/30 shadow-md z-10'
-          : 'bg-card border-border hover:bg-muted/40'
+          ? 'bg-primary/5 shadow-md z-10'
+          : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
       }`}
     >
       {/* Drag handle */}

@@ -59,11 +59,11 @@ interface KanbanBoardProps {
 }
 
 const columns = [
-  { id: 'backlog', title: 'Backlog', color: 'bg-slate-500' },
-  { id: 'todo', title: 'Por Hacer', color: 'bg-blue-500' },
-  { id: 'in_progress', title: 'En Progreso', color: 'bg-amber-500' },
-  { id: 'review', title: 'En Revisión', color: 'bg-purple-500' },
-  { id: 'done', title: 'Completado', color: 'bg-green-500' },
+  { id: 'backlog', title: 'Backlog', color: '#8E8E93' },
+  { id: 'todo', title: 'Por Hacer', color: '#0A84FF' },
+  { id: 'in_progress', title: 'En Progreso', color: '#FF9F0A' },
+  { id: 'review', title: 'En Revisión', color: '#BF5AF2' },
+  { id: 'done', title: 'Completado', color: '#30D158' },
 ]
 
 const columnIds = new Set(columns.map((c) => c.id))
