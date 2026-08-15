@@ -8,15 +8,13 @@ function Separator({
   className,
   orientation = 'horizontal',
   decorative = true,
-  ...props
-}: React.ComponentProps<'hr'> & { orientation?: 'horizontal' | 'vertical'; decorative?: boolean }) {
+}: { className?: string; orientation?: 'horizontal' | 'vertical'; decorative?: boolean }) {
   void decorative
   return (
     <Divider
       orientation={orientation}
       flexItem={orientation === 'vertical'}
       className={cn(className)}
-      {...props}
     />
   )
 }

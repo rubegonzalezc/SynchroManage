@@ -1,37 +1,39 @@
 'use client'
 
 import * as React from 'react'
-import { Chip } from '@mui/material'
+import { Chip, type ChipProps } from '@mui/material'
 import { cn } from '@/lib/utils'
 
-const variantColor: Record<string, 'default' | 'primary' | 'error' | 'secondary'> = {
+const variantColor = {
   default: 'primary',
   secondary: 'secondary',
   destructive: 'error',
   outline: 'default',
   ghost: 'default',
   link: 'primary',
-}
+} as const satisfies Record<string, NonNullable<ChipProps['color']>>
+
+type BadgeVariant = keyof typeof variantColor
 
 function Badge({
   className,
   variant = 'default',
   asChild,
   children,
-  ...props
-}: React.ComponentProps<'span'> & {
-  variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost' | 'link'
+}: {
+  className?: string
+  variant?: BadgeVariant
   asChild?: boolean
+  children?: React.ReactNode
 }) {
   void asChild
   return (
     <Chip
       size="small"
-      color={variantColor[variant] ?? 'default'}
+      color={variantColor[variant]}
       variant={variant === 'outline' || variant === 'ghost' ? 'outlined' : 'filled'}
       label={children}
       className={cn(className)}
-      {...props}
     />
   )
 }

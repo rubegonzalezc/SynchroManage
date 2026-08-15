@@ -44,11 +44,13 @@ function Select({
   onValueChange,
   disabled,
   children,
+  required: _required,
 }: {
   value?: string
   defaultValue?: string
   onValueChange?: (value: string) => void
   disabled?: boolean
+  required?: boolean
   children?: React.ReactNode
 }) {
   const [uncontrolled, setUncontrolled] = React.useState(defaultValue)
@@ -90,12 +92,11 @@ function SelectTrigger({
   children,
   size,
   ...props
-}: React.ComponentProps<'button'> & { size?: 'sm' | 'default' }) {
+}: Omit<React.ComponentProps<'button'>, 'color' | 'size'> & { size?: 'sm' | 'default' }) {
   const ctx = useSelect()
   return (
     <Button
       variant="outlined"
-      color="inherit"
       disabled={ctx.disabled}
       size={size === 'sm' ? 'small' : 'medium'}
       endIcon={<ExpandMoreRounded />}

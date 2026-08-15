@@ -95,7 +95,11 @@ export const TaskCard = memo(function TaskCard({ task, projectId, projectName, m
   return (
     <>
       <Box
-        ref={(node) => { setNodeRef(node); (cardRef as React.MutableRefObject<HTMLDivElement | null>).current = node }}
+        ref={(node) => {
+          const el = (node as HTMLDivElement | null) ?? null
+          setNodeRef(el)
+          cardRef.current = el
+        }}
         style={style}
         onClick={() => setShowDetail(true)}
         sx={{

@@ -4,7 +4,7 @@ import * as React from 'react'
 import { OutlinedInput } from '@mui/material'
 import { cn } from '@/lib/utils'
 
-function Input({ className, type, sx, ...props }: React.ComponentProps<'input'> & { sx?: object }) {
+function Input({ className, type, sx, ...props }: Omit<React.ComponentProps<'input'>, 'size' | 'color'> & { sx?: object }) {
   const withIcon = className?.includes('pl-9')
   return (
     <OutlinedInput

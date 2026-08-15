@@ -111,7 +111,7 @@ function DialogContent({
       fullWidth
       maxWidth={dialogMaxWidth(className)}
       scroll="paper"
-      TransitionComponent={Grow}
+      slots={{ transition: Grow }}
       transitionDuration={{ enter: 320, exit: 220 }}
       slotProps={{
         paper: {

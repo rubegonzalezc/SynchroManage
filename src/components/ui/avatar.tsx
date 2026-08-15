@@ -8,8 +8,7 @@ function Avatar({
   className,
   size = 'default',
   children,
-  ...props
-}: React.ComponentProps<'div'> & { size?: 'default' | 'sm' | 'lg' }) {
+}: { className?: string; size?: 'default' | 'sm' | 'lg'; children?: React.ReactNode }) {
   let src: string | undefined
   let fallback: React.ReactNode = null
 
@@ -26,7 +25,7 @@ function Avatar({
   const dim = size === 'lg' ? 40 : size === 'sm' ? 24 : 32
 
   return (
-    <MuiAvatar src={src} className={cn(className)} sx={{ width: dim, height: dim, fontSize: size === 'sm' ? 11 : 13 }} {...props}>
+    <MuiAvatar src={src} className={cn(className)} sx={{ width: dim, height: dim, fontSize: size === 'sm' ? 11 : 13 }}>
       {fallback}
     </MuiAvatar>
   )

@@ -72,12 +72,13 @@ function Button({
   asChild = false,
   children,
   ...props
-}: React.ComponentProps<'button'> &
+}: Omit<React.ComponentProps<'button'>, 'color'> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
   const mapped = mapVariant(variant)
   const muiSize = mapSize(size)
+  const iconColor = mapped.color === 'inherit' ? 'default' : mapped.color
 
   if (asChild) {
     return (
@@ -90,7 +91,7 @@ function Button({
   if (isIconSize(size)) {
     return (
       <IconButton
-        color={mapped.color === 'inherit' ? 'default' : mapped.color}
+        color={iconColor}
         size={muiSize}
         className={className}
         {...props}

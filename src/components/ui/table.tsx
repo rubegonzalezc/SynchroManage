@@ -13,36 +13,41 @@ import {
 } from '@mui/material'
 import { cn } from '@/lib/utils'
 
-function Table({ className, children, ...props }: React.ComponentProps<'table'>) {
+function Table({ className, children }: { className?: string; children?: React.ReactNode }) {
   return (
     <TableContainer component={Paper} elevation={0} className={cn(className)}>
-      <MuiTable size="small" {...props}>{children}</MuiTable>
+      <MuiTable size="small">{children}</MuiTable>
     </TableContainer>
   )
 }
 
-function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
-  return <MuiTableHead className={className} {...props} />
+function TableHeader({ className, children }: { className?: string; children?: React.ReactNode }) {
+  return <MuiTableHead className={className}>{children}</MuiTableHead>
 }
 
-function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
-  return <MuiTableBody className={className} {...props} />
+function TableBody({ className, children }: { className?: string; children?: React.ReactNode }) {
+  return <MuiTableBody className={className}>{children}</MuiTableBody>
 }
 
-function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
-  return <MuiTableFooter className={className} {...props} />
+function TableFooter({ className, children }: { className?: string; children?: React.ReactNode }) {
+  return <MuiTableFooter className={className}>{children}</MuiTableFooter>
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
-  return <MuiTableRow hover className={className} {...props} />
+function TableRow({ className, children, onClick, onMouseEnter }: {
+  className?: string
+  children?: React.ReactNode
+  onClick?: React.MouseEventHandler
+  onMouseEnter?: React.MouseEventHandler
+}) {
+  return <MuiTableRow hover className={className} onClick={onClick} onMouseEnter={onMouseEnter}>{children}</MuiTableRow>
 }
 
-function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
-  return <MuiTableCell component="th" className={className} {...props} />
+function TableHead({ className, children, colSpan }: { className?: string; children?: React.ReactNode; colSpan?: number }) {
+  return <MuiTableCell component="th" className={className} colSpan={colSpan}>{children}</MuiTableCell>
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
-  return <MuiTableCell className={className} {...props} />
+function TableCell({ className, children, colSpan }: { className?: string; children?: React.ReactNode; colSpan?: number }) {
+  return <MuiTableCell className={className} colSpan={colSpan}>{children}</MuiTableCell>
 }
 
 function TableCaption({ className, ...props }: React.ComponentProps<'caption'>) {

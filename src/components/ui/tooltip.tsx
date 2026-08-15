@@ -33,7 +33,25 @@ function TooltipTrigger({ children }: { children?: React.ReactNode; asChild?: bo
   return <>{children}</>
 }
 
-function TooltipContent({ children }: { children?: React.ReactNode; className?: string; sideOffset?: number }) {
+function TooltipContent({
+  children,
+  className,
+  sideOffset,
+  side,
+  align,
+  hidden,
+}: {
+  children?: React.ReactNode
+  className?: string
+  sideOffset?: number
+  side?: string
+  align?: string
+  hidden?: boolean
+}) {
+  void sideOffset
+  void side
+  void align
+  if (hidden) return null
   return <>{children}</>
 }
 

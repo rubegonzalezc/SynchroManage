@@ -97,7 +97,7 @@ function DropdownMenuItem({
   disabled,
   asChild,
   variant,
-}: React.ComponentProps<'div'> & { inset?: boolean; variant?: 'default' | 'destructive'; asChild?: boolean }) {
+}: React.ComponentProps<'div'> & { inset?: boolean; variant?: 'default' | 'destructive'; asChild?: boolean; disabled?: boolean }) {
   const { setOpen } = useMenu()
   const handle = (e: React.MouseEvent<HTMLLIElement>) => {
     onClick?.(e as unknown as React.MouseEvent<HTMLDivElement>)

@@ -68,8 +68,19 @@ function AlertDialogTitle({ children, className }: React.ComponentProps<'h2'>) {
   return <DialogTitle className={className}>{children}</DialogTitle>
 }
 
-function AlertDialogDescription({ children, className }: React.ComponentProps<'p'>) {
-  return <DialogContent><DialogContentText className={className}>{children}</DialogContentText></DialogContent>
+function AlertDialogDescription({
+  children,
+  className,
+  asChild,
+}: React.ComponentProps<'p'> & { asChild?: boolean }) {
+  if (asChild) {
+    return <DialogContent className={className}>{children}</DialogContent>
+  }
+  return (
+    <DialogContent>
+      <DialogContentText className={className}>{children}</DialogContentText>
+    </DialogContent>
+  )
 }
 
 function AlertDialogMedia({ className, ...props }: React.ComponentProps<'div'>) {
