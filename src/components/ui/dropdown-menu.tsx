@@ -5,6 +5,8 @@ import { Menu, MenuItem, Divider, ListItemIcon, ListItemText, ListSubheader, Che
 import { cn } from '@/lib/utils'
 
 type MenuCtx = {
+  open: boolean
+  setOpen: (v: boolean) => void
   anchor: HTMLElement | null
   setAnchor: (el: HTMLElement | null) => void
 }
@@ -17,9 +19,28 @@ function useMenu() {
   return ctx
 }
 
-function DropdownMenu({ children }: { children?: React.ReactNode }) {
+function DropdownMenu({
+  children,
+  open: openProp,
+  onOpenChange,
+}: {
+  children?: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
+  const [uncontrolled, setUncontrolled] = React.useState(false)
   const [anchor, setAnchor] = React.useState<HTMLElement | null>(null)
-  return <MenuContext.Provider value={{ anchor, setAnchor }}>{children}</MenuContext.Provider>
+  const open = openProp ?? uncontrolled
+  const setOpen = (v: boolean) => {
+    if (openProp === undefined) setUncontrolled(v)
+    onOpenChange?.(v)
+    if (!v) setAnchor(null)
+  }
+  return (
+    <MenuContext.Provider value={{ open, setOpen, anchor, setAnchor }}>
+      {children}
+    </MenuContext.Provider>
+  )
 }
 
 function DropdownMenuTrigger({
@@ -27,9 +48,10 @@ function DropdownMenuTrigger({
   children,
   ...props
 }: React.ComponentProps<'button'> & { asChild?: boolean }) {
-  const { setAnchor } = useMenu()
+  const { setAnchor, setOpen } = useMenu()
   const onClick = (e: React.MouseEvent<HTMLElement>) => {
     setAnchor(e.currentTarget)
+    setOpen(true)
     if (React.isValidElement(children)) {
       (children.props as { onClick?: (e: React.MouseEvent<HTMLElement>) => void }).onClick?.(e)
     }
@@ -53,13 +75,14 @@ function DropdownMenuContent({
   side?: string
   align?: string
   sideOffset?: number
+  onCloseAutoFocus?: (e: Event) => void
 }) {
-  const { anchor, setAnchor } = useMenu()
+  const { open, setOpen, anchor } = useMenu()
   return (
     <Menu
       anchorEl={anchor}
-      open={Boolean(anchor)}
-      onClose={() => setAnchor(null)}
+      open={open && Boolean(anchor)}
+      onClose={() => setOpen(false)}
       className={className}
     >
       {children}
@@ -75,10 +98,10 @@ function DropdownMenuItem({
   asChild,
   variant,
 }: React.ComponentProps<'div'> & { inset?: boolean; variant?: 'default' | 'destructive'; asChild?: boolean }) {
-  const { setAnchor } = useMenu()
+  const { setOpen } = useMenu()
   const handle = (e: React.MouseEvent<HTMLLIElement>) => {
     onClick?.(e as unknown as React.MouseEvent<HTMLDivElement>)
-    setAnchor(null)
+    setOpen(false)
   }
   if (asChild && React.isValidElement(children)) {
     return (
