@@ -26,14 +26,10 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    // Contar no leídas
-    const { count } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('read', false)
+    // Contar no leídas desde los datos ya obtenidos (evita segunda query)
+    const unreadCount = (notifications || []).filter(n => !n.read).length
 
-    return NextResponse.json({ notifications: notifications || [], unreadCount: count || 0 })
+    return NextResponse.json({ notifications: notifications || [], unreadCount })
   } catch (error) {
     console.error('Error fetching notifications:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
@@ -122,6 +118,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ notification })
   } catch (error) {
     console.error('Error creating notification:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
+
+// Eliminar notificaciones (limpiar historial)
+export async function DELETE(request: Request) {
+  try {
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const onlyRead = searchParams.get('onlyRead') === 'true'
+
+    let query = supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', user.id)
+
+    if (onlyRead) {
+      query = query.eq('read', true)
+    }
+
+    const { error } = await query
+
+    if (error) {
+      console.error('Error deleting notifications:', error)
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting notifications:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }

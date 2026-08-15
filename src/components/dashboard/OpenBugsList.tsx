@@ -1,9 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Calendar } from 'lucide-react'
 import { DashboardSection } from '@/components/dashboard/DashboardSection'
 
@@ -29,41 +27,22 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
-export function OpenBugsList() {
-  const [bugs, setBugs] = useState<OpenBug[]>([])
-  const [loading, setLoading] = useState(true)
+interface OpenBugsListProps {
+  bugs: OpenBug[]
+}
 
-  useEffect(() => {
-    fetch('/api/dashboard/reports/tasks')
-      .then(r => r.json())
-      .then(data => setBugs(data.openBugs || []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
+export function OpenBugsList({ bugs }: OpenBugsListProps) {
   return (
     <DashboardSection
       title="Bugs abiertos"
       description="Incidencias pendientes de resolución"
       action={
-        !loading ? (
-          <span className="text-[12px] font-semibold rounded-full px-2.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-            {bugs.length}
-          </span>
-        ) : null
+        <span className="text-[12px] font-semibold rounded-full px-2.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+          {bugs.length}
+        </span>
       }
     >
-      {loading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="flex items-center gap-3 rounded-2xl px-2 py-2.5">
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-5 w-16 rounded-full" />
-              <Skeleton className="h-5 w-20 rounded-full" />
-            </div>
-          ))}
-        </div>
-      ) : bugs.length === 0 ? (
+      {bugs.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8">No hay bugs abiertos</p>
       ) : (
         <div className="space-y-1">
@@ -84,9 +63,7 @@ export function OpenBugsList() {
                     <span className="text-[12px] text-muted-foreground truncate max-w-[120px]">{bug.project.name}</span>
                   )}
                   {bug.task && (
-                    <span className="text-[12px] text-muted-foreground">
-                      #{bug.task.task_number}
-                    </span>
+                    <span className="text-[12px] text-muted-foreground">#{bug.task.task_number}</span>
                   )}
                   <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${sev.color}`}>{sev.label}</span>
                   {bug.assignee ? (

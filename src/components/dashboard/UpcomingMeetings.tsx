@@ -31,18 +31,23 @@ const responseColors: Record<string, string> = {
   maybe: 'bg-amber-500',
 }
 
-export function UpcomingMeetings() {
-  const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [loading, setLoading] = useState(true)
+interface UpcomingMeetingsProps {
+  initialMeetings?: Meeting[]
+}
+
+export function UpcomingMeetings({ initialMeetings }: UpcomingMeetingsProps) {
+  const [meetings, setMeetings] = useState<Meeting[]>(initialMeetings?.slice(0, 3) ?? [])
+  const [loading, setLoading] = useState(!initialMeetings)
 
   useEffect(() => {
+    // Si ya tenemos datos iniciales del SSR, no hacer fetch
+    if (initialMeetings) return
+
     const controller = new AbortController()
     const fetchMeetings = async () => {
       try {
         const res = await fetch('/api/dashboard/meetings', { signal: controller.signal })
-        if (!res.ok) {
-          throw new Error(`Error: ${res.status} ${res.statusText}`)
-        }
+        if (!res.ok) throw new Error(`Error: ${res.status}`)
         const data = await res.json()
         setMeetings((data.meetings || []).slice(0, 3))
       } catch (err) {
@@ -54,7 +59,7 @@ export function UpcomingMeetings() {
     }
     fetchMeetings()
     return () => controller.abort()
-  }, [])
+  }, [initialMeetings])
 
   const formatMeetingDate = (date: string) => {
     const d = new Date(date)

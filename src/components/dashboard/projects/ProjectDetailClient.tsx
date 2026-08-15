@@ -1,14 +1,12 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ArrowLeft, Users, Calendar, Building2, Mail, CheckCircle2, Clock, FolderKanban, GitPullRequest, LayoutGrid, List } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { KanbanBoard } from './KanbanBoard'
-import { TaskListView } from './TaskListView'
 import { TaskFilters } from './TaskFilters'
 import { CreateTaskDialog } from './CreateTaskDialog'
 import { ProjectComments } from './ProjectComments'
@@ -16,6 +14,8 @@ import { ProjectActivity } from './ProjectActivity'
 import { EditProjectDialog } from './EditProjectDialog'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 import { GlassPanel } from '@/components/ui/glass-panel'
+import { StakeholderComments } from './StakeholderComments'
+import { StakeholderView } from './StakeholderView'
 import { StakeholderMessagesForPM } from './StakeholderMessagesForPM'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { CreateChangeControlDialog } from '@/components/dashboard/change-controls/CreateChangeControlDialog'
@@ -28,6 +28,35 @@ import { BugSection } from './BugSection'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useUsers } from '@/hooks/useUsers'
 import { useProject } from '@/hooks/useProject'
+
+// Lazy load de componentes pesados — solo se cargan cuando se necesitan
+const KanbanBoard = lazy(() => import('./KanbanBoard').then(m => ({ default: m.KanbanBoard })))
+const TaskListView = lazy(() => import('./TaskListView').then(m => ({ default: m.TaskListView })))
+
+function KanbanSkeleton() {
+  return (
+    <div className="flex gap-4 overflow-x-auto pb-4">
+      {[1, 2, 3, 4, 5].map(col => (
+        <div key={col} className="w-72 flex-shrink-0 space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-5 w-6 rounded-full" />
+          </div>
+          {[1, 2, 3].map(card => (
+            <div key={card} className="bg-card border border-border rounded-lg p-3 space-y-2.5">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-3.5 w-4/5" />
+              <div className="flex items-center justify-between pt-1">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="w-6 h-6 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 interface Project {
   id: string
@@ -89,7 +118,7 @@ const statusColors: Record<string, string> = {
 }
 
 export function ProjectDetailClient({ projectId, backHref = '/projects', backLabel = 'Volver a proyectos' }: { projectId: string; backHref?: string; backLabel?: string }) {
-  const { project, isLoading: loading, error: projectError, mutate: mutateProject } = useProject(projectId)
+  const { project, isLoading: loading, error: projectError, mutate: mutateProject, optimisticMoveTask } = useProject(projectId)
   const { users } = useUsers()
   const { currentUserId, currentUserRole } = useCurrentUser()
   const searchParams = useSearchParams()
@@ -308,7 +337,6 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               <p className="font-semibold text-foreground tracking-tight">{project.company.name}</p>
             </GlassPanel>
           )}
-
           <GlassPanel>
             <div className="flex items-center gap-2 text-muted-foreground text-[12px] mb-1">
               <Calendar className="w-3.5 h-3.5" /> Fechas
@@ -376,16 +404,13 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             <div className="flex items-center gap-4">
               <Avatar className="w-12 h-12">
                 <AvatarImage src={project.pm.avatar_url || undefined} />
-                <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-sm">
                   {getInitials(project.pm.full_name)}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="font-medium text-foreground">{project.pm.full_name}</p>
-                <a 
-                  href={`mailto:${project.pm.email}`}
-                  className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-                >
+                <p className="font-medium text-foreground text-sm">{project.pm.full_name}</p>
+                <a href={`mailto:${project.pm.email}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                   <Mail className="w-3 h-3" /> {project.pm.email}
                 </a>
               </div>
@@ -393,7 +418,20 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           </GlassPanel>
         )}
 
-        {/* Sección de Comentarios para Stakeholder */}
+        {/* Improved stakeholder view: timeline + tasks per sprint + documents */}
+        <StakeholderView
+          projectId={project.id}
+          sprints={project.sprints || []}
+          tasks={project.tasks.map(t => ({
+            ...t,
+            assignees: t.assignees?.length ? t.assignees : t.assignee ? [t.assignee] : [],
+          }))}
+          progressPercentage={progressPercentage}
+          totalTasks={totalTasks}
+          completedTasks={completedTasks}
+        />
+
+        {/* Stakeholder comments */}
         <StakeholderComments
           projectId={project.id}
           projectName={project.name}
@@ -581,6 +619,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             return (
               <SprintHeader
                 sprint={{ ...currentSprint, tasks: project.tasks.filter(t => t.sprint_id === currentSprint.id) }}
+                projectId={project.id}
                 nextSprint={nextSprint ?? null}
                 canManage={['admin', 'pm'].includes(currentUserRole)}
                 onSprintStarted={() => mutateProject()}
@@ -638,26 +677,31 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
         </div>
 
         {viewMode === 'kanban' ? (
-          <KanbanBoard
-            tasks={filteredTasks}
-            projectId={project.id}
-            projectName={project.name}
-            members={projectMembers}
-            allUsers={allUsers}
-            currentUserId={currentUserId}
-            onTasksChange={mutateProject}
-            highlightId={highlightId}
-          />
+          <Suspense fallback={<KanbanSkeleton />}>
+            <KanbanBoard
+              tasks={filteredTasks}
+              projectId={project.id}
+              projectName={project.name}
+              members={projectMembers}
+              allUsers={allUsers}
+              currentUserId={currentUserId}
+              onTasksChange={mutateProject}
+              onOptimisticMove={optimisticMoveTask}
+              highlightId={highlightId}
+            />
+          </Suspense>
         ) : (
-          <TaskListView
-            tasks={filteredTasks}
-            projectId={project.id}
-            projectName={project.name}
-            members={projectMembers}
-            allUsers={allUsers}
-            currentUserId={currentUserId}
-            onTasksChange={mutateProject}
-          />
+          <Suspense fallback={<KanbanSkeleton />}>
+            <TaskListView
+              tasks={filteredTasks}
+              projectId={project.id}
+              projectName={project.name}
+              members={projectMembers}
+              allUsers={allUsers}
+              currentUserId={currentUserId}
+              onTasksChange={mutateProject}
+            />
+          </Suspense>
         )}
       </div>
 

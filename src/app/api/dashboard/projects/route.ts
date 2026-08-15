@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { revalidateTag } from 'next/cache'
+import { revalidateTag, unstable_cache } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
 
@@ -59,91 +59,97 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const typeFilter = url.searchParams.get('type') || 'project'
 
-    let query = supabaseAdmin
-      .from('projects')
-      .select(`
-        *,
-        company:companies(id, name),
-        pm:profiles!projects_pm_id_fkey(id, full_name, email),
-        tech_lead:profiles!projects_tech_lead_id_fkey(id, full_name, email),
-        members:project_members(
-          id,
-          role,
-          user:profiles(id, full_name, email, role:roles(name))
-        )
-      `)
-      .eq('type', typeFilter)
-      .order('created_at', { ascending: false })
+    const projects = await getCachedProjectsList(user.id, roleName, typeFilter)
 
-    // Si es PM, solo mostrar proyectos donde es PM
-    if (roleName === 'pm') {
-      query = query.eq('pm_id', user.id)
-    }
-    
-    // Si es Tech Lead, mostrar proyectos donde es tech_lead o miembro
-    if (roleName === 'tech_lead') {
-      // Primero obtener IDs de proyectos donde es miembro
-      const { data: memberProjects } = await supabaseAdmin
-        .from('project_members')
-        .select('project_id')
-        .eq('user_id', user.id)
-      
-      const memberProjectIds = memberProjects?.map(p => p.project_id) || []
-      
-      // Filtrar proyectos donde es tech_lead O es miembro
-      if (memberProjectIds.length > 0) {
-        query = query.or(`tech_lead_id.eq.${user.id},id.in.(${memberProjectIds.join(',')})`)
-      } else {
-        query = query.eq('tech_lead_id', user.id)
-      }
-    }
-    
-    // Si es Developer o Stakeholder, mostrar solo proyectos donde es miembro
-    if (roleName === 'developer' || roleName === 'stakeholder') {
-      const { data: memberProjects } = await supabaseAdmin
-        .from('project_members')
-        .select('project_id')
-        .eq('user_id', user.id)
-      
-      const memberProjectIds = memberProjects?.map(p => p.project_id) || []
-      
-      if (memberProjectIds.length > 0) {
-        query = query.in('id', memberProjectIds)
-      } else {
-        // No tiene proyectos asignados
-        return NextResponse.json({ projects: [] })
-      }
-    }
-
-    const { data: projects, error } = await query
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
-
-    // Resolver parent_project manualmente para evitar problemas con el schema cache de Supabase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let projectsWithParent: any[] = projects || []
-    if (typeFilter === 'change_control' && projects && projects.length > 0) {
-      const parentIds = [...new Set(projects.map((p: { parent_project_id: string | null }) => p.parent_project_id).filter(Boolean))]
-      if (parentIds.length > 0) {
-        const { data: parentProjects } = await supabaseAdmin
-          .from('projects')
-          .select('id, name')
-          .in('id', parentIds)
-        const parentMap = new Map((parentProjects || []).map((p: { id: string; name: string }) => [p.id, p]))
-        projectsWithParent = projects.map((p: { parent_project_id: string | null }) => ({
-          ...p,
-          parent_project: p.parent_project_id ? (parentMap.get(p.parent_project_id) || null) : null,
-        }))
-      }
-    }
-
-    return NextResponse.json({ projects: projectsWithParent })
+    return NextResponse.json({ projects })
   } catch (error) {
     console.error('Error fetching projects:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
+}
+
+async function getCachedProjectsList(userId: string, roleName: string, typeFilter: string) {
+  return unstable_cache(
+    async () => {
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
+
+      let query = supabaseAdmin
+        .from('projects')
+        .select(`
+          *,
+          company:companies(id, name),
+          pm:profiles!projects_pm_id_fkey(id, full_name, email),
+          tech_lead:profiles!projects_tech_lead_id_fkey(id, full_name, email),
+          members:project_members(
+            id,
+            role,
+            user:profiles(id, full_name, email, role:roles(name))
+          )
+        `)
+        .eq('type', typeFilter)
+        .order('created_at', { ascending: false })
+
+      if (roleName === 'pm') {
+        query = query.eq('pm_id', userId)
+      }
+
+      if (roleName === 'tech_lead') {
+        const { data: memberProjects } = await supabaseAdmin
+          .from('project_members')
+          .select('project_id')
+          .eq('user_id', userId)
+
+        const memberProjectIds = memberProjects?.map(p => p.project_id) || []
+
+        if (memberProjectIds.length > 0) {
+          query = query.or(`tech_lead_id.eq.${userId},id.in.(${memberProjectIds.join(',')})`)
+        } else {
+          query = query.eq('tech_lead_id', userId)
+        }
+      }
+
+      if (roleName === 'developer' || roleName === 'stakeholder') {
+        const { data: memberProjects } = await supabaseAdmin
+          .from('project_members')
+          .select('project_id')
+          .eq('user_id', userId)
+
+        const memberProjectIds = memberProjects?.map(p => p.project_id) || []
+
+        if (memberProjectIds.length === 0) return []
+
+        query = query.in('id', memberProjectIds)
+      }
+
+      const { data: projects, error } = await query
+
+      if (error) throw new Error(error.message)
+
+      let projectsWithParent: unknown[] = projects || []
+      if (typeFilter === 'change_control' && projects && projects.length > 0) {
+        const parentIds = [...new Set(projects.map((p: { parent_project_id: string | null }) => p.parent_project_id).filter(Boolean))]
+        if (parentIds.length > 0) {
+          const { data: parentProjects } = await supabaseAdmin
+            .from('projects')
+            .select('id, name')
+            .in('id', parentIds)
+          const parentMap = new Map((parentProjects || []).map((p: { id: string; name: string }) => [p.id, p]))
+          projectsWithParent = projects.map((p: { parent_project_id: string | null }) => ({
+            ...p,
+            parent_project: p.parent_project_id ? (parentMap.get(p.parent_project_id) || null) : null,
+          }))
+        }
+      }
+
+      return projectsWithParent
+    },
+    [`projects-list-${userId}-${roleName}-${typeFilter}`],
+    { tags: [`projects-user-${userId}`, 'projects'], revalidate: 60 }
+  )()
 }
 
 // POST - Crear proyecto

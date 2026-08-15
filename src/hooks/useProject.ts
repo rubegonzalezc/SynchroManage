@@ -44,6 +44,7 @@ interface UseProjectReturn {
   isLoading: boolean
   error: Error | undefined
   mutate: () => void
+  optimisticMoveTask: (taskId: string, newStatus: string, newPosition: number) => void
 }
 
 export function useProject(projectId: string): UseProjectReturn {
@@ -51,10 +52,27 @@ export function useProject(projectId: string): UseProjectReturn {
     projectId ? `/api/dashboard/projects/${projectId}` : null
   )
 
+  // Optimistic update para mover tareas en el Kanban sin esperar al servidor
+  const optimisticMoveTask = (taskId: string, newStatus: string, newPosition: number) => {
+    if (!data) return
+    mutate(
+      {
+        project: {
+          ...data.project,
+          tasks: data.project.tasks.map(t =>
+            t.id === taskId ? { ...t, status: newStatus, position: newPosition } : t
+          ),
+        },
+      },
+      { revalidate: false }
+    )
+  }
+
   return {
     project: data?.project,
     isLoading,
     error,
     mutate,
+    optimisticMoveTask,
   }
 }

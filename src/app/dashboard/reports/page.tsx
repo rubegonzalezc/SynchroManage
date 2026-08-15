@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { Calendar, X } from 'lucide-react'
 import { UnassignedTasks } from '@/components/dashboard/UnassignedTasks'
 import { OpenBugsList } from '@/components/dashboard/OpenBugsList'
 import { DashboardSection } from '@/components/dashboard/DashboardSection'
 import { GlassPanel } from '@/components/ui/glass-panel'
+import { ReportExportButton } from '@/components/dashboard/reports/ReportExportButton'
 
 interface UserStat {
   user: { id: string; full_name: string; avatar_url: string | null; role: string }
@@ -22,6 +25,28 @@ interface GlobalTotals {
 
 interface BugTotals {
   open: number; in_progress: number; resolved: number; closed: number; total: number
+}
+
+interface OpenBug {
+  id: string
+  title: string
+  severity: string
+  status: string
+  created_at: string
+  project: { id: string; name: string } | null
+  task: { id: string; task_number: number | null; title: string } | null
+  assignee: { id: string; full_name: string; avatar_url: string | null } | null
+}
+
+interface UnassignedTask {
+  id: string
+  task_number: number | null
+  title: string
+  status: string
+  priority: string
+  category: string | null
+  due_date: string | null
+  project: { id: string; name: string; type: string } | null
 }
 
 const roleLabels: Record<string, string> = {
@@ -74,20 +99,30 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
 
 export default function ReportsPage() {
   const [stats, setStats] = useState<UserStat[]>([])
-  const [unassignedCount, setUnassignedCount] = useState(0)
+  const [unassigned, setUnassigned] = useState<UnassignedTask[]>([])
+  const [openBugs, setOpenBugs] = useState<OpenBug[]>([])
   const [globalTotals, setGlobalTotals] = useState<GlobalTotals>({ done: 0, in_progress: 0, review: 0, pending: 0, backlog: 0, carry_over: 0 })
   const [bugTotals, setBugTotals] = useState<BugTotals>({ open: 0, in_progress: 0, resolved: 0, closed: 0, total: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
-  useEffect(() => {
-    fetch('/api/dashboard/reports/tasks')
+  const fetchReport = useCallback((from: string, to: string) => {
+    setLoading(true)
+    setError(null)
+    const params = new URLSearchParams()
+    if (from) params.set('dateFrom', from)
+    if (to) params.set('dateTo', to)
+    const url = `/api/dashboard/reports/tasks${params.toString() ? `?${params}` : ''}`
+    fetch(url)
       .then(r => r.json())
       .then(data => {
         if (data.error) setError(data.error)
         else {
           setStats(data.stats || [])
-          setUnassignedCount((data.unassigned || []).length)
+          setUnassigned(data.unassigned || [])
+          setOpenBugs(data.openBugs || [])
           setGlobalTotals(data.globalTotals ?? { done: 0, in_progress: 0, review: 0, pending: 0, backlog: 0, carry_over: 0 })
           setBugTotals(data.bugTotals ?? { open: 0, in_progress: 0, resolved: 0, closed: 0, total: 0 })
         }
@@ -96,6 +131,20 @@ export default function ReportsPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    fetchReport('', '')
+  }, [fetchReport])
+
+  function handleApplyFilter() {
+    fetchReport(dateFrom, dateTo)
+  }
+
+  function handleClearFilter() {
+    setDateFrom('')
+    setDateTo('')
+    fetchReport('', '')
+  }
+
   const taskStats = [
     { label: 'Completadas', value: globalTotals.done, accent: '#30D158' },
     { label: 'En progreso', value: globalTotals.in_progress, accent: '#0A84FF' },
@@ -103,7 +152,7 @@ export default function ReportsPage() {
     { label: 'Por hacer', value: globalTotals.pending, accent: '#8E8E93' },
     { label: 'Backlog', value: globalTotals.backlog, accent: '#636366' },
     { label: 'Carry over', value: globalTotals.carry_over, accent: '#FF9F0A' },
-    { label: 'Sin asignar', value: unassignedCount, accent: '#FF453A' },
+    { label: 'Sin asignar', value: unassigned.length, accent: '#FF453A' },
   ]
 
   const bugStats = [
@@ -115,9 +164,49 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Reporte</h1>
-        <p className="text-[15px] text-muted-foreground mt-1">Estadísticas de tareas, bugs y carga por usuario</p>
+      <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+        <div className="flex-1">
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Reporte</h1>
+          <p className="text-[15px] text-muted-foreground mt-1">Estadísticas de tareas, bugs y carga por usuario</p>
+        </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                className="text-sm border border-border rounded-full px-3 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+            <span className="text-muted-foreground text-sm">—</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              className="text-sm border border-border rounded-full px-3 py-1.5 bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            <Button size="sm" onClick={handleApplyFilter} disabled={loading}>
+              Filtrar
+            </Button>
+            {(dateFrom || dateTo) && (
+              <Button size="sm" variant="ghost" onClick={handleClearFilter} className="gap-1 px-2">
+                <X className="w-3.5 h-3.5" />
+                Limpiar
+              </Button>
+            )}
+          </div>
+          {!loading && !error && (
+            <ReportExportButton
+              stats={stats}
+              globalTotals={globalTotals}
+              bugTotals={bugTotals}
+              dateFrom={dateFrom || undefined}
+              dateTo={dateTo || undefined}
+            />
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -245,8 +334,8 @@ export default function ReportsPage() {
         ) : null}
       </DashboardSection>
 
-      <UnassignedTasks />
-      <OpenBugsList />
+      <UnassignedTasks tasks={unassigned} />
+      <OpenBugsList bugs={openBugs} />
     </div>
   )
 }

@@ -55,6 +55,7 @@ interface KanbanBoardProps {
   allUsers: Member[]
   currentUserId: string
   onTasksChange: () => void
+  onOptimisticMove?: (taskId: string, newStatus: string, newPosition: number) => void
   highlightId?: string | null
 }
 
@@ -90,6 +91,7 @@ export function KanbanBoard({
   allUsers,
   currentUserId,
   onTasksChange,
+  onOptimisticMove,
   highlightId,
 }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -259,6 +261,8 @@ export function KanbanBoard({
           : t
       )
     )
+    // También actualizar el estado del padre (SWR cache) optimísticamente
+    onOptimisticMove?.(draggedTask.id, newStatus, newPosition)
 
     try {
       const response = await fetch('/api/dashboard/tasks', {

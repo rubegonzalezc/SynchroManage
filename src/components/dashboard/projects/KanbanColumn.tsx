@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { memo } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { ReactNode } from 'react'
 import { Box, Typography } from '@mui/material'
@@ -21,7 +21,7 @@ interface KanbanColumnProps {
   isDragTarget?: boolean
 }
 
-export function KanbanColumn({ id, title, color, count, children, isDragTarget }: KanbanColumnProps) {
+export const KanbanColumn = memo(function KanbanColumn({ id, title, color, count, children, isDragTarget }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id })
   const highlighted = isOver || isDragTarget
   const { resolvedTheme } = useTheme()
@@ -121,4 +121,4 @@ export function KanbanColumn({ id, title, color, count, children, isDragTarget }
       </Box>
     </Box>
   )
-}
+})

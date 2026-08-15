@@ -30,7 +30,8 @@ export function DashboardLayoutClient({ user, children }: DashboardLayoutClientP
     <SWRConfig value={{
       fetcher,
       revalidateOnFocus: false,
-      dedupingInterval: 10000,
+      revalidateOnReconnect: false,
+      dedupingInterval: 30000,
     }}>
       <Box sx={{ display: 'flex', minHeight: '100svh' }}>
         <AppSidebar
