@@ -3,6 +3,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
+import { validateTaskDependency, type TaskDependencyRef } from '@/lib/utils/task-dependency'
 
 // Helper para registrar actividad desde el servidor
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,7 +93,23 @@ export async function GET(
       })
       .filter(Boolean)
 
-    return NextResponse.json({ task: { ...task, assignees } })
+    let dependsOn: TaskDependencyRef | null = null
+    if (task.depends_on_task_id) {
+      const { data: depTask } = await supabaseAdmin
+        .from('tasks')
+        .select('id, task_number, title, status')
+        .eq('id', task.depends_on_task_id)
+        .single()
+      dependsOn = depTask ?? null
+    }
+
+    return NextResponse.json({
+      task: {
+        ...task,
+        assignees,
+        depends_on: dependsOn,
+      },
+    })
   } catch (error) {
     console.error('Error fetching task:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
@@ -155,6 +172,17 @@ export async function PUT(
     // Mantener assignee_id sincronizado con el primer asignado (compatibilidad hacia atrás)
     const primaryAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : null
 
+    if ('depends_on_task_id' in body) {
+      const dependencyError = await validateTaskDependency(supabaseAdmin, {
+        taskId: id,
+        dependsOnTaskId: body.depends_on_task_id ?? null,
+        projectId: currentTask?.project_id || '',
+      })
+      if (dependencyError) {
+        return NextResponse.json({ error: dependencyError }, { status: 400 })
+      }
+    }
+
     // Actualizar la tarea
     const updatePayload: Record<string, unknown> = {
       title: body.title,
@@ -171,6 +199,7 @@ export async function PUT(
     if ('branch_name' in body) updatePayload.branch_name = body.branch_name || null
     if ('complexity' in body) updatePayload.complexity = body.complexity ?? null
     if ('reviewer_id' in body) updatePayload.reviewer_id = body.reviewer_id ?? null
+    if ('depends_on_task_id' in body) updatePayload.depends_on_task_id = body.depends_on_task_id ?? null
 
     const { data: task, error } = await supabaseAdmin
       .from('tasks')

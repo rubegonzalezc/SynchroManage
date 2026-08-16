@@ -27,6 +27,7 @@ import { FileAttachments } from '@/components/ui/file-attachments'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
 import { getBranchName } from '@/lib/utils/branch-name'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
+import { SingleSelectTask, type TaskOption } from '@/components/ui/single-select-task'
 
 interface User {
   id: string
@@ -64,6 +65,8 @@ interface TaskDetail {
   sprint_id: string | null
   reviewer_id?: string | null
   reviewer?: { id: string; full_name: string; avatar_url: string | null } | null
+  depends_on_task_id?: string | null
+  depends_on?: { id: string; task_number: number | null; title: string; status: string } | null
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   project: { id: string; name: string } | null
   comments: Comment[]
@@ -108,6 +111,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [members, setMembers] = useState<User[]>([])
   const [projectSprints, setProjectSprints] = useState<SprintOption[]>([])
+  const [projectTasks, setProjectTasks] = useState<TaskOption[]>([])
 
   const [formData, setFormData] = useState({
     title: '',
@@ -119,6 +123,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
     reviewer_id: '',
     due_date: '',
     sprint_id: '',
+    depends_on_task_id: null as string | null,
   })
 
   const fetchTask = async () => {
@@ -137,6 +142,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
           reviewer_id: data.task.reviewer?.id || data.task.reviewer_id || '',
           due_date: data.task.due_date || '',
           sprint_id: data.task.sprint_id || '',
+          depends_on_task_id: data.task.depends_on_task_id ?? null,
         })
         setHasNewComments(false)
         // Cargar sprints del proyecto
@@ -198,6 +204,12 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
           membersMap.set(m.user.id, m.user)
         })
         setMembers(Array.from(membersMap.values()))
+        setProjectTasks((data.project.tasks || []).map((t: TaskOption) => ({
+          id: t.id,
+          task_number: t.task_number,
+          title: t.title,
+          status: t.status,
+        })))
       }
     } catch (err) {
       console.error('Error fetching project members:', err)
@@ -263,6 +275,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
           ...formData,
           sprint_id: formData.sprint_id || null,
           reviewer_id: formData.reviewer_id || null,
+          depends_on_task_id: formData.depends_on_task_id,
         }),
       })
       if (response.ok) {
@@ -524,6 +537,16 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                     </Select>
                   </div>
                 )}
+
+                <SingleSelectTask
+                  tasks={projectTasks}
+                  selectedId={formData.depends_on_task_id}
+                  onSelectionChange={(id) => setFormData(prev => ({ ...prev, depends_on_task_id: id }))}
+                  excludeTaskId={taskId}
+                  placeholder="Buscar por # o título..."
+                  emptyLabel="Sin dependencia"
+                  hint="Para avanzar en esta tarea, primero debe completarse la tarea seleccionada."
+                />
 
                 <Button onClick={handleSave} disabled={saving} className="w-full">
                   {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</> : 'Guardar Cambios'}

@@ -3,6 +3,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
+import { validateTaskDependency } from '@/lib/utils/task-dependency'
 
 // Helper para registrar actividad desde el servidor
 async function logActivityServer(
@@ -69,6 +70,16 @@ export async function POST(request: Request) {
 
     const newPosition = (maxPosData?.position ?? -1) + 1
 
+    const dependsOnTaskId = body.depends_on_task_id || null
+    const dependencyError = await validateTaskDependency(supabaseAdmin, {
+      taskId: null,
+      dependsOnTaskId,
+      projectId: body.project_id,
+    })
+    if (dependencyError) {
+      return NextResponse.json({ error: dependencyError }, { status: 400 })
+    }
+
     // Mantener assignee_id sincronizado con el primer asignado (compatibilidad hacia atrás)
     const primaryAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : null
 
@@ -88,6 +99,7 @@ export async function POST(request: Request) {
         sprint_id: body.sprint_id || null,
         branch_name: body.branch_name || null,
         complexity: body.complexity ?? null,
+        depends_on_task_id: dependsOnTaskId,
       })
       .select(`
         *,

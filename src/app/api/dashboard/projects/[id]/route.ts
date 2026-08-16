@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { enrichTasksWithDependencies } from '@/lib/utils/task-dependency'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { unstable_cache, revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
@@ -55,7 +56,7 @@ function getCachedProject(projectId: string) {
           ),
           tasks(
             id, task_number, title, description, status, priority, category, position, due_date, created_at,
-            sprint_id, is_carry_over, complexity,
+            sprint_id, is_carry_over, complexity, depends_on_task_id,
             assignee:profiles!tasks_assignee_id_fkey(id, full_name, avatar_url)
           ),
           sprints(
@@ -74,6 +75,10 @@ function getCachedProject(projectId: string) {
               ? a.order_index - b.order_index
               : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         )
+      }
+
+      if (project?.tasks) {
+        project.tasks = enrichTasksWithDependencies(project.tasks)
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

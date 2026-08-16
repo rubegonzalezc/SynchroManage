@@ -591,6 +591,12 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               projectId={project.id}
               projectName={project.name}
               members={projectMembers}
+              tasks={project.tasks.map(t => ({
+                id: t.id,
+                task_number: t.task_number,
+                title: t.title,
+                status: t.status,
+              }))}
               sprints={project.sprints || []}
               initialSprintId={resolvedSprintId}
               onTaskCreated={mutateProject}

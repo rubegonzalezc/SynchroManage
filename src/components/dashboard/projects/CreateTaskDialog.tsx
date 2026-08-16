@@ -19,6 +19,7 @@ import { Plus, Loader2, CheckCircle, GitBranch } from 'lucide-react'
 import { CopyButton } from '@/components/ui/copy-button'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
+import { SingleSelectTask, type TaskOption } from '@/components/ui/single-select-task'
 
 interface Member {
   id: string
@@ -37,12 +38,13 @@ interface CreateTaskDialogProps {
   projectId: string
   projectName: string
   members: Member[]
+  tasks?: TaskOption[]
   sprints?: SprintOption[]
   initialSprintId?: string | null
   onTaskCreated?: () => void
 }
 
-export function CreateTaskDialog({ projectId, projectName, members, sprints = [], initialSprintId, onTaskCreated }: CreateTaskDialogProps) {
+export function CreateTaskDialog({ projectId, projectName, members, tasks = [], sprints = [], initialSprintId, onTaskCreated }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -61,6 +63,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
     sprint_id: initialSprintId ?? '',
     branch_name: '',
     complexity: null as number | null,
+    depends_on_task_id: null as string | null,
   })
 
   // Actualizar sprint_id cuando cambia initialSprintId (sprint activo seleccionado)
@@ -92,6 +95,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
           project_id: projectId,
           ...formData,
           sprint_id: formData.sprint_id || null,
+          depends_on_task_id: formData.depends_on_task_id,
           assignee_ids: formData.assignee_ids.length > 0 ? formData.assignee_ids : [],
           auto_branch: autoBranchName, // Pasamos la bandera a la API para que maneje el número
         }),
@@ -131,6 +135,7 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
           title: '', description: '', status: 'backlog',
           priority: 'medium', category: 'task', assignee_ids: [], reviewer_id: null, due_date: '',
           sprint_id: initialSprintId ?? '', branch_name: '', complexity: null,
+          depends_on_task_id: null,
         })
         setSuccess(false)
         onTaskCreated?.()
@@ -336,6 +341,16 @@ export function CreateTaskDialog({ projectId, projectName, members, sprints = []
               </Select>
             </div>
           )}
+
+          <SingleSelectTask
+            tasks={tasks}
+            selectedId={formData.depends_on_task_id}
+            onSelectionChange={(id) => setFormData(prev => ({ ...prev, depends_on_task_id: id }))}
+            placeholder="Buscar por # o título..."
+            emptyLabel="Sin dependencia"
+            disabled={loading || success}
+            hint="Para avanzar en esta tarea, primero debe completarse la tarea seleccionada."
+          />
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">

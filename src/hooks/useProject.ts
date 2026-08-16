@@ -14,6 +14,8 @@ interface Task {
   sprint_id: string | null
   is_carry_over: boolean
   complexity?: number | null
+  depends_on_task_id?: string | null
+  depends_on?: { id: string; task_number: number | null; title: string; status: string } | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
   assignee?: { id: string; full_name: string; avatar_url: string | null } | null
 }

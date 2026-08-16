@@ -28,6 +28,8 @@ import { createClient } from '@/lib/supabase/client'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
+import { SingleSelectTask, type TaskOption } from '@/components/ui/single-select-task'
+import { formatDependencyLabel, resolveDependencyTask } from '@/lib/utils/task-dependency'
 
 interface Member {
   id: string
@@ -69,6 +71,8 @@ interface TaskDetail {
   is_carry_over: boolean
   reviewer_id?: string | null
   reviewer?: { id: string; full_name: string; avatar_url: string | null } | null
+  depends_on_task_id?: string | null
+  depends_on?: { id: string; task_number: number | null; title: string; status: string } | null
   sprint?: SprintOption | null
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
@@ -129,6 +133,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null)
   const [hasNewComments, setHasNewComments] = useState(false)
   const [projectSprints, setProjectSprints] = useState<SprintOption[]>([])
+  const [projectTasks, setProjectTasks] = useState<TaskOption[]>([])
   const [autoBranchName, setAutoBranchName] = useState(true)
 
   const [formData, setFormData] = useState({
@@ -143,6 +148,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
     sprint_id: '',
     branch_name: '',
     complexity: null as number | null,
+    depends_on_task_id: null as string | null,
   })
 
   const fetchTask = async () => {
@@ -164,6 +170,7 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
           sprint_id: data.task.sprint_id || '',
           branch_name: data.task.branch_name || '',
           complexity: data.task.complexity ?? null,
+          depends_on_task_id: data.task.depends_on_task_id ?? null,
         })
         setHasNewComments(false)
       }
@@ -198,12 +205,25 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
     }
   }, [open, taskId])
 
-  // Cargar sprints del proyecto al abrir
+  // Cargar sprints y tareas del proyecto al abrir
   useEffect(() => {
     if (!open || !projectId) return
     fetch(`/api/dashboard/projects/${projectId}/sprints`)
       .then(r => r.json())
       .then(data => { if (data.sprints) setProjectSprints(data.sprints) })
+      .catch(() => {})
+    fetch(`/api/dashboard/projects/${projectId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.project?.tasks) {
+          setProjectTasks(data.project.tasks.map((t: TaskOption) => ({
+            id: t.id,
+            task_number: t.task_number,
+            title: t.title,
+            status: t.status,
+          })))
+        }
+      })
       .catch(() => {})
   }, [open, projectId])
 
@@ -404,6 +424,12 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
     })
   }
 
+  const dependencyTask = resolveDependencyTask(
+    formData.depends_on_task_id ?? task?.depends_on_task_id,
+    task?.depends_on,
+    projectTasks
+  )
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -456,6 +482,13 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
             </SheetSection>
 
             <SheetSection title="Planificación">
+              {dependencyTask && dependencyTask.status !== 'done' && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+                  Debes completar primero{' '}
+                  <span className="font-medium">{formatDependencyLabel(dependencyTask)}</span>
+                  {' '}antes de poder avanzar en esta tarea.
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4 min-w-0">
                 <div className="space-y-2">
                   <Label>Estado</Label>
@@ -537,6 +570,17 @@ export function TaskDetailDialog({ taskId, projectId, projectName, open, onOpenC
                     </Select>
                   </div>
                 )}
+                <div className="col-span-2">
+                  <SingleSelectTask
+                    tasks={projectTasks}
+                    selectedId={formData.depends_on_task_id}
+                    onSelectionChange={(id) => setFormData(prev => ({ ...prev, depends_on_task_id: id }))}
+                    excludeTaskId={taskId}
+                    placeholder="Buscar por # o título..."
+                    emptyLabel="Sin dependencia"
+                    hint="Para avanzar en esta tarea, primero debe completarse la tarea seleccionada."
+                  />
+                </div>
               </div>
             </SheetSection>
 
