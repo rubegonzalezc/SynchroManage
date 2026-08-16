@@ -5,6 +5,9 @@ export interface TaskDependencyRef {
   status: string
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseAdmin = any
+
 /** Supabase puede devolver la relación como objeto, array o null. */
 export function normalizeDependsOn(
   raw: unknown,
@@ -35,6 +38,50 @@ export function formatDependencyLabel(
   if (task.task_number != null) parts.push(`#${task.task_number}`)
   if (task.title) parts.push(task.title)
   return parts.join(' ')
+}
+
+export const ADVANCED_TASK_STATUSES = ['in_progress', 'review', 'done'] as const
+
+export type AdvancedTaskStatus = (typeof ADVANCED_TASK_STATUSES)[number]
+
+export function isAdvancedTaskStatus(status: string): status is AdvancedTaskStatus {
+  return (ADVANCED_TASK_STATUSES as readonly string[]).includes(status)
+}
+
+export function formatBlockedByDependencyMessage(
+  dependency: Pick<TaskDependencyRef, 'task_number' | 'title'>
+): string {
+  return `No puedes avanzar esta tarea hasta completar ${formatDependencyLabel(dependency)}`
+}
+
+export async function assertTaskNotBlockedByDependency(
+  supabaseAdmin: SupabaseAdmin,
+  options: {
+    dependsOnTaskId: string | null
+    newStatus: string
+  }
+): Promise<string | null> {
+  const { dependsOnTaskId, newStatus } = options
+
+  if (!dependsOnTaskId || !isAdvancedTaskStatus(newStatus)) {
+    return null
+  }
+
+  const { data: dependencyTask, error } = await supabaseAdmin
+    .from('tasks')
+    .select('id, task_number, title, status')
+    .eq('id', dependsOnTaskId)
+    .single()
+
+  if (error || !dependencyTask) {
+    return 'La tarea de dependencia no existe'
+  }
+
+  if (dependencyTask.status === 'done') {
+    return null
+  }
+
+  return formatBlockedByDependencyMessage(dependencyTask)
 }
 
 type TaskDependencyLookup = Pick<TaskDependencyRef, 'id' | 'task_number' | 'title'> & {
@@ -94,9 +141,6 @@ export function enrichTasksWithDependencies<
     }
   })
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SupabaseAdmin = any
 
 export async function validateTaskDependency(
   supabaseAdmin: SupabaseAdmin,
