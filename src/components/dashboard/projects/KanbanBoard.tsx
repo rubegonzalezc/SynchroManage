@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   DndContext,
   DragOverlay,
@@ -13,6 +14,7 @@ import {
   DragOverEvent,
   pointerWithin,
   rectIntersection,
+  MeasuringStrategy,
 } from '@dnd-kit/core'
 import type { CollisionDetection } from '@dnd-kit/core'
 import {
@@ -23,6 +25,7 @@ import {
 import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
 import { createClient } from '@/lib/supabase/client'
+import { snapPointerOffsetToCursor } from '@/lib/dnd/kanban-drag-modifiers'
 
 interface Task {
   id: string
@@ -96,6 +99,12 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [activeCardWidth, setActiveCardWidth] = useState<number | null>(null)
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null)
+
+  useEffect(() => {
+    setPortalRoot(document.body)
+  }, [])
 
   // useState (not useRef) so column highlight re-renders reactively during drag
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
@@ -142,8 +151,8 @@ export function KanbanBoard({
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      // Require 8px movement before activating drag — prevents accidental drags
-      activationConstraint: { distance: 8 },
+      // El arrastre solo inicia desde el handle; no hace falta distancia extra
+      activationConstraint: { distance: 1 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -161,6 +170,7 @@ export function KanbanBoard({
     if (task) {
       isDraggingRef.current = true
       setActiveTask(task)
+      setActiveCardWidth(event.active.rect.current.initial?.width ?? null)
       dragOverColumnRef.current = task.status
       setDragOverColumn(task.status)
     }
@@ -201,6 +211,7 @@ export function KanbanBoard({
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveTask(null)
+    setActiveCardWidth(null)
 
     const draggedTask = tasks.find((t) => t.id === active.id)
     if (!draggedTask) {
@@ -293,9 +304,19 @@ export function KanbanBoard({
     <DndContext
       sensors={sensors}
       collisionDetection={customCollisionDetection}
+      measuring={{
+        droppable: { strategy: MeasuringStrategy.Always },
+      }}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => {
+        isDraggingRef.current = false
+        dragOverColumnRef.current = null
+        setDragOverColumn(null)
+        setActiveTask(null)
+        setActiveCardWidth(null)
+      }}
     >
       <div className="space-y-2">
         <div className="flex gap-4 overflow-x-auto pb-4">
@@ -340,25 +361,38 @@ export function KanbanBoard({
         </div>
       </div>
 
-      <DragOverlay
-        dropAnimation={{
-          duration: 200,
-          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
-        }}
-      >
-        {activeTask && (
-          <TaskCard
-            task={activeTask}
-            projectId={projectId}
-            projectName={projectName}
-            members={members}
-            allUsers={allUsers}
-            currentUserId={currentUserId}
-            onUpdate={() => {}}
-            isDragging
-          />
-        )}
-      </DragOverlay>
+      {portalRoot && createPortal(
+        <DragOverlay
+          adjustScale={false}
+          zIndex={1400}
+          modifiers={[snapPointerOffsetToCursor]}
+          dropAnimation={{
+            duration: 200,
+            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+          }}
+        >
+          {activeTask ? (
+            <div
+              style={{
+                width: activeCardWidth ?? 272,
+                cursor: 'grabbing',
+              }}
+            >
+              <TaskCard
+                variant="overlay"
+                task={activeTask}
+                projectId={projectId}
+                projectName={projectName}
+                members={members}
+                allUsers={allUsers}
+                currentUserId={currentUserId}
+                onUpdate={() => {}}
+              />
+            </div>
+          ) : null}
+        </DragOverlay>,
+        portalRoot
+      )}
     </DndContext>
   )
 }
