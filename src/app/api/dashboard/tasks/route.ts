@@ -3,7 +3,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
-import { validateTaskDependency } from '@/lib/utils/task-dependency'
+import { validateTaskDependency, assertTaskNotBlockedByDependency } from '@/lib/utils/task-dependency'
 
 // Helper para registrar actividad desde el servidor
 async function logActivityServer(
@@ -314,12 +314,26 @@ export async function PATCH(request: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Obtener tarea actual para comparar status
+    // Obtener tarea actual para comparar status y validar dependencias
     const { data: currentTask } = await supabaseAdmin
       .from('tasks')
-      .select('status, title, project_id')
+      .select('status, title, project_id, depends_on_task_id')
       .eq('id', taskId)
       .single()
+
+    if (!currentTask) {
+      return NextResponse.json({ error: 'Tarea no encontrada' }, { status: 404 })
+    }
+
+    if (status !== currentTask.status) {
+      const blockedError = await assertTaskNotBlockedByDependency(supabaseAdmin, {
+        dependsOnTaskId: currentTask.depends_on_task_id ?? null,
+        newStatus: status,
+      })
+      if (blockedError) {
+        return NextResponse.json({ error: blockedError }, { status: 400 })
+      }
+    }
 
     const { data: task, error } = await supabaseAdmin
       .from('tasks')

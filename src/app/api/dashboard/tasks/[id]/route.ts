@@ -3,7 +3,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
-import { validateTaskDependency, type TaskDependencyRef } from '@/lib/utils/task-dependency'
+import { validateTaskDependency, assertTaskNotBlockedByDependency, type TaskDependencyRef } from '@/lib/utils/task-dependency'
 
 // Helper para registrar actividad desde el servidor
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -151,7 +151,7 @@ export async function PUT(
     // Obtener tarea actual para comparar cambios
     const { data: currentTask } = await supabaseAdmin
       .from('tasks')
-      .select('title, status, assignee_id, reviewer_id, project_id')
+      .select('title, status, assignee_id, reviewer_id, project_id, depends_on_task_id')
       .eq('id', id)
       .single()
 
@@ -180,6 +180,21 @@ export async function PUT(
       })
       if (dependencyError) {
         return NextResponse.json({ error: dependencyError }, { status: 400 })
+      }
+    }
+
+    const effectiveDependsOnTaskId =
+      'depends_on_task_id' in body
+        ? (body.depends_on_task_id ?? null)
+        : (currentTask?.depends_on_task_id ?? null)
+
+    if (body.status && body.status !== currentTask?.status) {
+      const blockedError = await assertTaskNotBlockedByDependency(supabaseAdmin, {
+        dependsOnTaskId: effectiveDependsOnTaskId,
+        newStatus: body.status,
+      })
+      if (blockedError) {
+        return NextResponse.json({ error: blockedError }, { status: 400 })
       }
     }
 

@@ -33,10 +33,10 @@ Hacer que las **dependencias entre tareas sean operativas**, no solo informativa
 
 | Desarrollador | Puntos asignados |
 |---------------|------------------|
-| Rubén González | ~18 pts |
+| Rubén González | ~8 pts |
 | José | ~10 pts |
 | Sebastián | ~10 pts |
-| **Total** | **~38 pts** |
+| **Total** | **~30 pts** |
 
 ---
 
@@ -61,7 +61,8 @@ Hacer que las **dependencias entre tareas sean operativas**, no solo informativa
 | HU-06 | Indicador en Mis Tareas | **P2** | 5 | Sebastián |
 | HU-07 | Pruebas automatizadas | **P1** | 3 | Rubén González |
 | HU-08 | Documentación | **P2** | 2 | José |
-| HU-09 | Dependencias con filtro por sprint | **P3** | 8 | Rubén González |
+
+> **Nota:** La agrupación de dependencias por sprint y numeración `HU-N` por sprint se planificará en un sprint aparte (cambio de mayor alcance).
 
 ---
 
@@ -218,44 +219,6 @@ Hacer que las **dependencias entre tareas sean operativas**, no solo informativa
 
 ---
 
-### HU-09 — Dependencias con filtro por sprint y numeración por sprint
-
-**Como** PM o Developer  
-**Quiero** elegir la dependencia filtrando primero por sprint y luego por historia/tarea  
-**Para** encontrar más rápido la HU correcta en proyectos grandes sin confundir tareas con el mismo orden en distintos sprints  
-
-**Criterios de aceptación:**
-
-**Modelo de datos**
-- Se mantiene `task_number` global por proyecto (identificador único, sin cambios).
-- Se añade `sprint_order` (orden 1, 2, 3… dentro del sprint) al asignar tarea a un sprint.
-- `depends_on_task_id` sigue siendo UUID (sin cambios en la lógica de validación).
-
-**Selector de dependencia (dos pasos)**
-- Paso 1: elegir sprint — opciones: sprint de la tarea actual, backlog, otros sprints del proyecto, **Todos**.
-- Paso 2: buscar y elegir tarea dentro del filtro (por título, `#global`, `HU-3` / orden en sprint).
-- Opción **Sin dependencia** siempre visible.
-- Etiqueta en lista: `Sprint 1 · HU-3 · Título` + `#58` global en tooltip o texto secundario.
-
-**Dependencias entre sprints**
-- Permitir depender de tareas de otro sprint (ej. Sprint 2 depende de Sprint 1).
-- Sección **"Otros sprints"** o filtro "Todos" para dependencias cross-sprint.
-
-**Agrupación visual (opcional en este sprint)**
-- En vista de proyecto, las tareas del sprint seleccionado muestran orden `HU-1`, `HU-2`, etc. además del `#global`.
-
-**Puntos:** 8  
-**Prioridad:** P3 — Baja *(stretch goal — última HU del sprint)*  
-**Asignado:** Rubén González  
-**Depende de:** HU-01, HU-02 (recomendado completar el bloqueo operativo antes)  
-**Notas técnicas:**
-- Migración: `ALTER TABLE tasks ADD COLUMN sprint_order INTEGER`.
-- Autoasignar `sprint_order` al crear/mover tarea a sprint (MAX + 1 por `sprint_id`).
-- Actualizar `SingleSelectTask` → selector en dos pasos o componente nuevo `SprintTaskSelect`.
-- No reemplazar `task_number`; mostrar ambos en UI.
-
----
-
 ## Orden de ejecución recomendado
 
 | Orden | HU | Prioridad | Responsable |
@@ -268,26 +231,21 @@ Hacer que las **dependencias entre tareas sean operativas**, no solo informativa
 | 6 | HU-05 | **P2** | Sebastián |
 | 7 | HU-06 | **P2** | Sebastián |
 | 8 | HU-08 | **P2** | José |
-| 9 | **HU-09** | **P3** | **Rubén González** *(última HU del sprint)* |
 
 ---
 
 ## Demo del sprint
 
-1. Crear tarea **#56** "Configurar impresora" (Sprint 1 · HU-6) y **#57** "Mover comanda" (Sprint 2 · HU-1) con dependencia en #56 usando filtro por sprint.
+1. Crear tarea **#56** "Configurar impresora" y **#57** "Mover comanda" con dependencia en #56.
 2. Intentar mover #57 a **En Progreso** en Kanban → bloqueado + mensaje claro.
 3. Completar #56 → #57 se desbloquea.
 4. Ver badge en Kanban y filtro en Mis Tareas.
-5. Mostrar selector de dependencia: Sprint 1 → HU-6, sin confundir con HU-6 del Sprint 2.
 
----
 ---
 
 ## Riesgos
 
 | Riesgo | Mitigación |
 |--------|------------|
-| HU-09 al final del sprint sin tiempo | Es stretch goal; HU-01 a HU-08 son prioridad |
-| Confusión entre `task_number` y `sprint_order` | Siempre mostrar ambos en UI |
-| Dependencias cross-sprint poco descubribles | Filtro "Todos" y sección "Otros sprints" |
 | Optimistic update en Kanban | Revertir si API devuelve 400 (HU-03) |
+| Mensajes de error no visibles en UI | Priorizar HU-02 tras HU-01 |
