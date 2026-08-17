@@ -1,0 +1,17 @@
+# Sprints — SynchroManage
+
+Planificación del equipo (Rubén González, José, Sebastián).
+
+| Sprint | Tema | Documento |
+|--------|------|-----------|
+| **1** | Dependencias operativas y visibilidad de bloqueos | [sprint-01-dependencias.md](./sprint-01-dependencias.md) |
+| **2** | Organización por sprint, dependencias múltiples y selector por sprint | [sprint-02-organizacion-por-sprint.md](./sprint-02-organizacion-por-sprint.md) |
+| **3** | Productividad (búsqueda, bugs global) y calidad al cerrar | [sprint-03-productividad-y-calidad.md](./sprint-03-productividad-y-calidad.md) |
+
+## Orden recomendado
+
+1. **Sprint 1** — Base de dependencias (API + UI).
+2. **Sprint 2** — Numeración por sprint y selector de dependencias (cambio de mayor alcance, antes HU-09).
+3. **Sprint 3** — Búsqueda global, triage de bugs e historial/reglas de cierre.
+
+Cada sprint está pensado para **~2 semanas** con **~30–33 story points** para 3 desarrolladores.

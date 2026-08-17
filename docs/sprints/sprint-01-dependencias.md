@@ -62,7 +62,7 @@ Hacer que las **dependencias entre tareas sean operativas**, no solo informativa
 | HU-07 | Pruebas automatizadas | **P1** | 3 | Rubén González |
 | HU-08 | Documentación | **P2** | 2 | José |
 
-> **Nota:** La agrupación de dependencias por sprint y numeración `HU-N` por sprint se planificará en un sprint aparte (cambio de mayor alcance).
+> **Nota:** La agrupación por sprint, numeración `HU-N` y **dependencias múltiples** están planificadas en **[Sprint 2](./sprint-02-organizacion-por-sprint.md)** (HU-09).
 
 ---
 

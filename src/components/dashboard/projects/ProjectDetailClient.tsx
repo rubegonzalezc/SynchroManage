@@ -28,6 +28,7 @@ import { BugSection } from './BugSection'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useUsers } from '@/hooks/useUsers'
 import { useProject } from '@/hooks/useProject'
+import { FormattedText } from '@/components/ui/formatted-text'
 
 // Lazy load de componentes pesados — solo se cargan cuando se necesitan
 const KanbanBoard = lazy(() => import('./KanbanBoard').then(m => ({ default: m.KanbanBoard })))
@@ -320,7 +321,9 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             </Link>
             <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-[1.15]">{project.name}</h1>
             {project.description && (
-              <p className="text-[15px] text-muted-foreground mt-1.5 max-w-2xl">{project.description}</p>
+              <p className="text-[15px] text-muted-foreground mt-1.5 max-w-2xl">
+                <FormattedText>{project.description}</FormattedText>
+              </p>
             )}
           </div>
           <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold mt-7 ${statusColors[project.status]}`}>
@@ -452,7 +455,9 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           </Link>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-[1.15]">{project.name}</h1>
           {project.description && (
-            <p className="text-[15px] text-muted-foreground mt-1.5 max-w-2xl">{project.description}</p>
+            <p className="text-[15px] text-muted-foreground mt-1.5 max-w-2xl">
+              <FormattedText>{project.description}</FormattedText>
+            </p>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 pt-7">

@@ -187,7 +187,7 @@ export function CreateProjectDialog({ onProjectCreated }: CreateProjectDialogPro
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descripción del proyecto"
+              placeholder="Descripción del proyecto. Usa **negrita** o *cursiva*."
               disabled={loading || success}
             />
           </div>

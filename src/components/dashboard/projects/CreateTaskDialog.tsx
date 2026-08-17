@@ -200,7 +200,7 @@ export function CreateTaskDialog({ projectId, projectName, members, tasks = [], 
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe la tarea en detalle..."
+              placeholder="Describe la tarea. Usa **negrita** o *cursiva*."
               disabled={loading || success}
               className="min-h-[100px] resize-y"
             />
