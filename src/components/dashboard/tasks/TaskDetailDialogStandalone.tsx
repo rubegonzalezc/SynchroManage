@@ -28,6 +28,7 @@ import { TASK_CATEGORIES } from '@/lib/constants/categories'
 import { getBranchName } from '@/lib/utils/branch-name'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
 import { SingleSelectTask, type TaskOption } from '@/components/ui/single-select-task'
+import { FormattedText } from '@/components/ui/formatted-text'
 
 interface User {
   id: string
@@ -433,9 +434,15 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe la tarea en detalle..."
+                    placeholder="Describe la tarea. Usa **negrita** o *cursiva*."
                     className="min-h-[100px] resize-y"
                   />
+                  {formData.description.trim() && (
+                    <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80 mb-1">Vista previa</p>
+                      <FormattedText>{formData.description}</FormattedText>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

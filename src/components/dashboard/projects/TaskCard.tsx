@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, memo, type CSSProperties } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { FormattedText } from '@/components/ui/formatted-text'
 import type { DraggableAttributes } from '@dnd-kit/core'
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
 import { Box, Typography } from '@mui/material'
@@ -171,6 +172,7 @@ function TaskCardView({
 
           {task.description && (
             <Typography
+              component="div"
               sx={{
                 fontSize: 12,
                 color: 'text.secondary',
@@ -181,7 +183,7 @@ function TaskCardView({
                 mb: 1,
               }}
             >
-              {task.description}
+              <FormattedText boldClassName="font-semibold">{task.description}</FormattedText>
             </Typography>
           )}
 

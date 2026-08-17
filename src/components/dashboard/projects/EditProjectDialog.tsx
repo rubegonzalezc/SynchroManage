@@ -192,7 +192,7 @@ export function EditProjectDialog({ project, onProjectUpdated, onCompletedWithPe
 
           <div className="space-y-2">
             <Label htmlFor="edit_description">Descripción</Label>
-            <Input id="edit_description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Descripción del proyecto" disabled={loading || success} />
+            <Input id="edit_description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Descripción del proyecto. Usa **negrita** o *cursiva*." disabled={loading || success} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
