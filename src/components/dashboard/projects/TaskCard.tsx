@@ -8,7 +8,7 @@ import type { DraggableAttributes } from '@dnd-kit/core'
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
 import { Box, Typography } from '@mui/material'
 import { AvatarStack } from '@/components/ui/avatar-stack'
-import { Calendar, GripVertical, RefreshCw } from 'lucide-react'
+import { Calendar, GripVertical, RefreshCw, Pencil } from 'lucide-react'
 import { TaskDetailDialog } from './TaskDetailDialog'
 import { categoryIcons, categoryLabels } from '@/lib/constants/categories'
 import { useTheme } from '@/components/theme-provider'
@@ -71,6 +71,7 @@ interface TaskCardViewProps extends TaskCardBaseProps {
     listeners: SyntheticListenerMap | undefined
   }
   onOpenDetail?: () => void
+  onOpenEdit?: () => void
 }
 
 function TaskCardView({
@@ -81,6 +82,7 @@ function TaskCardView({
   isSortableDragging = false,
   dragHandleProps,
   onOpenDetail,
+  onOpenEdit,
 }: TaskCardViewProps) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
@@ -100,6 +102,7 @@ function TaskCardView({
       style={style}
       onClick={isOverlay ? undefined : onOpenDetail}
       sx={{
+        position: 'relative',
         p: 1.5,
         borderRadius: '16px',
         cursor: isOverlay ? 'grabbing' : 'pointer',
@@ -125,8 +128,53 @@ function TaskCardView({
                 ? '0 12px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08)'
                 : '0 14px 32px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255,255,255,1)',
             },
+        '& .task-card-edit-btn': {
+          opacity: 0.7,
+        },
+        '&:hover .task-card-edit-btn': {
+          opacity: 1,
+        },
       }}
     >
+      {!isOverlay && onOpenEdit && (
+        <Box
+          component="button"
+          type="button"
+          className="task-card-edit-btn"
+          aria-label="Editar tarea"
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation()
+            onOpenEdit()
+          }}
+          sx={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            zIndex: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            p: 0,
+            border: 0,
+            borderRadius: '8px',
+            cursor: 'pointer',
+            color: 'text.secondary',
+            bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.92)',
+            boxShadow: isDark
+              ? '0 2px 8px rgba(0,0,0,0.25)'
+              : '0 2px 8px rgba(15,23,42,0.08)',
+            transition: 'opacity 180ms ease, color 180ms ease, background-color 180ms ease',
+            '&:hover': {
+              color: 'primary.main',
+              bgcolor: isDark ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,1)',
+            },
+          }}
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </Box>
+      )}
       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
         <Box
           component="button"
@@ -147,7 +195,7 @@ function TaskCardView({
         >
           <GripVertical className="w-4 h-4" />
         </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ flex: 1, minWidth: 0, pr: onOpenEdit && !isOverlay ? 3 : 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
             {task.task_number != null && (
               <Box
@@ -233,8 +281,16 @@ function TaskCardView({
 
 function SortableTaskCard(props: TaskCardBaseProps & { highlightId?: string | null }) {
   const [showDetail, setShowDetail] = useState(false)
+  const [detailMode, setDetailMode] = useState<'view' | 'edit'>('view')
+  const [dialogSession, setDialogSession] = useState(0)
   const [highlighted, setHighlighted] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
+
+  const openDialog = (mode: 'view' | 'edit') => {
+    setDetailMode(mode)
+    setDialogSession((session) => session + 1)
+    setShowDetail(true)
+  }
 
   useEffect(() => {
     if (props.highlightId === props.task.id) {
@@ -280,15 +336,21 @@ function SortableTaskCard(props: TaskCardBaseProps & { highlightId?: string | nu
         style={style}
         isSortableDragging={isSortableDragging}
         dragHandleProps={{ attributes, listeners }}
-        onOpenDetail={() => setShowDetail(true)}
+        onOpenDetail={() => openDialog('view')}
+        onOpenEdit={() => openDialog('edit')}
       />
 
       <TaskDetailDialog
+        key={dialogSession}
         taskId={props.task.id}
         projectId={props.projectId}
         projectName={props.projectName}
         open={showDetail}
-        onOpenChange={setShowDetail}
+        onOpenChange={(open) => {
+          setShowDetail(open)
+          if (!open) setDetailMode('view')
+        }}
+        initialMode={detailMode}
         members={props.members}
         allUsers={props.allUsers}
         currentUserId={props.currentUserId}
