@@ -119,7 +119,7 @@ const statusColors: Record<string, string> = {
 }
 
 export function ProjectDetailClient({ projectId, backHref = '/projects', backLabel = 'Volver a proyectos' }: { projectId: string; backHref?: string; backLabel?: string }) {
-  const { project, isLoading: loading, error: projectError, mutate: mutateProject, optimisticMoveTask } = useProject(projectId)
+  const { project, isLoading: loading, error: projectError, mutate: mutateProject, optimisticMoveTask, applyTaskPatch } = useProject(projectId)
   const { users } = useUsers()
   const { currentUserId, currentUserRole } = useCurrentUser()
   const searchParams = useSearchParams()
@@ -698,6 +698,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               currentUserId={currentUserId}
               onTasksChange={mutateProject}
               onOptimisticMove={optimisticMoveTask}
+              onTaskPatched={applyTaskPatch}
               highlightId={highlightId}
             />
           </Suspense>

@@ -49,6 +49,7 @@ interface UseProjectReturn {
   error: Error | undefined
   mutate: () => void
   optimisticMoveTask: (taskId: string, newStatus: string, newPosition: number) => void
+  applyTaskPatch: (task: Partial<Task> & { id: string }) => void
 }
 
 export function useProject(projectId: string): UseProjectReturn {
@@ -72,11 +73,27 @@ export function useProject(projectId: string): UseProjectReturn {
     )
   }
 
+  const applyTaskPatch = (task: Partial<Task> & { id: string }) => {
+    if (!data) return
+    mutate(
+      {
+        project: {
+          ...data.project,
+          tasks: data.project.tasks.map((t) =>
+            t.id === task.id ? { ...t, ...task } : t
+          ),
+        },
+      },
+      { revalidate: false }
+    )
+  }
+
   return {
     project: data?.project,
     isLoading,
     error,
     mutate,
     optimisticMoveTask,
+    applyTaskPatch,
   }
 }
