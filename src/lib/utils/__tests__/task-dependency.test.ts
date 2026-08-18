@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatBlockedByDependencyMessage,
+  getDependencyBlockedMessageForStatus,
   isAdvancedTaskStatus,
 } from '../task-dependency'
 
@@ -31,5 +32,29 @@ describe('formatBlockedByDependencyMessage', () => {
         { task_number: 57, title: 'Validar red' },
       ])
     ).toBe('No puedes avanzar esta tarea hasta completar #56 Configurar impresora y #57 Validar red')
+  })
+})
+
+describe('getDependencyBlockedMessageForStatus', () => {
+  const pendingDep = { id: '1', task_number: 56, title: 'Configurar impresora', status: 'todo' }
+  const doneDep = { id: '2', task_number: 57, title: 'Validar red', status: 'done' }
+
+  it('bloquea columnas avanzadas con dependencias pendientes', () => {
+    expect(getDependencyBlockedMessageForStatus([pendingDep], 'in_progress')).toBe(
+      'No puedes avanzar esta tarea hasta completar #56 Configurar impresora'
+    )
+    expect(getDependencyBlockedMessageForStatus([pendingDep], 'review')).toContain('Configurar impresora')
+    expect(getDependencyBlockedMessageForStatus([pendingDep], 'done')).toContain('Configurar impresora')
+  })
+
+  it('permite backlog y todo aunque haya dependencias pendientes', () => {
+    expect(getDependencyBlockedMessageForStatus([pendingDep], 'backlog')).toBeNull()
+    expect(getDependencyBlockedMessageForStatus([pendingDep], 'todo')).toBeNull()
+  })
+
+  it('permite columnas avanzadas si todas las dependencias están completadas', () => {
+    expect(getDependencyBlockedMessageForStatus([doneDep], 'in_progress')).toBeNull()
+    expect(getDependencyBlockedMessageForStatus([pendingDep, doneDep], 'review')).toContain('Configurar impresora')
+    expect(getDependencyBlockedMessageForStatus([doneDep], 'done')).toBeNull()
   })
 })

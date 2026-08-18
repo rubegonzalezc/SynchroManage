@@ -19,11 +19,23 @@ interface KanbanColumnProps {
   count: number
   children: ReactNode
   isDragTarget?: boolean
+  isDropForbidden?: boolean
+  isForbiddenHover?: boolean
 }
 
-export const KanbanColumn = memo(function KanbanColumn({ id, title, color, count, children, isDragTarget }: KanbanColumnProps) {
+export const KanbanColumn = memo(function KanbanColumn({
+  id,
+  title,
+  color,
+  count,
+  children,
+  isDragTarget,
+  isDropForbidden,
+  isForbiddenHover,
+}: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id })
-  const highlighted = isOver || isDragTarget
+  const highlighted = (isOver || isDragTarget) && !isDropForbidden
+  const forbiddenActive = isDropForbidden && (isOver || isForbiddenHover)
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
 
@@ -45,19 +57,30 @@ export const KanbanColumn = memo(function KanbanColumn({ id, title, color, count
         flexShrink: 0,
         borderRadius: '24px',
         overflow: 'hidden',
-        bgcolor: highlighted
-          ? (isDark ? 'rgba(37, 99, 235, 0.16)' : 'rgba(37, 99, 235, 0.08)')
-          : (isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.58)'),
+        bgcolor: forbiddenActive
+          ? (isDark ? 'rgba(239, 68, 68, 0.18)' : 'rgba(239, 68, 68, 0.1)')
+          : isDropForbidden
+            ? (isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.05)')
+            : highlighted
+              ? (isDark ? 'rgba(37, 99, 235, 0.16)' : 'rgba(37, 99, 235, 0.08)')
+              : (isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.58)'),
         backdropFilter: 'blur(28px) saturate(180%)',
         WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-        border: highlighted
-          ? '1px solid rgba(37, 99, 235, 0.4)'
-          : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.7)'),
-        boxShadow: highlighted
-          ? '0 16px 40px rgba(37, 99, 235, 0.16), inset 0 1px 0 rgba(255,255,255,0.2)'
-          : (isDark
-            ? '0 12px 36px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08)'
-            : '0 12px 36px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255,255,255,0.7)'),
+        border: forbiddenActive
+          ? '1px solid rgba(239, 68, 68, 0.55)'
+          : isDropForbidden
+            ? '1px dashed rgba(239, 68, 68, 0.38)'
+            : highlighted
+              ? '1px solid rgba(37, 99, 235, 0.4)'
+              : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.7)'),
+        boxShadow: forbiddenActive
+          ? '0 16px 40px rgba(239, 68, 68, 0.18), inset 0 1px 0 rgba(255,255,255,0.12)'
+          : highlighted
+            ? '0 16px 40px rgba(37, 99, 235, 0.16), inset 0 1px 0 rgba(255,255,255,0.2)'
+            : (isDark
+              ? '0 12px 36px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08)'
+              : '0 12px 36px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255,255,255,0.7)'),
+        opacity: isDropForbidden && !forbiddenActive ? 0.82 : 1,
         backgroundImage: isDark
           ? 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 36%)'
           : 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, transparent 36%)',
