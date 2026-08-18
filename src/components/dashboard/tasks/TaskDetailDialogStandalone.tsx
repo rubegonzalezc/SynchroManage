@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -31,6 +31,9 @@ import { getBranchName } from '@/lib/utils/branch-name'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
 import { MultiSelectTask, type TaskOption } from '@/components/ui/multi-select-task'
 import { FormattedText } from '@/components/ui/formatted-text'
+import { resolveDependencyTasks } from '@/lib/utils/task-dependency'
+import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
 
 interface User {
   id: string
@@ -374,6 +377,28 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
     })
   }
 
+  const dependencyTasks = resolveDependencyTasks(
+    formData.depends_on_task_ids,
+    task?.dependencies,
+    projectTasks
+  )
+
+  const handleProjectTaskStatusUpdate = useCallback((updatedTaskId: string, status: string) => {
+    setProjectTasks((prev) =>
+      prev.map((t) => (t.id === updatedTaskId ? { ...t, status } : t))
+    )
+    setTask((prev) => {
+      if (!prev?.dependencies?.length) return prev
+      return {
+        ...prev,
+        dependencies: prev.dependencies.map((dep) =>
+          dep.id === updatedTaskId ? { ...dep, status } : dep
+        ),
+      }
+    })
+  }, [])
+
+  useProjectTaskStatusRealtime(task?.project?.id, open, handleProjectTaskStatusUpdate)
 
   return (
     <>
@@ -471,14 +496,11 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Estado</Label>
+                    <DependencyBlockedWarning dependencyTasks={dependencyTasks} />
                     <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="backlog">Backlog</SelectItem>
-                        <SelectItem value="todo">Por Hacer</SelectItem>
-                        <SelectItem value="in_progress">En Progreso</SelectItem>
-                        <SelectItem value="review">En Revisión</SelectItem>
-                        <SelectItem value="done">Completado</SelectItem>
+                        {renderTaskStatusSelectItems(dependencyTasks)}
                       </SelectContent>
                     </Select>
                   </div>

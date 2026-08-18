@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Button, Menu, MenuItem, ListSubheader, Divider } from '@mui/material'
+import { Box, Button, Divider, ListSubheader, Menu, MenuItem, Tooltip } from '@mui/material'
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +25,12 @@ function useSelect() {
 function collectLabels(node: React.ReactNode, acc: Record<string, React.ReactNode>) {
   React.Children.forEach(node, (child) => {
     if (!React.isValidElement(child)) return
+
+    if (child.type === React.Fragment) {
+      collectLabels((child.props as { children?: React.ReactNode }).children, acc)
+      return
+    }
+
     const type = child.type as { displayName?: string; isSelectItem?: boolean } | string
     const props = child.props as { value?: unknown; children?: React.ReactNode }
     if (
@@ -147,27 +153,41 @@ function SelectItem({
   children,
   disabled,
   className,
+  tooltipTitle,
 }: {
   value: string
   children?: React.ReactNode
   disabled?: boolean
   className?: string
+  tooltipTitle?: string
 }) {
   const ctx = useSelect()
 
-  return (
+  const item = (
     <MenuItem
       disabled={disabled}
       selected={ctx.value === value}
       className={className}
       onClick={() => {
+        if (disabled) return
         ctx.onValueChange?.(value)
         ctx.setAnchor(null)
       }}
+      sx={disabled ? { width: '100%', opacity: 0.55 } : undefined}
     >
-      {children}
+      {disabled && tooltipTitle ? (
+        <Tooltip title={tooltipTitle} arrow placement="left" disableInteractive>
+          <Box component="span" sx={{ display: 'block', width: '100%' }}>
+            {children}
+          </Box>
+        </Tooltip>
+      ) : (
+        children
+      )}
     </MenuItem>
   )
+
+  return item
 }
 SelectItem.displayName = 'SelectItem'
 ;(SelectItem as typeof SelectItem & { isSelectItem: boolean }).isSelectItem = true

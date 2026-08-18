@@ -3,6 +3,7 @@ import {
   formatBlockedByDependencyMessage,
   getDependencyBlockedMessageForStatus,
   isAdvancedTaskStatus,
+  resolveDependencyTasks,
 } from '../task-dependency'
 
 describe('isAdvancedTaskStatus', () => {
@@ -56,5 +57,18 @@ describe('getDependencyBlockedMessageForStatus', () => {
     expect(getDependencyBlockedMessageForStatus([doneDep], 'in_progress')).toBeNull()
     expect(getDependencyBlockedMessageForStatus([pendingDep, doneDep], 'review')).toContain('Configurar impresora')
     expect(getDependencyBlockedMessageForStatus([doneDep], 'done')).toBeNull()
+  })
+})
+
+describe('resolveDependencyTasks', () => {
+  it('prioriza el estado actualizado de projectTasks sobre dependencies cacheadas', () => {
+    const result = resolveDependencyTasks(
+      ['dep-1'],
+      [{ id: 'dep-1', task_number: 56, title: 'Configurar impresora', status: 'todo' }],
+      [{ id: 'dep-1', task_number: 56, title: 'Configurar impresora', status: 'done' }]
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.status).toBe('done')
   })
 })

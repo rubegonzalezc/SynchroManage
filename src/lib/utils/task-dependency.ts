@@ -324,6 +324,17 @@ type TaskDependencyLookup = Pick<TaskDependencyRef, 'id' | 'task_number' | 'titl
   status?: string
 }
 
+function mergeDependencyStatus(
+  ref: TaskDependencyRef,
+  fallbackTasks?: TaskDependencyLookup[]
+): TaskDependencyRef {
+  const live = fallbackTasks?.find((task) => task.id === ref.id)
+  if (live?.status) {
+    return { ...ref, status: live.status }
+  }
+  return ref
+}
+
 export function resolveDependencyTask(
   dependsOnTaskId: string | null | undefined,
   dependsOnRaw: unknown,
@@ -362,13 +373,17 @@ export function resolveDependencyTasks(
     )
     if (refs.length > 0) {
       const byId = new Map(refs.map((ref) => [ref.id, ref]))
-      return ids.map((id) => byId.get(id)).filter((ref): ref is TaskDependencyRef => !!ref)
+      return ids
+        .map((id) => byId.get(id))
+        .filter((ref): ref is TaskDependencyRef => !!ref)
+        .map((ref) => mergeDependencyStatus(ref, fallbackTasks))
     }
   }
 
   return ids
     .map((id) => resolveDependencyTask(id, null, fallbackTasks))
     .filter((ref): ref is TaskDependencyRef => !!ref)
+    .map((ref) => mergeDependencyStatus(ref, fallbackTasks))
 }
 
 export function enrichTasksWithDependencies<
