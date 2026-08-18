@@ -6,13 +6,19 @@ import { CSS } from '@dnd-kit/utilities'
 import { FormattedText } from '@/components/ui/formatted-text'
 import type { DraggableAttributes } from '@dnd-kit/core'
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities'
-import { Box, Typography } from '@mui/material'
+import { Box, Typography, Tooltip } from '@mui/material'
 import { AvatarStack } from '@/components/ui/avatar-stack'
-import { Calendar, GripVertical, RefreshCw, Pencil } from 'lucide-react'
+import { Calendar, GitBranch, GripVertical, RefreshCw, Pencil } from 'lucide-react'
 import { TaskDetailDialog } from './TaskDetailDialog'
 import { categoryIcons, categoryLabels } from '@/lib/constants/categories'
 import { useTheme } from '@/components/theme-provider'
 import { tokens } from '@/theme/designTokens'
+import {
+  formatTaskBlockedBadgeLabel,
+  formatTaskBlockedTooltipTitle,
+  getPendingDependencies,
+  type TaskDependencyRef,
+} from '@/lib/utils/task-dependency'
 
 interface Task {
   id: string
@@ -28,6 +34,7 @@ interface Task {
   is_carry_over?: boolean
   complexity?: number | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
+  dependencies?: TaskDependencyRef[]
 }
 
 interface Member {
@@ -95,6 +102,9 @@ function TaskCardView({
 
   const isOverdue = Boolean(task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done')
   const priority = priorityMeta[task.priority] || priorityMeta.medium
+  const pendingDependencies = getPendingDependencies(task.dependencies ?? [])
+  const blockedBadgeLabel = formatTaskBlockedBadgeLabel(pendingDependencies)
+  const blockedTooltipTitle = formatTaskBlockedTooltipTitle(pendingDependencies)
 
   return (
     <Box
@@ -235,6 +245,57 @@ function TaskCardView({
             </Typography>
           )}
 
+          {pendingDependencies.length > 0 && (
+            <Tooltip
+              title={
+                <Box component="span" sx={{ display: 'block', whiteSpace: 'pre-line', fontSize: 12, lineHeight: 1.45 }}>
+                  {blockedTooltipTitle}
+                </Box>
+              }
+              arrow
+              placement="top"
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    maxWidth: 280,
+                    bgcolor: isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+                    color: 'text.primary',
+                    border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(15,23,42,0.08)',
+                    backdropFilter: 'blur(12px)',
+                    boxShadow: isDark
+                      ? '0 12px 32px rgba(0,0,0,0.35)'
+                      : '0 12px 32px rgba(15,23,42,0.12)',
+                  },
+                },
+              }}
+            >
+              <Box
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  mb: 0.85,
+                  px: 0.75,
+                  py: 0.25,
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 650,
+                  letterSpacing: '-0.01em',
+                  color: isDark ? '#FCA5A5' : '#B91C1C',
+                  bgcolor: isDark ? 'rgba(239, 68, 68, 0.16)' : 'rgba(239, 68, 68, 0.1)',
+                  border: isDark ? '1px solid rgba(248, 113, 113, 0.28)' : '1px solid rgba(239, 68, 68, 0.22)',
+                  boxShadow: isDark
+                    ? 'inset 0 1px 0 rgba(255,255,255,0.06)'
+                    : 'inset 0 1px 0 rgba(255,255,255,0.65)',
+                }}
+              >
+                <GitBranch className="w-3 h-3" strokeWidth={2.25} />
+                {blockedBadgeLabel}
+              </Box>
+            </Tooltip>
+          )}
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
             {task.is_carry_over && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, fontSize: 11, color: '#FF9F0A', fontWeight: 600 }}>
@@ -371,6 +432,13 @@ export const TaskCard = memo(function TaskCard({
 
   return <SortableTaskCard {...props} />
 }, (prev, next) => {
+  const prevDeps = (prev.task.dependencies ?? [])
+    .map((dep) => `${dep.id}:${dep.status}`)
+    .join('|')
+  const nextDeps = (next.task.dependencies ?? [])
+    .map((dep) => `${dep.id}:${dep.status}`)
+    .join('|')
+
   return (
     prev.task.id === next.task.id &&
     prev.task.title === next.task.title &&
@@ -382,6 +450,7 @@ export const TaskCard = memo(function TaskCard({
     prev.task.complexity === next.task.complexity &&
     prev.task.is_carry_over === next.task.is_carry_over &&
     prev.task.assignees.length === next.task.assignees.length &&
+    prevDeps === nextDeps &&
     prev.variant === next.variant &&
     prev.isDragging === next.isDragging &&
     prev.highlightId === next.highlightId &&

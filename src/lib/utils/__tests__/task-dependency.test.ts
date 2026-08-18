@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatBlockedByDependencyMessage,
+  formatTaskBlockedBadgeLabel,
+  formatTaskBlockedTooltipTitle,
   getDependencyBlockedMessageForStatus,
+  getPendingDependencies,
   isAdvancedTaskStatus,
 } from '../task-dependency'
 
@@ -56,5 +59,33 @@ describe('getDependencyBlockedMessageForStatus', () => {
     expect(getDependencyBlockedMessageForStatus([doneDep], 'in_progress')).toBeNull()
     expect(getDependencyBlockedMessageForStatus([pendingDep, doneDep], 'review')).toContain('Configurar impresora')
     expect(getDependencyBlockedMessageForStatus([doneDep], 'done')).toBeNull()
+  })
+})
+
+describe('formatTaskBlockedBadgeLabel', () => {
+  it('muestra una sola dependencia con número de tarea', () => {
+    expect(
+      formatTaskBlockedBadgeLabel([{ task_number: 56, title: 'Configurar impresora' }])
+    ).toBe('Bloqueada · #56')
+  })
+
+  it('resume varias dependencias pendientes', () => {
+    expect(
+      formatTaskBlockedBadgeLabel([
+        { task_number: 56, title: 'Configurar impresora' },
+        { task_number: 57, title: 'Validar red' },
+      ])
+    ).toBe('Bloqueada · #56 +1')
+  })
+})
+
+describe('formatTaskBlockedTooltipTitle', () => {
+  it('lista el título completo de cada dependencia', () => {
+    expect(
+      formatTaskBlockedTooltipTitle([
+        { task_number: 56, title: 'Configurar impresora' },
+        { task_number: 57, title: 'Validar red' },
+      ])
+    ).toBe('#56 Configurar impresora\n#57 Validar red')
   })
 })
