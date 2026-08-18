@@ -52,9 +52,16 @@ interface UseProjectReturn {
   applyTaskPatch: (task: Partial<Task> & { id: string }) => void
 }
 
+const projectFetcher = (url: string) =>
+  fetch(url, { cache: 'no-store' }).then((res) => {
+    if (!res.ok) throw new Error('Error al cargar el proyecto')
+    return res.json()
+  })
+
 export function useProject(projectId: string): UseProjectReturn {
   const { data, error, isLoading, mutate } = useSWR<{ project: Project }>(
-    projectId ? `/api/dashboard/projects/${projectId}` : null
+    projectId ? `/api/dashboard/projects/${projectId}` : null,
+    projectFetcher
   )
 
   // Optimistic update para mover tareas en el Kanban sin esperar al servidor

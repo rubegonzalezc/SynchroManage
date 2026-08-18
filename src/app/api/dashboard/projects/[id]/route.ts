@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { enrichTasksWithDependencyList, fetchProjectDependencyMap } from '@/lib/utils/task-dependency'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { unstable_cache, revalidateTag } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 // Función para crear notificación
@@ -37,67 +37,61 @@ function getSupabaseAdmin() {
   )
 }
 
-function getCachedProject(projectId: string) {
-  return unstable_cache(
-    async () => {
-      const admin = getSupabaseAdmin()
+async function fetchProject(projectId: string) {
+  const admin = getSupabaseAdmin()
 
-      const { data: project, error } = await admin
-        .from('projects')
-        .select(`
-          *,
-          company:companies(id, name),
-          pm:profiles!projects_pm_id_fkey(id, full_name, email, avatar_url),
-          tech_lead:profiles!projects_tech_lead_id_fkey(id, full_name, email, avatar_url),
-          members:project_members(
-            id,
-            role,
-            user:profiles(id, full_name, email, avatar_url, role:roles(name))
-          ),
-          tasks(
-            id, task_number, title, description, status, priority, category, position, due_date, created_at,
-            sprint_id, is_carry_over, complexity, depends_on_task_id,
-            assignee:profiles!tasks_assignee_id_fkey(id, full_name, avatar_url)
-          ),
-          sprints(
-            id, name, goal, start_date, end_date, status, order_index, created_at
-          )
-        `)
-        .eq('id', projectId)
-        .single()
+  const { data: project, error } = await admin
+    .from('projects')
+    .select(`
+      *,
+      company:companies(id, name),
+      pm:profiles!projects_pm_id_fkey(id, full_name, email, avatar_url),
+      tech_lead:profiles!projects_tech_lead_id_fkey(id, full_name, email, avatar_url),
+      members:project_members(
+        id,
+        role,
+        user:profiles(id, full_name, email, avatar_url, role:roles(name))
+      ),
+      tasks(
+        id, task_number, title, description, status, priority, category, position, due_date, created_at,
+        sprint_id, is_carry_over, complexity, depends_on_task_id,
+        assignee:profiles!tasks_assignee_id_fkey(id, full_name, avatar_url)
+      ),
+      sprints(
+        id, name, goal, start_date, end_date, status, order_index, created_at
+      )
+    `)
+    .eq('id', projectId)
+    .single()
 
-      if (error) throw new Error(error.message)
+  if (error) throw new Error(error.message)
 
-      if (project?.sprints) {
-        project.sprints.sort(
-          (a: { order_index: number; created_at: string }, b: { order_index: number; created_at: string }) =>
-            a.order_index !== b.order_index
-              ? a.order_index - b.order_index
-              : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        )
-      }
+  if (project?.sprints) {
+    project.sprints.sort(
+      (a: { order_index: number; created_at: string }, b: { order_index: number; created_at: string }) =>
+        a.order_index !== b.order_index
+          ? a.order_index - b.order_index
+          : new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  }
 
-      if (project?.tasks) {
-        const dependencyMap = await fetchProjectDependencyMap(admin, projectId)
-        project.tasks = enrichTasksWithDependencyList(project.tasks, dependencyMap)
-      }
+  if (project?.tasks) {
+    const dependencyMap = await fetchProjectDependencyMap(admin, projectId)
+    project.tasks = enrichTasksWithDependencyList(project.tasks, dependencyMap)
+  }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let projectWithParent: any = project
-      if (project?.parent_project_id) {
-        const { data: parentProject } = await admin
-          .from('projects')
-          .select('id, name')
-          .eq('id', project.parent_project_id)
-          .single()
-        projectWithParent = { ...project, parent_project: parentProject || null }
-      }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let projectWithParent: any = project
+  if (project?.parent_project_id) {
+    const { data: parentProject } = await admin
+      .from('projects')
+      .select('id, name')
+      .eq('id', project.parent_project_id)
+      .single()
+    projectWithParent = { ...project, parent_project: parentProject || null }
+  }
 
-      return projectWithParent
-    },
-    [`project-${projectId}`],
-    { tags: [`project-${projectId}`, 'projects'], revalidate: 60 }
-  )()
+  return projectWithParent
 }
 
 // GET - Obtener proyecto por ID
@@ -114,8 +108,11 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const project = await getCachedProject(id)
-    return NextResponse.json({ project })
+    const project = await fetchProject(id)
+    return NextResponse.json(
+      { project },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    )
   } catch (error) {
     console.error('Error fetching project:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
