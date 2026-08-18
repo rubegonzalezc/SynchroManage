@@ -445,3 +445,34 @@ export function enrichTasksWithDependencyList<
 export function getPendingDependencies(dependencies: TaskDependencyRef[]): TaskDependencyRef[] {
   return dependencies.filter((dep) => dep.status !== 'done')
 }
+
+export function getDependencyBlockedMessageForStatus(
+  dependencies: TaskDependencyRef[],
+  newStatus: string
+): string | null {
+  if (!isAdvancedTaskStatus(newStatus)) return null
+
+  const pending = getPendingDependencies(dependencies)
+  if (pending.length === 0) return null
+
+  return formatBlockedByDependencyMessage(pending)
+}
+
+export function resolveTaskDependenciesForMove(
+  task: {
+    dependencies?: TaskDependencyRef[]
+    depends_on_task_ids?: string[]
+    depends_on_task_id?: string | null
+  },
+  allTasks: TaskDependencyLookup[]
+): TaskDependencyRef[] {
+  if (task.dependencies && task.dependencies.length > 0) {
+    return task.dependencies
+  }
+
+  const dependsOnTaskIds =
+    task.depends_on_task_ids?.filter(Boolean)
+    ?? (task.depends_on_task_id ? [task.depends_on_task_id] : [])
+
+  return resolveDependencyTasks(dependsOnTaskIds, null, allTasks)
+}

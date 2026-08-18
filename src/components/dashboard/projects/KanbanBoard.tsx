@@ -27,6 +27,11 @@ import { TaskCard } from './TaskCard'
 import { createClient } from '@/lib/supabase/client'
 import { snapPointerOffsetToCursor } from '@/lib/dnd/kanban-drag-modifiers'
 import { useDynamicIslandToast } from '@/components/ui/dynamic-island-toast'
+import {
+  getDependencyBlockedMessageForStatus,
+  resolveTaskDependenciesForMove,
+  type TaskDependencyRef,
+} from '@/lib/utils/task-dependency'
 
 interface Task {
   id: string
@@ -43,6 +48,9 @@ interface Task {
   complexity?: number | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
   assignee?: { id: string; full_name: string; avatar_url: string | null } | null
+  dependencies?: TaskDependencyRef[]
+  depends_on_task_ids?: string[]
+  depends_on_task_id?: string | null
 }
 
 interface Member {
@@ -178,6 +186,16 @@ export function KanbanBoard({
       .sort((a, b) => a.position - b.position)
   }
 
+  const getBlockedMessageForMove = (task: Task, targetStatus: string) =>
+    getDependencyBlockedMessageForStatus(
+      resolveTaskDependenciesForMove(task, tasks),
+      targetStatus
+    )
+
+  const activeTaskDependencies = activeTask
+    ? resolveTaskDependenciesForMove(activeTask, tasks)
+    : []
+
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find((t) => t.id === event.active.id)
     if (task) {
@@ -273,6 +291,17 @@ export function KanbanBoard({
 
     // Only update if something actually changed
     if (draggedTask.status === newStatus && draggedTask.position === newPosition) {
+      isDraggingRef.current = false
+      return
+    }
+
+    const blockedMessage =
+      draggedTask.status !== newStatus
+        ? getBlockedMessageForMove(draggedTask, newStatus)
+        : null
+    if (blockedMessage) {
+      showError(blockedMessage)
+      isDraggingRef.current = false
       return
     }
 
@@ -369,11 +398,18 @@ export function KanbanBoard({
         <div className="flex gap-4 overflow-x-auto pb-4">
           {columns.map((column) => {
             const columnTasks = getTasksByStatus(column.id)
-            // Show highlight when dragging into a different column
+            const dropBlockedMessage = activeTask
+              ? getDependencyBlockedMessageForStatus(activeTaskDependencies, column.id)
+              : null
+            const isDropForbidden =
+              !!dropBlockedMessage && activeTask?.status !== column.id
             const isDragTarget =
               activeTask !== null &&
               dragOverColumn === column.id &&
-              activeTask.status !== column.id
+              activeTask.status !== column.id &&
+              !isDropForbidden
+            const isForbiddenHover =
+              isDropForbidden && dragOverColumn === column.id
 
             return (
               <SortableContext
@@ -387,6 +423,8 @@ export function KanbanBoard({
                   color={column.color}
                   count={columnTasks.length}
                   isDragTarget={isDragTarget}
+                  isDropForbidden={isDropForbidden}
+                  isForbiddenHover={isForbiddenHover}
                 >
                   {columnTasks.map((task) => (
                     <TaskCard
