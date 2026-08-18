@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatBlockedByDependencyMessage,
+  formatTaskBlockedBadgeLabel,
+  formatTaskBlockedTooltipTitle,
   getDependencyBlockedMessageForStatus,
+  getPendingDependencies,
   isAdvancedTaskStatus,
   resolveDependencyTasks,
 } from '../task-dependency'

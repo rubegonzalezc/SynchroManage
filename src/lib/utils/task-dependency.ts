@@ -461,6 +461,24 @@ export function getPendingDependencies(dependencies: TaskDependencyRef[]): TaskD
   return dependencies.filter((dep) => dep.status !== 'done')
 }
 
+export function formatTaskBlockedBadgeLabel(
+  pendingDependencies: Array<Pick<TaskDependencyRef, 'task_number' | 'title'>>
+): string {
+  const [first, ...rest] = pendingDependencies
+  if (!first) return ''
+
+  const reference = first.task_number != null ? `#${first.task_number}` : first.title
+  if (rest.length === 0) return `Bloqueada · ${reference}`
+
+  return `Bloqueada · ${reference} +${rest.length}`
+}
+
+export function formatTaskBlockedTooltipTitle(
+  pendingDependencies: Array<Pick<TaskDependencyRef, 'task_number' | 'title'>>
+): string {
+  return pendingDependencies.map((dep) => formatDependencyLabel(dep)).join('\n')
+}
+
 export function getDependencyBlockedMessageForStatus(
   dependencies: TaskDependencyRef[],
   newStatus: string
