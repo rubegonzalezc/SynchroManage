@@ -105,6 +105,13 @@ export function KanbanBoard({
   const tasksBeforeMoveRef = useRef<Task[] | null>(null)
   const isDraggingRef = useRef(false)
   const isSyncingRef = useRef(false)
+  // Evita que realtime/refetch con datos viejos pisen el estado tras un move local
+  const ignoreExternalSyncUntilRef = useRef(0)
+
+  const shouldIgnoreExternalSync = () =>
+    isDraggingRef.current ||
+    isSyncingRef.current ||
+    Date.now() < ignoreExternalSyncUntilRef.current
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeCardWidth, setActiveCardWidth] = useState<number | null>(null)
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null)
@@ -120,7 +127,7 @@ export function KanbanBoard({
 
   // Sync with props when they change from the parent
   useEffect(() => {
-    if (isDraggingRef.current || isSyncingRef.current) return
+    if (shouldIgnoreExternalSync()) return
     setTasks(initialTasks)
   }, [initialTasks])
 
@@ -142,8 +149,8 @@ export function KanbanBoard({
           filter: `project_id=eq.${projectId}`,
         },
         () => {
-          // Ignorar eventos mientras hay drag o PATCH en curso para no pisar el estado optimista
-          if (!isDraggingRef.current && !isSyncingRef.current) {
+          // Ignorar eventos propios o mientras hay drag/PATCH para no pisar el estado optimista
+          if (!shouldIgnoreExternalSync()) {
             onTasksChangeRef.current()
           }
         }
@@ -321,6 +328,8 @@ export function KanbanBoard({
               : t
           )
         )
+        // El evento realtime del mismo PATCH puede disparar un refetch con caché vieja
+        ignoreExternalSyncUntilRef.current = Date.now() + 3000
       }
     } catch (error) {
       console.error('Error updating task:', error)
