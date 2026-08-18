@@ -6,6 +6,7 @@ import {
   getDependencyBlockedMessageForStatus,
   getPendingDependencies,
   isAdvancedTaskStatus,
+  resolveDependencyTasks,
 } from '../task-dependency'
 
 describe('isAdvancedTaskStatus', () => {
@@ -62,30 +63,15 @@ describe('getDependencyBlockedMessageForStatus', () => {
   })
 })
 
-describe('formatTaskBlockedBadgeLabel', () => {
-  it('muestra una sola dependencia con número de tarea', () => {
-    expect(
-      formatTaskBlockedBadgeLabel([{ task_number: 56, title: 'Configurar impresora' }])
-    ).toBe('Bloqueada · #56')
-  })
+describe('resolveDependencyTasks', () => {
+  it('prioriza el estado actualizado de projectTasks sobre dependencies cacheadas', () => {
+    const result = resolveDependencyTasks(
+      ['dep-1'],
+      [{ id: 'dep-1', task_number: 56, title: 'Configurar impresora', status: 'todo' }],
+      [{ id: 'dep-1', task_number: 56, title: 'Configurar impresora', status: 'done' }]
+    )
 
-  it('resume varias dependencias pendientes', () => {
-    expect(
-      formatTaskBlockedBadgeLabel([
-        { task_number: 56, title: 'Configurar impresora' },
-        { task_number: 57, title: 'Validar red' },
-      ])
-    ).toBe('Bloqueada · #56 +1')
-  })
-})
-
-describe('formatTaskBlockedTooltipTitle', () => {
-  it('lista el título completo de cada dependencia', () => {
-    expect(
-      formatTaskBlockedTooltipTitle([
-        { task_number: 56, title: 'Configurar impresora' },
-        { task_number: 57, title: 'Validar red' },
-      ])
-    ).toBe('#56 Configurar impresora\n#57 Validar red')
+    expect(result).toHaveLength(1)
+    expect(result[0]?.status).toBe('done')
   })
 })

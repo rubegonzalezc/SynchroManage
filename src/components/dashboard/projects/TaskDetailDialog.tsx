@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { format } from 'date-fns'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -30,11 +30,11 @@ import { TASK_CATEGORIES, categoryIcons, categoryLabels } from '@/lib/constants/
 import { SingleSelectUser } from '@/components/ui/single-select-user'
 import { MultiSelectTask, type TaskOption } from '@/components/ui/multi-select-task'
 import {
-  formatBlockedByDependencyMessage,
   formatDependencyLabel,
-  getPendingDependencies,
   resolveDependencyTasks,
 } from '@/lib/utils/task-dependency'
+import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
 import { FormattedText } from '@/components/ui/formatted-text'
 import { useDynamicIslandToast } from '@/components/ui/dynamic-island-toast'
 import { readApiError } from '@/lib/utils/api-error'
@@ -118,14 +118,6 @@ const roleLabels: Record<string, string> = {
   tech_lead: 'Tech Lead',
   developer: 'Dev',
   stakeholder: 'Stakeholder',
-}
-
-const taskStatusLabels: Record<string, string> = {
-  backlog: 'Backlog',
-  todo: 'Por Hacer',
-  in_progress: 'En Progreso',
-  review: 'En Revisión',
-  done: 'Completado',
 }
 
 const taskPriorityLabels: Record<string, string> = {
@@ -569,7 +561,23 @@ export function TaskDetailDialog({
     task?.dependencies,
     projectTasks
   )
-  const pendingDependencies = getPendingDependencies(dependencyTasks)
+
+  const handleProjectTaskStatusUpdate = useCallback((updatedTaskId: string, status: string) => {
+    setProjectTasks((prev) =>
+      prev.map((t) => (t.id === updatedTaskId ? { ...t, status } : t))
+    )
+    setTask((prev) => {
+      if (!prev?.dependencies?.length) return prev
+      return {
+        ...prev,
+        dependencies: prev.dependencies.map((dep) =>
+          dep.id === updatedTaskId ? { ...dep, status } : dep
+        ),
+      }
+    })
+  }, [])
+
+  useProjectTaskStatusRealtime(projectId, open, handleProjectTaskStatusUpdate)
 
   const formatDate = (date: string | null) => {
     if (!date) return null
@@ -679,11 +687,7 @@ export function TaskDetailDialog({
               </div>
 
               <SheetSection title="Estado">
-                {pendingDependencies.length > 0 && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200 mb-3">
-                    {formatBlockedByDependencyMessage(pendingDependencies)}
-                  </div>
-                )}
+                <DependencyBlockedWarning dependencyTasks={dependencyTasks} className="mb-3" />
                 <Select
                   value={task.status}
                   onValueChange={handleStatusChange}
@@ -693,9 +697,7 @@ export function TaskDetailDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(taskStatusLabels).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>{label}</SelectItem>
-                    ))}
+                    {renderTaskStatusSelectItems(dependencyTasks)}
                   </SelectContent>
                 </Select>
                 {statusSaving && (
@@ -879,11 +881,7 @@ export function TaskDetailDialog({
             </SheetSection>
 
             <SheetSection title="Planificación">
-                {pendingDependencies.length > 0 && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
-                    {formatBlockedByDependencyMessage(pendingDependencies)}
-                  </div>
-                )}
+                <DependencyBlockedWarning dependencyTasks={dependencyTasks} />
                 {saveError && (
                   <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-3 py-2 text-sm text-red-900 dark:text-red-200">
                     {saveError}
@@ -895,11 +893,7 @@ export function TaskDetailDialog({
                   <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="backlog">Backlog</SelectItem>
-                      <SelectItem value="todo">Por Hacer</SelectItem>
-                      <SelectItem value="in_progress">En Progreso</SelectItem>
-                      <SelectItem value="review">En Revisión</SelectItem>
-                      <SelectItem value="done">Completado</SelectItem>
+                      {renderTaskStatusSelectItems(dependencyTasks)}
                     </SelectContent>
                   </Select>
                 </div>
