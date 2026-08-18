@@ -24,6 +24,8 @@ import { Loader2, Trash2, Send, RefreshCw, ExternalLink, GitBranch, Copy, Check 
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { FileAttachments } from '@/components/ui/file-attachments'
+import { useDynamicIslandToast } from '@/components/ui/dynamic-island-toast'
+import { readApiError } from '@/lib/utils/api-error'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
 import { getBranchName } from '@/lib/utils/branch-name'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
@@ -100,6 +102,7 @@ const roleLabels: Record<string, string> = {
 }
 
 export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskUpdated }: TaskDetailDialogStandaloneProps) {
+  const { showError } = useDynamicIslandToast()
   const [task, setTask] = useState<TaskDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -115,6 +118,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
   const [members, setMembers] = useState<User[]>([])
   const [projectSprints, setProjectSprints] = useState<SprintOption[]>([])
   const [projectTasks, setProjectTasks] = useState<TaskOption[]>([])
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -272,6 +276,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
   const handleSave = async () => {
     if (!task) return
     setSaving(true)
+    setSaveError(null)
     try {
       const response = await fetch(`/api/dashboard/tasks/${taskId}`, {
         method: 'PUT',
@@ -283,12 +288,20 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
           depends_on_task_ids: formData.depends_on_task_ids,
         }),
       })
-      if (response.ok) {
-        fetchTask()
-        onTaskUpdated?.()
+      if (!response.ok) {
+        const errorMessage = await readApiError(response, 'No se pudo guardar la tarea')
+        setSaveError(errorMessage)
+        showError(errorMessage)
+        return
       }
+
+      fetchTask()
+      onTaskUpdated?.()
     } catch (error) {
       console.error('Error saving task:', error)
+      const errorMessage = 'No se pudo guardar la tarea'
+      setSaveError(errorMessage)
+      showError(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -448,6 +461,12 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                     </div>
                   )}
                 </div>
+
+                {saveError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-3 py-2 text-sm text-red-900 dark:text-red-200">
+                    {saveError}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

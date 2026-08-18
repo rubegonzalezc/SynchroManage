@@ -36,6 +36,8 @@ import {
   resolveDependencyTasks,
 } from '@/lib/utils/task-dependency'
 import { FormattedText } from '@/components/ui/formatted-text'
+import { useDynamicIslandToast } from '@/components/ui/dynamic-island-toast'
+import { readApiError } from '@/lib/utils/api-error'
 import { AvatarStack } from '@/components/ui/avatar-stack'
 
 interface Member {
@@ -165,12 +167,14 @@ export function TaskDetailDialog({
   onUpdate,
   initialMode = 'view',
 }: TaskDetailDialogProps) {
+  const { showError } = useDynamicIslandToast()
   const [mode, setMode] = useState<'view' | 'edit'>(initialMode)
   const [task, setTask] = useState<TaskDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [statusSaving, setStatusSaving] = useState(false)
   const [statusError, setStatusError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [sendingComment, setSendingComment] = useState(false)
@@ -328,14 +332,22 @@ export function TaskDetailDialog({
 
   const handleSave = async () => {
     setSaving(true)
+    setSaveError(null)
     try {
       const previousAssigneeIds = (task?.assignees || []).map(a => a.id)
-      
-      await fetch(`/api/dashboard/tasks/${taskId}`, {
+
+      const response = await fetch(`/api/dashboard/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
+
+      if (!response.ok) {
+        const errorMessage = await readApiError(response, 'No se pudo guardar la tarea')
+        setSaveError(errorMessage)
+        showError(errorMessage)
+        return
+      }
       
       // Notificar a los nuevos asignados (los que no estaban antes)
       const newAssigneeIds = formData.assignee_ids.filter(id => !previousAssigneeIds.includes(id))
@@ -364,6 +376,9 @@ export function TaskDetailDialog({
       }
     } catch (error) {
       console.error('Error saving task:', error)
+      const errorMessage = 'No se pudo guardar la tarea'
+      setSaveError(errorMessage)
+      showError(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -383,7 +398,11 @@ export function TaskDetailDialog({
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        setStatusError(typeof data.error === 'string' ? data.error : 'No se pudo cambiar el estado')
+        const errorMessage = typeof data.error === 'string'
+          ? data.error
+          : 'No se pudo cambiar el estado'
+        setStatusError(errorMessage)
+        showError(errorMessage)
         return
       }
 
@@ -392,7 +411,9 @@ export function TaskDetailDialog({
       onUpdate()
     } catch (error) {
       console.error('Error updating status:', error)
-      setStatusError('No se pudo cambiar el estado')
+      const errorMessage = 'No se pudo cambiar el estado'
+      setStatusError(errorMessage)
+      showError(errorMessage)
     } finally {
       setStatusSaving(false)
     }
@@ -861,6 +882,11 @@ export function TaskDetailDialog({
                 {pendingDependencies.length > 0 && (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
                     {formatBlockedByDependencyMessage(pendingDependencies)}
+                  </div>
+                )}
+                {saveError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-3 py-2 text-sm text-red-900 dark:text-red-200">
+                    {saveError}
                   </div>
                 )}
               <div className="grid grid-cols-2 gap-4 min-w-0">

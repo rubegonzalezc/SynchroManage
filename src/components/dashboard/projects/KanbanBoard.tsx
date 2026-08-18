@@ -26,6 +26,7 @@ import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
 import { createClient } from '@/lib/supabase/client'
 import { snapPointerOffsetToCursor } from '@/lib/dnd/kanban-drag-modifiers'
+import { useDynamicIslandToast } from '@/components/ui/dynamic-island-toast'
 
 interface Task {
   id: string
@@ -59,6 +60,7 @@ interface KanbanBoardProps {
   currentUserId: string
   onTasksChange: () => void
   onOptimisticMove?: (taskId: string, newStatus: string, newPosition: number) => void
+  onTaskPatched?: (task: { id: string; status: string; position: number }) => void
   highlightId?: string | null
 }
 
@@ -95,9 +97,14 @@ export function KanbanBoard({
   currentUserId,
   onTasksChange,
   onOptimisticMove,
+  onTaskPatched,
   highlightId,
 }: KanbanBoardProps) {
+  const { showError } = useDynamicIslandToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const tasksBeforeMoveRef = useRef<Task[] | null>(null)
+  const isDraggingRef = useRef(false)
+  const isSyncingRef = useRef(false)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [activeCardWidth, setActiveCardWidth] = useState<number | null>(null)
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null)
@@ -113,6 +120,7 @@ export function KanbanBoard({
 
   // Sync with props when they change from the parent
   useEffect(() => {
+    if (isDraggingRef.current || isSyncingRef.current) return
     setTasks(initialTasks)
   }, [initialTasks])
 
@@ -121,7 +129,6 @@ export function KanbanBoard({
   useEffect(() => { onTasksChangeRef.current = onTasksChange }, [onTasksChange])
 
   // Realtime subscription for task updates (only from other users/sessions)
-  const isDraggingRef = useRef(false)
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -135,9 +142,8 @@ export function KanbanBoard({
           filter: `project_id=eq.${projectId}`,
         },
         () => {
-          // Ignorar eventos Realtime mientras el usuario está arrastrando para evitar
-          // que el refetch sobreescriba el estado optimista durante el drag
-          if (!isDraggingRef.current) {
+          // Ignorar eventos mientras hay drag o PATCH en curso para no pisar el estado optimista
+          if (!isDraggingRef.current && !isSyncingRef.current) {
             onTasksChangeRef.current()
           }
         }
@@ -235,8 +241,7 @@ export function KanbanBoard({
       }
     }
 
-    // Clear the drag-over state, reference, and dragging flag
-    isDraggingRef.current = false
+    // Clear the drag-over state. isDraggingRef se limpia al terminar el PATCH.
     dragOverColumnRef.current = null
     setDragOverColumn(null)
 
@@ -265,6 +270,8 @@ export function KanbanBoard({
     }
 
     // Optimistic UI — reflect the change immediately, before server confirms
+    tasksBeforeMoveRef.current = tasks
+    isSyncingRef.current = true
     setTasks((prevTasks) =>
       prevTasks.map((t) =>
         t.id === draggedTask.id
@@ -286,17 +293,47 @@ export function KanbanBoard({
         }),
       })
 
+      const data = await response.json().catch(() => ({}))
+
       if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`)
+        const errorMessage = typeof data.error === 'string'
+          ? data.error
+          : 'No se pudo mover la tarea'
+        showError(errorMessage)
+        if (tasksBeforeMoveRef.current) {
+          setTasks(tasksBeforeMoveRef.current)
+        }
+        onOptimisticMove?.(draggedTask.id, draggedTask.status, draggedTask.position)
+        onTasksChange()
+        return
       }
 
-      // Pequeño delay para asegurar que revalidateTag propague antes del refetch de SWR
-      await new Promise(res => setTimeout(res, 100))
-      onTasksChange()
+      if (data.task) {
+        onTaskPatched?.({
+          id: data.task.id,
+          status: data.task.status,
+          position: data.task.position,
+        })
+        setTasks((prevTasks) =>
+          prevTasks.map((t) =>
+            t.id === data.task.id
+              ? { ...t, status: data.task.status, position: data.task.position }
+              : t
+          )
+        )
+      }
     } catch (error) {
       console.error('Error updating task:', error)
-      // Revert optimistic update on failure
-      setTasks(initialTasks)
+      showError('No se pudo mover la tarea')
+      if (tasksBeforeMoveRef.current) {
+        setTasks(tasksBeforeMoveRef.current)
+      }
+      onOptimisticMove?.(draggedTask.id, draggedTask.status, draggedTask.position)
+      onTasksChange()
+    } finally {
+      isDraggingRef.current = false
+      isSyncingRef.current = false
+      tasksBeforeMoveRef.current = null
     }
   }
 
@@ -312,6 +349,7 @@ export function KanbanBoard({
       onDragEnd={handleDragEnd}
       onDragCancel={() => {
         isDraggingRef.current = false
+        isSyncingRef.current = false
         dragOverColumnRef.current = null
         setDragOverColumn(null)
         setActiveTask(null)

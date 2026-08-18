@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeRegistry } from "@/theme/ThemeRegistry";
+import { DynamicIslandToastProvider } from "@/components/ui/dynamic-island-toast";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -34,7 +35,9 @@ export default function RootLayout({
       <body className={`${plusJakarta.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider>
           <ThemeRegistry>
-            {children}
+            <DynamicIslandToastProvider>
+              {children}
+            </DynamicIslandToastProvider>
           </ThemeRegistry>
         </ThemeProvider>
       </body>
