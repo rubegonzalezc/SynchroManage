@@ -3,7 +3,15 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
-import { validateTaskDependency, assertTaskNotBlockedByDependency, type TaskDependencyRef } from '@/lib/utils/task-dependency'
+import {
+  validateTaskDependencies,
+  assertTaskNotBlockedByDependency,
+  normalizeDependsOnTaskIds,
+  syncTaskDependencies,
+  fetchTaskDependencyRefs,
+  fetchTaskDependencyIds,
+  type TaskDependencyRef,
+} from '@/lib/utils/task-dependency'
 
 // Helper para registrar actividad desde el servidor
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,21 +101,15 @@ export async function GET(
       })
       .filter(Boolean)
 
-    let dependsOn: TaskDependencyRef | null = null
-    if (task.depends_on_task_id) {
-      const { data: depTask } = await supabaseAdmin
-        .from('tasks')
-        .select('id, task_number, title, status')
-        .eq('id', task.depends_on_task_id)
-        .single()
-      dependsOn = depTask ?? null
-    }
+    let dependencies: TaskDependencyRef[] = await fetchTaskDependencyRefs(supabaseAdmin, id)
 
     return NextResponse.json({
       task: {
         ...task,
         assignees,
-        depends_on: dependsOn,
+        depends_on_task_ids: dependencies.map((dep) => dep.id),
+        dependencies,
+        depends_on: dependencies[0] ?? null,
       },
     })
   } catch (error) {
@@ -172,10 +174,12 @@ export async function PUT(
     // Mantener assignee_id sincronizado con el primer asignado (compatibilidad hacia atrás)
     const primaryAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : null
 
-    if ('depends_on_task_id' in body) {
-      const dependencyError = await validateTaskDependency(supabaseAdmin, {
+    const dependsOnTaskIdsInput = normalizeDependsOnTaskIds(body)
+
+    if (dependsOnTaskIdsInput !== undefined) {
+      const dependencyError = await validateTaskDependencies(supabaseAdmin, {
         taskId: id,
-        dependsOnTaskId: body.depends_on_task_id ?? null,
+        dependsOnTaskIds: dependsOnTaskIdsInput,
         projectId: currentTask?.project_id || '',
       })
       if (dependencyError) {
@@ -183,14 +187,14 @@ export async function PUT(
       }
     }
 
-    const effectiveDependsOnTaskId =
-      'depends_on_task_id' in body
-        ? (body.depends_on_task_id ?? null)
-        : (currentTask?.depends_on_task_id ?? null)
+    const effectiveDependsOnTaskIds = dependsOnTaskIdsInput !== undefined
+      ? dependsOnTaskIdsInput
+      : await fetchTaskDependencyIds(supabaseAdmin, id)
 
     if (body.status && body.status !== currentTask?.status) {
       const blockedError = await assertTaskNotBlockedByDependency(supabaseAdmin, {
-        dependsOnTaskId: effectiveDependsOnTaskId,
+        taskId: id,
+        dependsOnTaskIds: effectiveDependsOnTaskIds,
         newStatus: body.status,
       })
       if (blockedError) {
@@ -214,7 +218,11 @@ export async function PUT(
     if ('branch_name' in body) updatePayload.branch_name = body.branch_name || null
     if ('complexity' in body) updatePayload.complexity = body.complexity ?? null
     if ('reviewer_id' in body) updatePayload.reviewer_id = body.reviewer_id ?? null
-    if ('depends_on_task_id' in body) updatePayload.depends_on_task_id = body.depends_on_task_id ?? null
+    if (dependsOnTaskIdsInput !== undefined) {
+      updatePayload.depends_on_task_id = dependsOnTaskIdsInput[0] ?? null
+    } else if ('depends_on_task_id' in body) {
+      updatePayload.depends_on_task_id = body.depends_on_task_id ?? null
+    }
 
     const { data: task, error } = await supabaseAdmin
       .from('tasks')
@@ -228,6 +236,23 @@ export async function PUT(
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    if (dependsOnTaskIdsInput !== undefined) {
+      try {
+        await syncTaskDependencies(supabaseAdmin, id, dependsOnTaskIdsInput)
+      } catch (syncError) {
+        console.error('Error syncing task dependencies:', syncError)
+        return NextResponse.json({ error: 'Error al guardar dependencias' }, { status: 400 })
+      }
+    } else if ('depends_on_task_id' in body) {
+      const singleIds = body.depends_on_task_id ? [body.depends_on_task_id] : []
+      try {
+        await syncTaskDependencies(supabaseAdmin, id, singleIds)
+      } catch (syncError) {
+        console.error('Error syncing task dependencies:', syncError)
+        return NextResponse.json({ error: 'Error al guardar dependencias' }, { status: 400 })
+      }
     }
 
     // Sincronizar task_assignees: eliminar removidos
@@ -472,7 +497,17 @@ export async function PUT(
       revalidateTag('tasks', 'max')
     }
 
-    return NextResponse.json({ task: { ...task, assignees } })
+    const dependencies = await fetchTaskDependencyRefs(supabaseAdmin, id)
+
+    return NextResponse.json({
+      task: {
+        ...task,
+        assignees,
+        depends_on_task_ids: dependencies.map((dep) => dep.id),
+        dependencies,
+        depends_on: dependencies[0] ?? null,
+      },
+    })
   } catch (error) {
     console.error('Error updating task:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })

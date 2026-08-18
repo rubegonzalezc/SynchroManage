@@ -27,7 +27,7 @@ import { FileAttachments } from '@/components/ui/file-attachments'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
 import { getBranchName } from '@/lib/utils/branch-name'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
-import { SingleSelectTask, type TaskOption } from '@/components/ui/single-select-task'
+import { MultiSelectTask, type TaskOption } from '@/components/ui/multi-select-task'
 import { FormattedText } from '@/components/ui/formatted-text'
 
 interface User {
@@ -67,7 +67,9 @@ interface TaskDetail {
   reviewer_id?: string | null
   reviewer?: { id: string; full_name: string; avatar_url: string | null } | null
   depends_on_task_id?: string | null
+  depends_on_task_ids?: string[]
   depends_on?: { id: string; task_number: number | null; title: string; status: string } | null
+  dependencies?: { id: string; task_number: number | null; title: string; status: string }[]
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   project: { id: string; name: string } | null
   comments: Comment[]
@@ -124,7 +126,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
     reviewer_id: '',
     due_date: '',
     sprint_id: '',
-    depends_on_task_id: null as string | null,
+    depends_on_task_ids: [] as string[],
   })
 
   const fetchTask = async () => {
@@ -143,7 +145,9 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
           reviewer_id: data.task.reviewer?.id || data.task.reviewer_id || '',
           due_date: data.task.due_date || '',
           sprint_id: data.task.sprint_id || '',
-          depends_on_task_id: data.task.depends_on_task_id ?? null,
+          depends_on_task_ids: data.task.depends_on_task_ids
+            ?? data.task.dependencies?.map((dep: { id: string }) => dep.id)
+            ?? (data.task.depends_on_task_id ? [data.task.depends_on_task_id] : []),
         })
         setHasNewComments(false)
         // Cargar sprints del proyecto
@@ -276,7 +280,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
           ...formData,
           sprint_id: formData.sprint_id || null,
           reviewer_id: formData.reviewer_id || null,
-          depends_on_task_id: formData.depends_on_task_id,
+          depends_on_task_ids: formData.depends_on_task_ids,
         }),
       })
       if (response.ok) {
@@ -545,14 +549,13 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   </div>
                 )}
 
-                <SingleSelectTask
+                <MultiSelectTask
                   tasks={projectTasks}
-                  selectedId={formData.depends_on_task_id}
-                  onSelectionChange={(id) => setFormData(prev => ({ ...prev, depends_on_task_id: id }))}
+                  selectedIds={formData.depends_on_task_ids}
+                  onSelectionChange={(ids) => setFormData(prev => ({ ...prev, depends_on_task_ids: ids }))}
                   excludeTaskId={taskId}
                   placeholder="Buscar por # o título..."
-                  emptyLabel="Sin dependencia"
-                  hint="Para avanzar en esta tarea, primero debe completarse la tarea seleccionada."
+                  hint="Para avanzar en esta tarea, primero deben completarse todas las dependencias seleccionadas."
                 />
 
                 <Button onClick={handleSave} disabled={saving} className="w-full">

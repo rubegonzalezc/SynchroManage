@@ -28,8 +28,13 @@ import { createClient } from '@/lib/supabase/client'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { TASK_CATEGORIES, categoryIcons, categoryLabels } from '@/lib/constants/categories'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
-import { SingleSelectTask, type TaskOption } from '@/components/ui/single-select-task'
-import { formatDependencyLabel, resolveDependencyTask } from '@/lib/utils/task-dependency'
+import { MultiSelectTask, type TaskOption } from '@/components/ui/multi-select-task'
+import {
+  formatBlockedByDependencyMessage,
+  formatDependencyLabel,
+  getPendingDependencies,
+  resolveDependencyTasks,
+} from '@/lib/utils/task-dependency'
 import { FormattedText } from '@/components/ui/formatted-text'
 import { AvatarStack } from '@/components/ui/avatar-stack'
 
@@ -74,7 +79,9 @@ interface TaskDetail {
   reviewer_id?: string | null
   reviewer?: { id: string; full_name: string; avatar_url: string | null } | null
   depends_on_task_id?: string | null
+  depends_on_task_ids?: string[]
   depends_on?: { id: string; task_number: number | null; title: string; status: string } | null
+  dependencies?: { id: string; task_number: number | null; title: string; status: string }[]
   sprint?: SprintOption | null
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
@@ -188,7 +195,7 @@ export function TaskDetailDialog({
     sprint_id: '',
     branch_name: '',
     complexity: null as number | null,
-    depends_on_task_id: null as string | null,
+    depends_on_task_ids: [] as string[],
   })
 
   const fetchTask = async () => {
@@ -210,7 +217,9 @@ export function TaskDetailDialog({
           sprint_id: data.task.sprint_id || '',
           branch_name: data.task.branch_name || '',
           complexity: data.task.complexity ?? null,
-          depends_on_task_id: data.task.depends_on_task_id ?? null,
+          depends_on_task_ids: data.task.depends_on_task_ids
+            ?? data.task.dependencies?.map((dep: { id: string }) => dep.id)
+            ?? (data.task.depends_on_task_id ? [data.task.depends_on_task_id] : []),
         })
         setHasNewComments(false)
       }
@@ -403,7 +412,9 @@ export function TaskDetailDialog({
       sprint_id: task.sprint_id || '',
       branch_name: task.branch_name || '',
       complexity: task.complexity ?? null,
-      depends_on_task_id: task.depends_on_task_id ?? null,
+      depends_on_task_ids: task.depends_on_task_ids
+        ?? task.dependencies?.map((dep) => dep.id)
+        ?? (task.depends_on_task_id ? [task.depends_on_task_id] : []),
     })
   }
 
@@ -532,11 +543,12 @@ export function TaskDetailDialog({
     })
   }
 
-  const dependencyTask = resolveDependencyTask(
-    formData.depends_on_task_id ?? task?.depends_on_task_id,
-    task?.depends_on,
+  const dependencyTasks = resolveDependencyTasks(
+    formData.depends_on_task_ids,
+    task?.dependencies,
     projectTasks
   )
+  const pendingDependencies = getPendingDependencies(dependencyTasks)
 
   const formatDate = (date: string | null) => {
     if (!date) return null
@@ -646,11 +658,9 @@ export function TaskDetailDialog({
               </div>
 
               <SheetSection title="Estado">
-                {dependencyTask && dependencyTask.status !== 'done' && (
+                {pendingDependencies.length > 0 && (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200 mb-3">
-                    Debes completar primero{' '}
-                    <span className="font-medium">{formatDependencyLabel(dependencyTask)}</span>
-                    {' '}antes de poder avanzar en esta tarea.
+                    {formatBlockedByDependencyMessage(pendingDependencies)}
                   </div>
                 )}
                 <Select
@@ -696,10 +706,20 @@ export function TaskDetailDialog({
                       <p className="text-foreground">{task.sprint.name}</p>
                     </div>
                   )}
-                  {dependencyTask && (
+                  {dependencyTasks.length > 0 && (
                     <div className="space-y-1 sm:col-span-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Depende de</p>
-                      <p className="text-foreground">{formatDependencyLabel(dependencyTask)}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Dependencias</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {dependencyTasks.map((dep) => (
+                          <Badge
+                            key={dep.id}
+                            variant={dep.status === 'done' ? 'secondary' : 'outline'}
+                            className="font-normal"
+                          >
+                            {formatDependencyLabel(dep)}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {task.assignees.length > 0 && (
@@ -838,13 +858,11 @@ export function TaskDetailDialog({
             </SheetSection>
 
             <SheetSection title="Planificación">
-              {dependencyTask && dependencyTask.status !== 'done' && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
-                  Debes completar primero{' '}
-                  <span className="font-medium">{formatDependencyLabel(dependencyTask)}</span>
-                  {' '}antes de poder avanzar en esta tarea.
-                </div>
-              )}
+                {pendingDependencies.length > 0 && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
+                    {formatBlockedByDependencyMessage(pendingDependencies)}
+                  </div>
+                )}
               <div className="grid grid-cols-2 gap-4 min-w-0">
                 <div className="space-y-2">
                   <Label>Estado</Label>
@@ -927,14 +945,13 @@ export function TaskDetailDialog({
                   </div>
                 )}
                 <div className="col-span-2">
-                  <SingleSelectTask
+                  <MultiSelectTask
                     tasks={projectTasks}
-                    selectedId={formData.depends_on_task_id}
-                    onSelectionChange={(id) => setFormData(prev => ({ ...prev, depends_on_task_id: id }))}
+                    selectedIds={formData.depends_on_task_ids}
+                    onSelectionChange={(ids) => setFormData(prev => ({ ...prev, depends_on_task_ids: ids }))}
                     excludeTaskId={taskId}
                     placeholder="Buscar por # o título..."
-                    emptyLabel="Sin dependencia"
-                    hint="Para avanzar en esta tarea, primero debe completarse la tarea seleccionada."
+                    hint="Para avanzar en esta tarea, primero deben completarse todas las dependencias seleccionadas."
                   />
                 </div>
               </div>

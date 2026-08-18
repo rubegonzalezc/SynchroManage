@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { enrichTasksWithDependencies } from '@/lib/utils/task-dependency'
+import { enrichTasksWithDependencyList, fetchProjectDependencyMap } from '@/lib/utils/task-dependency'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { unstable_cache, revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
@@ -78,7 +78,8 @@ function getCachedProject(projectId: string) {
       }
 
       if (project?.tasks) {
-        project.tasks = enrichTasksWithDependencies(project.tasks)
+        const dependencyMap = await fetchProjectDependencyMap(admin, projectId)
+        project.tasks = enrichTasksWithDependencyList(project.tasks, dependencyMap)
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
