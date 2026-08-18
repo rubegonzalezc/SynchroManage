@@ -49,39 +49,275 @@ export function isAdvancedTaskStatus(status: string): status is AdvancedTaskStat
 }
 
 export function formatBlockedByDependencyMessage(
-  dependency: Pick<TaskDependencyRef, 'task_number' | 'title'>
+  dependencies: Array<Pick<TaskDependencyRef, 'task_number' | 'title'>>
 ): string {
-  return `No puedes avanzar esta tarea hasta completar ${formatDependencyLabel(dependency)}`
+  if (dependencies.length === 0) {
+    return 'No puedes avanzar esta tarea hasta completar sus dependencias'
+  }
+
+  if (dependencies.length === 1) {
+    return `No puedes avanzar esta tarea hasta completar ${formatDependencyLabel(dependencies[0])}`
+  }
+
+  const labels = dependencies.map((dep) => formatDependencyLabel(dep))
+  const last = labels.pop()
+  return `No puedes avanzar esta tarea hasta completar ${labels.join(', ')} y ${last}`
+}
+
+export function normalizeDependsOnTaskIds(body: {
+  depends_on_task_ids?: unknown
+  depends_on_task_id?: string | null
+}): string[] | undefined {
+  if (Array.isArray(body.depends_on_task_ids)) {
+    return [...new Set(body.depends_on_task_ids.filter((id): id is string => typeof id === 'string' && id.length > 0))]
+  }
+
+  if ('depends_on_task_id' in body) {
+    const single = body.depends_on_task_id
+    return single ? [single] : []
+  }
+
+  return undefined
+}
+
+export async function fetchTaskDependencyIds(
+  supabaseAdmin: SupabaseAdmin,
+  taskId: string
+): Promise<string[]> {
+  const { data, error } = await supabaseAdmin
+    .from('task_dependencies')
+    .select('depends_on_task_id')
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching task dependencies:', error)
+    return []
+  }
+
+  return (data || []).map((row: { depends_on_task_id: string }) => row.depends_on_task_id)
+}
+
+export async function fetchTaskDependencyRefs(
+  supabaseAdmin: SupabaseAdmin,
+  taskId: string
+): Promise<TaskDependencyRef[]> {
+  const dependencyIds = await fetchTaskDependencyIds(supabaseAdmin, taskId)
+  if (dependencyIds.length === 0) return []
+
+  const { data, error } = await supabaseAdmin
+    .from('tasks')
+    .select('id, task_number, title, status')
+    .in('id', dependencyIds)
+
+  if (error || !data) return []
+
+  const byId = new Map(data.map((task: TaskDependencyRef) => [task.id, task]))
+  return dependencyIds
+    .map((id) => byId.get(id))
+    .filter((task): task is TaskDependencyRef => !!task)
+}
+
+export async function fetchProjectDependencyMap(
+  supabaseAdmin: SupabaseAdmin,
+  projectId: string
+): Promise<Map<string, string[]>> {
+  const { data: projectTasks } = await supabaseAdmin
+    .from('tasks')
+    .select('id')
+    .eq('project_id', projectId)
+
+  const taskIds = (projectTasks || []).map((task: { id: string }) => task.id)
+  if (taskIds.length === 0) return new Map()
+
+  const { data, error } = await supabaseAdmin
+    .from('task_dependencies')
+    .select('task_id, depends_on_task_id')
+    .in('task_id', taskIds)
+    .order('created_at', { ascending: true })
+
+  if (error || !data) return new Map()
+
+  const map = new Map<string, string[]>()
+  for (const row of data as Array<{ task_id: string; depends_on_task_id: string }>) {
+    const current = map.get(row.task_id) || []
+    current.push(row.depends_on_task_id)
+    map.set(row.task_id, current)
+  }
+
+  return map
+}
+
+async function dependencyReachable(
+  supabaseAdmin: SupabaseAdmin,
+  startTaskId: string,
+  targetTaskId: string,
+  cache: Map<string, string[]>
+): Promise<boolean> {
+  const visited = new Set<string>()
+  const queue = [startTaskId]
+
+  while (queue.length > 0) {
+    const current = queue.shift()!
+    if (current === targetTaskId) return true
+    if (visited.has(current)) continue
+    visited.add(current)
+
+    let deps = cache.get(current)
+    if (!deps) {
+      deps = await fetchTaskDependencyIds(supabaseAdmin, current)
+      cache.set(current, deps)
+    }
+
+    for (const depId of deps) {
+      if (!visited.has(depId)) queue.push(depId)
+    }
+  }
+
+  return false
+}
+
+export async function validateTaskDependencies(
+  supabaseAdmin: SupabaseAdmin,
+  options: {
+    taskId: string | null
+    dependsOnTaskIds: string[]
+    projectId: string
+  }
+): Promise<string | null> {
+  const { taskId, dependsOnTaskIds, projectId } = options
+  const uniqueIds = [...new Set(dependsOnTaskIds)]
+
+  if (uniqueIds.length === 0) return null
+
+  if (taskId && uniqueIds.includes(taskId)) {
+    return 'Una tarea no puede depender de sí misma'
+  }
+
+  const { data: depTasks, error } = await supabaseAdmin
+    .from('tasks')
+    .select('id, project_id')
+    .in('id', uniqueIds)
+
+  if (error || !depTasks || depTasks.length !== uniqueIds.length) {
+    return 'Una o más tareas de dependencia no existen'
+  }
+
+  if (depTasks.some((task: { project_id: string }) => task.project_id !== projectId)) {
+    return 'Las dependencias deben ser tareas del mismo proyecto'
+  }
+
+  if (!taskId) return null
+
+  const cache = new Map<string, string[]>()
+  for (const depId of uniqueIds) {
+    if (await dependencyReachable(supabaseAdmin, depId, taskId, cache)) {
+      return 'Dependencia circular detectada'
+    }
+  }
+
+  return null
+}
+
+/** @deprecated Usar validateTaskDependencies */
+export async function validateTaskDependency(
+  supabaseAdmin: SupabaseAdmin,
+  options: {
+    taskId: string | null
+    dependsOnTaskId: string | null
+    projectId: string
+  }
+): Promise<string | null> {
+  const { taskId, dependsOnTaskId, projectId } = options
+  if (!dependsOnTaskId) return null
+  return validateTaskDependencies(supabaseAdmin, {
+    taskId,
+    dependsOnTaskIds: [dependsOnTaskId],
+    projectId,
+  })
+}
+
+export async function syncTaskDependencies(
+  supabaseAdmin: SupabaseAdmin,
+  taskId: string,
+  dependsOnTaskIds: string[]
+): Promise<void> {
+  const uniqueIds = [...new Set(dependsOnTaskIds)]
+
+  const { data: currentRows, error: currentError } = await supabaseAdmin
+    .from('task_dependencies')
+    .select('depends_on_task_id')
+    .eq('task_id', taskId)
+
+  if (currentError) {
+    throw new Error(currentError.message)
+  }
+
+  const currentIds = (currentRows || []).map((row: { depends_on_task_id: string }) => row.depends_on_task_id)
+  const toAdd = uniqueIds.filter((id) => !currentIds.includes(id))
+  const toRemove = currentIds.filter((id: string) => !uniqueIds.includes(id))
+
+  if (toRemove.length > 0) {
+    const { error: deleteError } = await supabaseAdmin
+      .from('task_dependencies')
+      .delete()
+      .eq('task_id', taskId)
+      .in('depends_on_task_id', toRemove)
+
+    if (deleteError) throw new Error(deleteError.message)
+  }
+
+  if (toAdd.length > 0) {
+    const { error: insertError } = await supabaseAdmin
+      .from('task_dependencies')
+      .insert(toAdd.map((dependsOnTaskId) => ({ task_id: taskId, depends_on_task_id: dependsOnTaskId })))
+
+    if (insertError) throw new Error(insertError.message)
+  }
+
+  if (uniqueIds.length === 0) {
+    await supabaseAdmin
+      .from('tasks')
+      .update({ depends_on_task_id: null })
+      .eq('id', taskId)
+  }
 }
 
 export async function assertTaskNotBlockedByDependency(
   supabaseAdmin: SupabaseAdmin,
   options: {
-    dependsOnTaskId: string | null
+    taskId?: string
+    dependsOnTaskId?: string | null
+    dependsOnTaskIds?: string[]
     newStatus: string
   }
 ): Promise<string | null> {
-  const { dependsOnTaskId, newStatus } = options
+  const { taskId, dependsOnTaskId, dependsOnTaskIds, newStatus } = options
 
-  if (!dependsOnTaskId || !isAdvancedTaskStatus(newStatus)) {
-    return null
+  if (!isAdvancedTaskStatus(newStatus)) return null
+
+  let dependencyIds = dependsOnTaskIds?.filter(Boolean) ?? []
+  if (dependencyIds.length === 0 && taskId) {
+    dependencyIds = await fetchTaskDependencyIds(supabaseAdmin, taskId)
   }
+  if (dependencyIds.length === 0 && dependsOnTaskId) {
+    dependencyIds = [dependsOnTaskId]
+  }
+  if (dependencyIds.length === 0) return null
 
-  const { data: dependencyTask, error } = await supabaseAdmin
+  const { data: dependencyTasks, error } = await supabaseAdmin
     .from('tasks')
     .select('id, task_number, title, status')
-    .eq('id', dependsOnTaskId)
-    .single()
+    .in('id', dependencyIds)
 
-  if (error || !dependencyTask) {
-    return 'La tarea de dependencia no existe'
+  if (error || !dependencyTasks) {
+    return 'Una o más tareas de dependencia no existen'
   }
 
-  if (dependencyTask.status === 'done') {
-    return null
-  }
+  const pending = dependencyTasks.filter((task: TaskDependencyRef) => task.status !== 'done')
+  if (pending.length === 0) return null
 
-  return formatBlockedByDependencyMessage(dependencyTask)
+  return formatBlockedByDependencyMessage(pending)
 }
 
 type TaskDependencyLookup = Pick<TaskDependencyRef, 'id' | 'task_number' | 'title'> & {
@@ -111,6 +347,30 @@ export function resolveDependencyTask(
   return null
 }
 
+export function resolveDependencyTasks(
+  dependsOnTaskIds: string[] | null | undefined,
+  dependenciesRaw: unknown,
+  fallbackTasks?: TaskDependencyLookup[]
+): TaskDependencyRef[] {
+  const ids = dependsOnTaskIds?.filter(Boolean) ?? []
+  if (ids.length === 0) return []
+
+  if (Array.isArray(dependenciesRaw)) {
+    const refs = dependenciesRaw.filter(
+      (entry): entry is TaskDependencyRef =>
+        !!entry && typeof entry === 'object' && 'id' in entry && typeof (entry as TaskDependencyRef).title === 'string'
+    )
+    if (refs.length > 0) {
+      const byId = new Map(refs.map((ref) => [ref.id, ref]))
+      return ids.map((id) => byId.get(id)).filter((ref): ref is TaskDependencyRef => !!ref)
+    }
+  }
+
+  return ids
+    .map((id) => resolveDependencyTask(id, null, fallbackTasks))
+    .filter((ref): ref is TaskDependencyRef => !!ref)
+}
+
 export function enrichTasksWithDependencies<
   T extends {
     id: string
@@ -119,70 +379,69 @@ export function enrichTasksWithDependencies<
     status: string
     depends_on_task_id?: string | null
   }
->(tasks: T[]): Array<T & { depends_on: TaskDependencyRef | null }> {
+>(tasks: T[]): Array<T & { depends_on: TaskDependencyRef | null; dependencies: TaskDependencyRef[] }> {
   const byId = new Map(tasks.map((task) => [task.id, task]))
 
   return tasks.map((task) => {
-    if (!task.depends_on_task_id) {
-      return { ...task, depends_on: null }
-    }
+    const dependencies = task.depends_on_task_id
+      ? (() => {
+          const dep = byId.get(task.depends_on_task_id)
+          return dep
+            ? [{
+                id: dep.id,
+                task_number: dep.task_number,
+                title: dep.title,
+                status: dep.status,
+              }]
+            : []
+        })()
+      : []
 
-    const dep = byId.get(task.depends_on_task_id)
     return {
       ...task,
-      depends_on: dep
-        ? {
-            id: dep.id,
-            task_number: dep.task_number,
-            title: dep.title,
-            status: dep.status,
-          }
-        : null,
+      depends_on: dependencies[0] ?? null,
+      dependencies,
     }
   })
 }
 
-export async function validateTaskDependency(
-  supabaseAdmin: SupabaseAdmin,
-  options: {
-    taskId: string | null
-    dependsOnTaskId: string | null
-    projectId: string
+export function enrichTasksWithDependencyList<
+  T extends {
+    id: string
+    task_number: number | null
+    title: string
+    status: string
+    depends_on_task_id?: string | null
   }
-): Promise<string | null> {
-  const { taskId, dependsOnTaskId, projectId } = options
+>(
+  tasks: T[],
+  dependencyMap?: Map<string, string[]>
+): Array<T & { depends_on: TaskDependencyRef | null; dependencies: TaskDependencyRef[]; depends_on_task_ids: string[] }> {
+  const byId = new Map(tasks.map((task) => [task.id, task]))
 
-  if (!dependsOnTaskId) return null
-  if (taskId && dependsOnTaskId === taskId) {
-    return 'Una tarea no puede depender de sí misma'
-  }
+  return tasks.map((task) => {
+    const dependsOnTaskIds = dependencyMap?.get(task.id)
+      ?? (task.depends_on_task_id ? [task.depends_on_task_id] : [])
 
-  const { data: depTask, error } = await supabaseAdmin
-    .from('tasks')
-    .select('id, project_id, depends_on_task_id')
-    .eq('id', dependsOnTaskId)
-    .single()
+    const dependencies = dependsOnTaskIds
+      .map((depId) => byId.get(depId))
+      .filter((dep): dep is T => !!dep)
+      .map((dep) => ({
+        id: dep.id,
+        task_number: dep.task_number,
+        title: dep.title,
+        status: dep.status,
+      }))
 
-  if (error || !depTask) return 'La tarea de dependencia no existe'
-  if (depTask.project_id !== projectId) {
-    return 'La dependencia debe ser una tarea del mismo proyecto'
-  }
+    return {
+      ...task,
+      depends_on_task_ids: dependsOnTaskIds,
+      depends_on: dependencies[0] ?? null,
+      dependencies,
+    }
+  })
+}
 
-  if (!taskId) return null
-
-  let current: string | null = dependsOnTaskId
-  for (let depth = 0; depth < 25 && current; depth++) {
-    const { data: node } = await supabaseAdmin
-      .from('tasks')
-      .select('depends_on_task_id')
-      .eq('id', current)
-      .single()
-
-    const next = node?.depends_on_task_id as string | null
-    if (!next) break
-    if (next === taskId) return 'Dependencia circular detectada'
-    current = next
-  }
-
-  return null
+export function getPendingDependencies(dependencies: TaskDependencyRef[]): TaskDependencyRef[] {
+  return dependencies.filter((dep) => dep.status !== 'done')
 }

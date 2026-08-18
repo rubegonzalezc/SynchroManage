@@ -3,7 +3,12 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
-import { validateTaskDependency, assertTaskNotBlockedByDependency } from '@/lib/utils/task-dependency'
+import {
+  validateTaskDependencies,
+  assertTaskNotBlockedByDependency,
+  normalizeDependsOnTaskIds,
+  syncTaskDependencies,
+} from '@/lib/utils/task-dependency'
 
 // Helper para registrar actividad desde el servidor
 async function logActivityServer(
@@ -70,10 +75,10 @@ export async function POST(request: Request) {
 
     const newPosition = (maxPosData?.position ?? -1) + 1
 
-    const dependsOnTaskId = body.depends_on_task_id || null
-    const dependencyError = await validateTaskDependency(supabaseAdmin, {
+    const dependsOnTaskIds = normalizeDependsOnTaskIds(body) ?? []
+    const dependencyError = await validateTaskDependencies(supabaseAdmin, {
       taskId: null,
-      dependsOnTaskId,
+      dependsOnTaskIds,
       projectId: body.project_id,
     })
     if (dependencyError) {
@@ -99,7 +104,7 @@ export async function POST(request: Request) {
         sprint_id: body.sprint_id || null,
         branch_name: body.branch_name || null,
         complexity: body.complexity ?? null,
-        depends_on_task_id: dependsOnTaskId,
+        depends_on_task_id: dependsOnTaskIds[0] ?? null,
       })
       .select(`
         *,
@@ -109,6 +114,15 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    if (dependsOnTaskIds.length > 0) {
+      try {
+        await syncTaskDependencies(supabaseAdmin, task.id, dependsOnTaskIds)
+      } catch (syncError) {
+        console.error('Error syncing task dependencies:', syncError)
+        return NextResponse.json({ error: 'Error al guardar dependencias' }, { status: 400 })
+      }
     }
 
     // Si el frontend pidió autocompletar, aplicamos el número oficial de la DB en 1 ms extra
@@ -327,7 +341,7 @@ export async function PATCH(request: Request) {
 
     if (status !== currentTask.status) {
       const blockedError = await assertTaskNotBlockedByDependency(supabaseAdmin, {
-        dependsOnTaskId: currentTask.depends_on_task_id ?? null,
+        taskId,
         newStatus: status,
       })
       if (blockedError) {

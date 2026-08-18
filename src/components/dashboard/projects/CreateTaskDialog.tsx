@@ -19,7 +19,7 @@ import { Plus, Loader2, CheckCircle, GitBranch } from 'lucide-react'
 import { CopyButton } from '@/components/ui/copy-button'
 import { TASK_CATEGORIES } from '@/lib/constants/categories'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
-import { SingleSelectTask, type TaskOption } from '@/components/ui/single-select-task'
+import { MultiSelectTask, type TaskOption } from '@/components/ui/multi-select-task'
 
 interface Member {
   id: string
@@ -63,7 +63,7 @@ export function CreateTaskDialog({ projectId, projectName, members, tasks = [], 
     sprint_id: initialSprintId ?? '',
     branch_name: '',
     complexity: null as number | null,
-    depends_on_task_id: null as string | null,
+    depends_on_task_ids: [] as string[],
   })
 
   // Actualizar sprint_id cuando cambia initialSprintId (sprint activo seleccionado)
@@ -95,7 +95,7 @@ export function CreateTaskDialog({ projectId, projectName, members, tasks = [], 
           project_id: projectId,
           ...formData,
           sprint_id: formData.sprint_id || null,
-          depends_on_task_id: formData.depends_on_task_id,
+          depends_on_task_ids: formData.depends_on_task_ids,
           assignee_ids: formData.assignee_ids.length > 0 ? formData.assignee_ids : [],
           auto_branch: autoBranchName, // Pasamos la bandera a la API para que maneje el número
         }),
@@ -135,7 +135,7 @@ export function CreateTaskDialog({ projectId, projectName, members, tasks = [], 
           title: '', description: '', status: 'backlog',
           priority: 'medium', category: 'task', assignee_ids: [], reviewer_id: null, due_date: '',
           sprint_id: initialSprintId ?? '', branch_name: '', complexity: null,
-          depends_on_task_id: null,
+          depends_on_task_ids: [],
         })
         setSuccess(false)
         onTaskCreated?.()
@@ -342,14 +342,13 @@ export function CreateTaskDialog({ projectId, projectName, members, tasks = [], 
             </div>
           )}
 
-          <SingleSelectTask
+          <MultiSelectTask
             tasks={tasks}
-            selectedId={formData.depends_on_task_id}
-            onSelectionChange={(id) => setFormData(prev => ({ ...prev, depends_on_task_id: id }))}
+            selectedIds={formData.depends_on_task_ids}
+            onSelectionChange={(ids) => setFormData(prev => ({ ...prev, depends_on_task_ids: ids }))}
             placeholder="Buscar por # o título..."
-            emptyLabel="Sin dependencia"
             disabled={loading || success}
-            hint="Para avanzar en esta tarea, primero debe completarse la tarea seleccionada."
+            hint="Puedes seleccionar varias tareas que deben completarse antes de avanzar."
           />
 
           <div className="space-y-2">
