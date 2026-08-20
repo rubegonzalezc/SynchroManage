@@ -695,14 +695,18 @@ export function TaskDetailDialog({
                     </Badge>
                   )}
                   {task.is_carry_over && (
-                    <Badge
-                      variant="outline"
-                      className="font-normal text-amber-700 border-amber-300 dark:text-amber-300"
+                    <span
                       title={carryOverLabel ?? 'Tarea arrastrada del sprint anterior'}
+                      className="inline-flex"
                     >
-                      <RefreshCw className="w-3 h-3 mr-1" />
-                      {carryOverLabel ?? 'Carry over'}
-                    </Badge>
+                      <Badge
+                        variant="outline"
+                        className="font-normal text-amber-700 border-amber-300 dark:text-amber-300"
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1" />
+                        {carryOverLabel ?? 'Carry over'}
+                      </Badge>
+                    </span>
                   )}
                 </div>
               </div>
