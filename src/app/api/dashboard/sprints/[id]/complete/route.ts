@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
+import { assignCarryOverTasks } from '@/lib/utils/task-sprint-order'
 
 function supabaseAdmin() {
   return createClient(
@@ -69,9 +70,11 @@ export async function POST(
 
     const { data: pendingTasks } = await admin
       .from('tasks')
-      .select('id')
+      .select('id, sprint_order')
       .eq('sprint_id', id)
       .neq('status', 'done')
+      .order('sprint_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
 
     const { data: nextSprint } = await admin
       .from('sprints')
@@ -86,11 +89,10 @@ export async function POST(
     const nextSprintId: string | null = nextSprint?.id ?? null
 
     if (pendingTasks && pendingTasks.length > 0) {
-      const pendingIds = pendingTasks.map(t => t.id)
-      await admin
-        .from('tasks')
-        .update({ sprint_id: nextSprintId, is_carry_over: true })
-        .in('id', pendingIds)
+      await assignCarryOverTasks(admin, {
+        tasks: pendingTasks,
+        nextSprintId,
+      })
     }
 
     // Gestionar bugs del sprint según la acción elegida

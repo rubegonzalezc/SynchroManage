@@ -12,7 +12,9 @@ interface Task {
   position: number
   due_date: string | null
   sprint_id: string | null
+  sprint_order?: number | null
   is_carry_over: boolean
+  carry_over_sprint_order?: number | null
   complexity?: number | null
   depends_on_task_id?: string | null
   depends_on_task_ids?: string[]

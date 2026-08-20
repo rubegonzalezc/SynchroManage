@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { TaskDetailDialogStandalone } from '@/components/dashboard/tasks/TaskDetailDialogStandalone'
 import { getBranchName } from '@/lib/utils/branch-name'
+import { formatCarryOverLabel, formatSprintHuLabel } from '@/lib/utils/task-sprint-order'
 import { GlassPanel } from '@/components/ui/glass-panel'
 
 export interface Task {
@@ -27,7 +28,9 @@ export interface Task {
   category?: string
   due_date: string | null
   sprint_id: string | null
+  sprint_order?: number | null
   is_carry_over?: boolean
+  carry_over_sprint_order?: number | null
   complexity?: number | null
   open_bugs_count?: number
   branch_name?: string | null
@@ -410,6 +413,11 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
                   >
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                       <span className="text-[11px] text-muted-foreground">#{task.task_number}</span>
+                      {formatSprintHuLabel(task.sprint_order) && (
+                        <span className="text-[11px] font-mono font-semibold text-blue-700 dark:text-blue-300">
+                          {formatSprintHuLabel(task.sprint_order)}
+                        </span>
+                      )}
                       <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${statusColors[task.status]}`}>
                         {statusLabels[task.status]}
                       </span>
@@ -418,9 +426,14 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
                         <span className="text-[12px] text-muted-foreground">{priorityLabels[task.priority]}</span>
                       </div>
                       {task.is_carry_over && (
-                        <div className="flex items-center gap-1 text-[12px] text-orange-600 dark:text-orange-400">
+                        <div
+                          className="flex items-center gap-1 text-[12px] text-orange-600 dark:text-orange-400"
+                          title={formatCarryOverLabel(task.carry_over_sprint_order) ?? 'Tarea arrastrada del sprint anterior'}
+                        >
                           <RefreshCw className="w-3 h-3" />
-                          <span className="font-medium">Carry Over</span>
+                          <span className="font-medium">
+                            {formatCarryOverLabel(task.carry_over_sprint_order) ?? 'Carry over'}
+                          </span>
                         </div>
                       )}
                       {task.due_date && (

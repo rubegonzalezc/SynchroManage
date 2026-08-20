@@ -16,6 +16,19 @@ export function getSprintOrderUpdateAction(
   return 'assign'
 }
 
+export function formatSprintHuLabel(sprintOrder: number | null | undefined): string | null {
+  if (sprintOrder == null || sprintOrder <= 0) return null
+  return `HU-${sprintOrder}`
+}
+
+export function formatCarryOverLabel(
+  carryOverSprintOrder: number | null | undefined
+): string | null {
+  const hu = formatSprintHuLabel(carryOverSprintOrder)
+  if (!hu) return null
+  return `Sprint anterior ${hu}`
+}
+
 /** Siguiente orden disponible en un sprint (MAX + 1). No recompacta huecos. */
 export async function getNextSprintOrder(
   supabaseAdmin: SupabaseAdmin,
@@ -53,4 +66,59 @@ export async function resolveSprintOrderForUpdate(
   if (action === 'clear') return null
 
   return getNextSprintOrder(supabaseAdmin, options.newSprintId as string)
+}
+
+export interface CarryOverTaskRef {
+  id: string
+  sprint_order: number | null
+}
+
+/** Mueve tareas pendientes al siguiente sprint o backlog con carry-over y nuevo orden. */
+export async function assignCarryOverTasks(
+  supabaseAdmin: SupabaseAdmin,
+  options: {
+    tasks: CarryOverTaskRef[]
+    nextSprintId: string | null
+  }
+): Promise<void> {
+  const { tasks, nextSprintId } = options
+  if (tasks.length === 0) return
+
+  const now = new Date().toISOString()
+
+  if (!nextSprintId) {
+    for (const task of tasks) {
+      const { error } = await supabaseAdmin
+        .from('tasks')
+        .update({
+          sprint_id: null,
+          sprint_order: null,
+          is_carry_over: true,
+          carry_over_sprint_order: task.sprint_order,
+          updated_at: now,
+        })
+        .eq('id', task.id)
+
+      if (error) throw new Error(error.message)
+    }
+    return
+  }
+
+  let nextOrder = await getNextSprintOrder(supabaseAdmin, nextSprintId)
+
+  for (const task of tasks) {
+    const { error } = await supabaseAdmin
+      .from('tasks')
+      .update({
+        sprint_id: nextSprintId,
+        sprint_order: nextOrder,
+        is_carry_over: true,
+        carry_over_sprint_order: task.sprint_order,
+        updated_at: now,
+      })
+      .eq('id', task.id)
+
+    if (error) throw new Error(error.message)
+    nextOrder++
+  }
 }
