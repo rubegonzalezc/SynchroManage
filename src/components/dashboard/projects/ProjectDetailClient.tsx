@@ -703,6 +703,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               onOptimisticMove={optimisticMoveTask}
               onTaskPatched={applyTaskPatch}
               highlightId={highlightId}
+              sprints={project.sprints || []}
             />
           </Suspense>
         ) : (
@@ -715,6 +716,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               allUsers={allUsers}
               currentUserId={currentUserId}
               onTasksChange={mutateProject}
+              sprints={project.sprints || []}
             />
           </Suspense>
         )}

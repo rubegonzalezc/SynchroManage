@@ -35,7 +35,7 @@ import {
 } from '@/lib/utils/task-dependency'
 import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
-import { formatCarryOverLabel, formatSprintHuLabel } from '@/lib/utils/task-sprint-order'
+import { formatCarryOverLabel, formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
 import { useDynamicIslandToast } from '@/components/ui/dynamic-island-toast'
 import { readApiError } from '@/lib/utils/api-error'
@@ -590,7 +590,12 @@ export function TaskDetailDialog({
   }
 
   const isOverdue = Boolean(task?.due_date && new Date(task.due_date) < new Date() && task.status !== 'done')
-  const sprintHuLabel = formatSprintHuLabel(task?.sprint_order)
+  const sprintReferenceLabel = formatSprintTaskReferenceLabel({
+    sprintId: task?.sprint_id,
+    sprintName: task?.sprint?.name,
+    sprintOrder: task?.sprint_order,
+    sprints: projectSprints,
+  })
   const carryOverLabel = task?.is_carry_over
     ? formatCarryOverLabel(task.carry_over_sprint_order)
     : null
@@ -676,9 +681,9 @@ export function TaskDetailDialog({
                       #{task.task_number}
                     </Badge>
                   )}
-                  {sprintHuLabel && (
+                  {sprintReferenceLabel && (
                     <Badge variant="outline" className="font-mono font-normal text-blue-700 border-blue-300 dark:text-blue-300 dark:border-blue-800">
-                      {sprintHuLabel}
+                      {sprintReferenceLabel}
                     </Badge>
                   )}
                   <Badge variant="secondary" className="font-normal">

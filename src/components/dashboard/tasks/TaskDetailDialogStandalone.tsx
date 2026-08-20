@@ -30,6 +30,8 @@ import { TASK_CATEGORIES } from '@/lib/constants/categories'
 import { getBranchName } from '@/lib/utils/branch-name'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
 import { MultiSelectTask, type TaskOption } from '@/components/ui/multi-select-task'
+import { SprintTaskReferenceBadge } from '@/components/ui/sprint-task-reference-badge'
+import { formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
 import { resolveDependencyTasks } from '@/lib/utils/task-dependency'
 import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
@@ -69,6 +71,9 @@ interface TaskDetail {
   category?: string
   due_date: string | null
   sprint_id: string | null
+  sprint_order?: number | null
+  is_carry_over?: boolean
+  carry_over_sprint_order?: number | null
   reviewer_id?: string | null
   reviewer?: { id: string; full_name: string; avatar_url: string | null } | null
   depends_on_task_id?: string | null
@@ -402,15 +407,26 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
 
   useProjectTaskStatusRealtime(task?.project?.id, open, handleProjectTaskStatusUpdate)
 
+  const sprintReferenceLabel = formatSprintTaskReferenceLabel({
+    sprintId: task?.sprint_id,
+    sprintOrder: task?.sprint_order,
+    sprints: projectSprints,
+  })
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
               {task && (
                 <>
-                  <span className="text-muted-foreground font-mono">#{task.task_number}</span>
+                  {task.task_number != null && (
+                    <span className="text-muted-foreground font-mono">#{task.task_number}</span>
+                  )}
+                  {sprintReferenceLabel && (
+                    <SprintTaskReferenceBadge label={sprintReferenceLabel} />
+                  )}
                   <span>{task.title}</span>
                 </>
               )}

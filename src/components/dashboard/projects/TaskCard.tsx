@@ -19,7 +19,12 @@ import {
   getPendingDependencies,
   type TaskDependencyRef,
 } from '@/lib/utils/task-dependency'
-import { formatCarryOverLabel, formatSprintHuLabel } from '@/lib/utils/task-sprint-order'
+import { formatCarryOverLabel, formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
+
+interface SprintRef {
+  id: string
+  name: string
+}
 
 interface Task {
   id: string
@@ -55,6 +60,7 @@ interface TaskCardBaseProps {
   currentUserId: string
   onUpdate: () => void
   highlightId?: string | null
+  sprints?: SprintRef[]
 }
 
 interface TaskCardProps extends TaskCardBaseProps {
@@ -93,6 +99,7 @@ function TaskCardView({
   dragHandleProps,
   onOpenDetail,
   onOpenEdit,
+  sprints = [],
 }: TaskCardViewProps) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
@@ -108,7 +115,11 @@ function TaskCardView({
   const pendingDependencies = getPendingDependencies(task.dependencies ?? [])
   const blockedBadgeLabel = formatTaskBlockedBadgeLabel(pendingDependencies)
   const blockedTooltipTitle = formatTaskBlockedTooltipTitle(pendingDependencies)
-  const sprintHuLabel = formatSprintHuLabel(task.sprint_order)
+  const sprintReferenceLabel = formatSprintTaskReferenceLabel({
+    sprintId: task.sprint_id,
+    sprintOrder: task.sprint_order,
+    sprints,
+  })
   const carryOverLabel = task.is_carry_over
     ? formatCarryOverLabel(task.carry_over_sprint_order)
     : null
@@ -230,7 +241,7 @@ function TaskCardView({
                 #{task.task_number}
               </Box>
             )}
-            {sprintHuLabel && (
+            {sprintReferenceLabel && (
               <Box
                 sx={{
                   fontSize: 11,
@@ -242,9 +253,12 @@ function TaskCardView({
                   py: 0.15,
                   borderRadius: 1,
                   flexShrink: 0,
+                  maxWidth: '46%',
                 }}
               >
-                {sprintHuLabel}
+                <Box component="span" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {sprintReferenceLabel}
+                </Box>
               </Box>
             )}
             <Typography noWrap sx={{ fontWeight: 600, fontSize: 13.5, letterSpacing: '-0.02em' }}>
@@ -494,6 +508,7 @@ export const TaskCard = memo(function TaskCard({
     prev.task.position === next.task.position &&
     prev.task.complexity === next.task.complexity &&
     prev.task.is_carry_over === next.task.is_carry_over &&
+    prev.task.sprint_id === next.task.sprint_id &&
     prev.task.sprint_order === next.task.sprint_order &&
     prev.task.carry_over_sprint_order === next.task.carry_over_sprint_order &&
     prev.task.assignees.length === next.task.assignees.length &&

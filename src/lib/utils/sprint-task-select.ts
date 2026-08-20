@@ -1,4 +1,4 @@
-import { formatSprintHuLabel } from '@/lib/utils/task-sprint-order'
+import { formatSprintHuLabel, resolveSprintName } from '@/lib/utils/task-sprint-order'
 
 export interface SprintOption {
   id: string
@@ -116,14 +116,6 @@ export function matchesSprintTaskSearch(task: SprintTaskOption, query: string): 
   }
 
   return false
-}
-
-export function resolveSprintName(
-  sprintId: string | null | undefined,
-  sprints: SprintOption[]
-): string | null {
-  if (!sprintId) return null
-  return sprints.find((sprint) => sprint.id === sprintId)?.name ?? null
 }
 
 export function formatSprintTaskDependencyLabel(

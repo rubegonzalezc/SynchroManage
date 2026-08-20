@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatCarryOverLabel,
   formatSprintHuLabel,
+  formatSprintTaskReferenceLabel,
   getSprintOrderUpdateAction,
 } from '../task-sprint-order'
 
@@ -33,5 +34,54 @@ describe('formatCarryOverLabel', () => {
   it('muestra la HU del sprint anterior', () => {
     expect(formatCarryOverLabel(2)).toBe('Sprint anterior HU-2')
     expect(formatCarryOverLabel(null)).toBeNull()
+  })
+})
+
+describe('formatSprintTaskReferenceLabel', () => {
+  const sprints = [
+    { id: 's1', name: 'Sprint 1' },
+    { id: 's2', name: 'Sprint 2' },
+  ]
+
+  it('muestra Sprint · HU-N cuando hay orden', () => {
+    expect(
+      formatSprintTaskReferenceLabel({
+        sprintId: 's1',
+        sprintOrder: 3,
+        sprints,
+      })
+    ).toBe('Sprint 1 · HU-3')
+  })
+
+  it('muestra solo nombre del sprint sin orden (con # aparte)', () => {
+    expect(
+      formatSprintTaskReferenceLabel({
+        sprintId: 's2',
+        sprintOrder: null,
+        sprints,
+      })
+    ).toBe('Sprint 2')
+  })
+
+  it('incluye #global en etiqueta cuando se solicita', () => {
+    expect(
+      formatSprintTaskReferenceLabel({
+        sprintId: 's2',
+        sprintOrder: null,
+        taskNumber: 58,
+        sprints,
+        includeGlobalWhenNoOrder: true,
+      })
+    ).toBe('#58 · Sprint 2')
+  })
+
+  it('retorna null sin sprint', () => {
+    expect(
+      formatSprintTaskReferenceLabel({
+        sprintId: null,
+        sprintOrder: 3,
+        sprints,
+      })
+    ).toBeNull()
   })
 })

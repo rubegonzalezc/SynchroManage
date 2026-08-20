@@ -21,6 +21,45 @@ export function formatSprintHuLabel(sprintOrder: number | null | undefined): str
   return `HU-${sprintOrder}`
 }
 
+export interface SprintNameRef {
+  id: string
+  name: string
+}
+
+export function resolveSprintName(
+  sprintId: string | null | undefined,
+  sprints: SprintNameRef[]
+): string | null {
+  if (!sprintId) return null
+  return sprints.find((sprint) => sprint.id === sprintId)?.name ?? null
+}
+
+/** Etiqueta local de sprint: `Sprint 1 · HU-3` o solo nombre si no hay orden. */
+export function formatSprintTaskReferenceLabel(options: {
+  sprintId?: string | null
+  sprintName?: string | null
+  sprintOrder?: number | null
+  sprints?: SprintNameRef[]
+  taskNumber?: number | null
+  /** Incluir #global en la etiqueta cuando no hay sprint_order (p. ej. sin # aparte). */
+  includeGlobalWhenNoOrder?: boolean
+}): string | null {
+  const sprintName =
+    options.sprintName ??
+    resolveSprintName(options.sprintId, options.sprints ?? [])
+
+  if (!sprintName) return null
+
+  const hu = formatSprintHuLabel(options.sprintOrder)
+  if (hu) return `${sprintName} · ${hu}`
+
+  if (options.includeGlobalWhenNoOrder && options.taskNumber != null) {
+    return `#${options.taskNumber} · ${sprintName}`
+  }
+
+  return sprintName
+}
+
 export function formatCarryOverLabel(
   carryOverSprintOrder: number | null | undefined
 ): string | null {
