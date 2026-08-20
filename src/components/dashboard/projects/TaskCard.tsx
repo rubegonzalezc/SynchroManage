@@ -242,24 +242,23 @@ function TaskCardView({
               </Box>
             )}
             {sprintReferenceLabel && (
-              <Box
-                sx={{
-                  fontSize: 11,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                  fontWeight: 650,
-                  color: isDark ? '#93C5FD' : '#1D4ED8',
-                  bgcolor: isDark ? 'rgba(59, 130, 246, 0.16)' : 'rgba(37, 99, 235, 0.1)',
-                  px: 0.75,
-                  py: 0.15,
-                  borderRadius: 1,
-                  flexShrink: 0,
-                  maxWidth: '46%',
-                }}
-              >
-                <Box component="span" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <Tooltip title={sprintReferenceLabel} arrow placement="top">
+                <Box
+                  sx={{
+                    fontSize: 11,
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    fontWeight: 650,
+                    color: isDark ? '#93C5FD' : '#1D4ED8',
+                    bgcolor: isDark ? 'rgba(59, 130, 246, 0.16)' : 'rgba(37, 99, 235, 0.1)',
+                    px: 0.75,
+                    py: 0.15,
+                    borderRadius: 1,
+                    flexShrink: 0,
+                  }}
+                >
                   {sprintReferenceLabel}
                 </Box>
-              </Box>
+              </Tooltip>
             )}
             <Typography noWrap sx={{ fontWeight: 600, fontSize: 13.5, letterSpacing: '-0.02em' }}>
               {task.title}

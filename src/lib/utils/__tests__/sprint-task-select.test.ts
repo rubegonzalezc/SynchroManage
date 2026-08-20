@@ -10,9 +10,9 @@ import {
 import type { SprintOption, SprintTaskOption } from '@/lib/utils/sprint-task-select'
 
 const sprints: SprintOption[] = [
-  { id: 's1', name: 'Sprint 1', status: 'completed', order_index: 1 },
-  { id: 's2', name: 'Sprint 2', status: 'active', order_index: 2 },
-  { id: 's3', name: 'Sprint 3', status: 'planning', order_index: 3 },
+  { id: 's1', name: 'Sprint 1 — Auth', status: 'completed', order_index: 0 },
+  { id: 's2', name: 'Sprint 2', status: 'active', order_index: 1 },
+  { id: 's3', name: 'Sprint 3', status: 'planning', order_index: 2 },
 ]
 
 const tasks: SprintTaskOption[] = [
@@ -58,7 +58,7 @@ describe('buildSprintFilterOptions', () => {
     expect(options.map((o) => o.label)).toEqual([
       'Sprint 2 (actual)',
       'Backlog',
-      'Sprint 1',
+      'Sprint 1 — Auth',
       'Sprint 3',
       'Todos',
     ])

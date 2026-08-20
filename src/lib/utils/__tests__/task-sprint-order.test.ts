@@ -4,6 +4,7 @@ import {
   formatSprintHuLabel,
   formatSprintTaskReferenceLabel,
   getSprintOrderUpdateAction,
+  resolveSprintDisplayLabel,
 } from '../task-sprint-order'
 
 describe('getSprintOrderUpdateAction', () => {
@@ -27,6 +28,24 @@ describe('formatSprintHuLabel', () => {
   it('formatea el orden como HU-N', () => {
     expect(formatSprintHuLabel(2)).toBe('HU-2')
     expect(formatSprintHuLabel(null)).toBeNull()
+    expect(formatSprintHuLabel(0)).toBeNull()
+    expect(formatSprintHuLabel('3')).toBe('HU-3')
+    expect(formatSprintHuLabel('_')).toBeNull()
+  })
+})
+
+describe('resolveSprintDisplayLabel', () => {
+  const sprints = [
+    { id: 's1', name: 'Sprint 1 — Auth', order_index: 0 },
+    { id: 's5', name: 'Sprint 5 - _', order_index: 4 },
+  ]
+
+  it('usa order_index, no el nombre descriptivo', () => {
+    expect(resolveSprintDisplayLabel('s5', sprints)).toBe('Sprint 5')
+  })
+
+  it('parsea Sprint N del nombre si falta order_index', () => {
+    expect(resolveSprintDisplayLabel('s5', [{ id: 's5', name: 'Sprint 5 - _' }])).toBe('Sprint 5')
   })
 })
 
@@ -39,8 +58,9 @@ describe('formatCarryOverLabel', () => {
 
 describe('formatSprintTaskReferenceLabel', () => {
   const sprints = [
-    { id: 's1', name: 'Sprint 1' },
-    { id: 's2', name: 'Sprint 2' },
+    { id: 's1', name: 'Sprint 1 — Auth', order_index: 0 },
+    { id: 's2', name: 'Sprint 2', order_index: 1 },
+    { id: 's5', name: 'Sprint 5 - _', order_index: 4 },
   ]
 
   it('muestra Sprint · HU-N cuando hay orden', () => {
@@ -53,7 +73,17 @@ describe('formatSprintTaskReferenceLabel', () => {
     ).toBe('Sprint 1 · HU-3')
   })
 
-  it('muestra solo nombre del sprint sin orden (con # aparte)', () => {
+  it('ignora el nombre descriptivo con placeholder', () => {
+    expect(
+      formatSprintTaskReferenceLabel({
+        sprintId: 's5',
+        sprintOrder: 2,
+        sprints,
+      })
+    ).toBe('Sprint 5 · HU-2')
+  })
+
+  it('muestra solo Sprint N sin orden (con # aparte)', () => {
     expect(
       formatSprintTaskReferenceLabel({
         sprintId: 's2',

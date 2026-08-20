@@ -16,14 +16,23 @@ export function getSprintOrderUpdateAction(
   return 'assign'
 }
 
+export function normalizeSprintOrder(value: unknown): number | null {
+  if (value == null) return null
+  const order = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(order) || order <= 0 || !Number.isInteger(order)) return null
+  return order
+}
+
 export function formatSprintHuLabel(sprintOrder: number | null | undefined): string | null {
-  if (sprintOrder == null || sprintOrder <= 0) return null
-  return `HU-${sprintOrder}`
+  const order = normalizeSprintOrder(sprintOrder)
+  if (order == null) return null
+  return `HU-${order}`
 }
 
 export interface SprintNameRef {
   id: string
   name: string
+  order_index?: number
 }
 
 export function resolveSprintName(
@@ -34,7 +43,35 @@ export function resolveSprintName(
   return sprints.find((sprint) => sprint.id === sprintId)?.name ?? null
 }
 
-/** Etiqueta local de sprint: `Sprint 1 · HU-3` o solo nombre si no hay orden. */
+export function formatSprintNumberLabel(orderIndex: number): string {
+  return `Sprint ${orderIndex + 1}`
+}
+
+/** Etiqueta corta para daily: `Sprint N` según order_index, no el nombre descriptivo del sprint. */
+export function resolveSprintDisplayLabel(
+  sprintId: string | null | undefined,
+  sprints: SprintNameRef[],
+  sprintName?: string | null
+): string | null {
+  if (!sprintId && !sprintName) return null
+
+  const sprint = sprintId ? sprints.find((item) => item.id === sprintId) : undefined
+  const name = sprintName ?? sprint?.name
+
+  if (sprint?.order_index != null && sprint.order_index >= 0) {
+    return formatSprintNumberLabel(sprint.order_index)
+  }
+
+  if (name) {
+    const match = name.match(/^Sprint\s+(\d+)/i)
+    if (match) return `Sprint ${match[1]}`
+    return name
+  }
+
+  return null
+}
+
+/** Etiqueta local de sprint: `Sprint 1 · HU-3` o solo `Sprint 1` si no hay orden. */
 export function formatSprintTaskReferenceLabel(options: {
   sprintId?: string | null
   sprintName?: string | null
@@ -44,20 +81,22 @@ export function formatSprintTaskReferenceLabel(options: {
   /** Incluir #global en la etiqueta cuando no hay sprint_order (p. ej. sin # aparte). */
   includeGlobalWhenNoOrder?: boolean
 }): string | null {
-  const sprintName =
-    options.sprintName ??
-    resolveSprintName(options.sprintId, options.sprints ?? [])
+  const sprintLabel = resolveSprintDisplayLabel(
+    options.sprintId,
+    options.sprints ?? [],
+    options.sprintName
+  )
 
-  if (!sprintName) return null
+  if (!sprintLabel) return null
 
   const hu = formatSprintHuLabel(options.sprintOrder)
-  if (hu) return `${sprintName} · ${hu}`
+  if (hu) return `${sprintLabel} · ${hu}`
 
   if (options.includeGlobalWhenNoOrder && options.taskNumber != null) {
-    return `#${options.taskNumber} · ${sprintName}`
+    return `#${options.taskNumber} · ${sprintLabel}`
   }
 
-  return sprintName
+  return sprintLabel
 }
 
 export function formatCarryOverLabel(
