@@ -78,9 +78,9 @@ interface TaskDetail {
   complexity?: number | null
   due_date: string | null
   sprint_id: string | null
-  sprint_order?: number | null
+  sprint_order: number | null
   is_carry_over: boolean
-  carry_over_sprint_order?: number | null
+  carry_over_sprint_order: number | null
   reviewer_id?: string | null
   reviewer?: { id: string; full_name: string; avatar_url: string | null } | null
   depends_on_task_id?: string | null

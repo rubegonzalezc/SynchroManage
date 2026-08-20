@@ -20,28 +20,14 @@ import {
   type TaskDependencyRef,
 } from '@/lib/utils/task-dependency'
 import { formatCarryOverLabel, formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
+import type { ProjectTask } from '@/lib/types/task'
 
 interface SprintRef {
   id: string
   name: string
 }
 
-interface Task {
-  id: string
-  task_number: number | null
-  title: string
-  description: string | null
-  status: string
-  priority: string
-  category?: string
-  position: number
-  due_date: string | null
-  sprint_id?: string | null
-  sprint_order?: number | null
-  is_carry_over?: boolean
-  carry_over_sprint_order?: number | null
-  complexity?: number | null
-  assignees: { id: string; full_name: string; avatar_url: string | null }[]
+type Task = ProjectTask & {
   dependencies?: TaskDependencyRef[]
 }
 

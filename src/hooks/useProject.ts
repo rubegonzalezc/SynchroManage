@@ -1,28 +1,8 @@
 import useSWR from 'swr'
 import type { Sprint } from '@/components/dashboard/projects/CreateSprintDialog'
+import type { ProjectTask } from '@/lib/types/task'
 
-interface Task {
-  id: string
-  task_number: number | null
-  title: string
-  description: string | null
-  status: string
-  priority: string
-  category?: string
-  position: number
-  due_date: string | null
-  sprint_id: string | null
-  sprint_order?: number | null
-  is_carry_over: boolean
-  carry_over_sprint_order?: number | null
-  complexity?: number | null
-  depends_on_task_id?: string | null
-  depends_on_task_ids?: string[]
-  depends_on?: { id: string; task_number: number | null; title: string; status: string } | null
-  dependencies?: { id: string; task_number: number | null; title: string; status: string }[]
-  assignees: { id: string; full_name: string; avatar_url: string | null }[]
-  assignee?: { id: string; full_name: string; avatar_url: string | null } | null
-}
+export type { ProjectTask }
 
 export interface Project {
   id: string
@@ -41,7 +21,7 @@ export interface Project {
     role: string
     user: { id: string; full_name: string; email: string; avatar_url: string | null; role: { name: string } | null }
   }>
-  tasks: Task[]
+  tasks: ProjectTask[]
   sprints: Sprint[]
 }
 
@@ -51,7 +31,7 @@ interface UseProjectReturn {
   error: Error | undefined
   mutate: () => void
   optimisticMoveTask: (taskId: string, newStatus: string, newPosition: number) => void
-  applyTaskPatch: (task: Partial<Task> & { id: string }) => void
+  applyTaskPatch: (task: Partial<ProjectTask> & { id: string }) => void
 }
 
 const projectFetcher = (url: string) =>
@@ -82,7 +62,7 @@ export function useProject(projectId: string): UseProjectReturn {
     )
   }
 
-  const applyTaskPatch = (task: Partial<Task> & { id: string }) => {
+  const applyTaskPatch = (task: Partial<ProjectTask> & { id: string }) => {
     if (!data) return
     mutate(
       {

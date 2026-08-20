@@ -24,6 +24,7 @@ import { SprintSelector } from './SprintSelector'
 import { SprintHeader } from './SprintHeader'
 import { CreateSprintDialog } from './CreateSprintDialog'
 import type { Sprint } from './CreateSprintDialog'
+import type { ProjectTask } from '@/lib/types/task'
 import { BugSection } from './BugSection'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useUsers } from '@/hooks/useUsers'
@@ -76,25 +77,11 @@ interface Project {
     role: string
     user: { id: string; full_name: string; email: string; avatar_url: string | null; role: { name: string } | null }
   }>
-  tasks: Task[]
+  tasks: ProjectTask[]
   sprints: Sprint[]
 }
 
-interface Task {
-  id: string
-  task_number: number | null
-  title: string
-  description: string | null
-  status: string
-  priority: string
-  category?: string
-  position: number
-  due_date: string | null
-  sprint_id: string | null
-  is_carry_over: boolean
-  assignees: { id: string; full_name: string; avatar_url: string | null }[]
-  assignee?: { id: string; full_name: string; avatar_url: string | null } | null
-}
+type Task = ProjectTask
 
 interface User {
   id: string
@@ -186,6 +173,8 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
     if (!project) return []
     return project.tasks.map(t => ({
       ...t,
+      is_carry_over: t.is_carry_over ?? false,
+      sprint_order: t.sprint_order ?? null,
       assignees: t.assignees?.length ? t.assignees : t.assignee ? [t.assignee] : [],
       openBugsCount: bugsByTask[t.id] ?? 0,
     })).filter(task => {
@@ -427,6 +416,8 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           sprints={project.sprints || []}
           tasks={project.tasks.map(t => ({
             ...t,
+            is_carry_over: t.is_carry_over ?? false,
+            sprint_order: t.sprint_order ?? null,
             assignees: t.assignees?.length ? t.assignees : t.assignee ? [t.assignee] : [],
           }))}
           progressPercentage={progressPercentage}
