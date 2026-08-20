@@ -54,7 +54,7 @@ async function fetchProject(projectId: string) {
       ),
       tasks(
         id, task_number, title, description, status, priority, category, position, due_date, created_at,
-        sprint_id, is_carry_over, complexity, depends_on_task_id,
+        sprint_id, sprint_order, is_carry_over, carry_over_sprint_order, complexity, depends_on_task_id,
         assignee:profiles!tasks_assignee_id_fkey(id, full_name, avatar_url)
       ),
       sprints(

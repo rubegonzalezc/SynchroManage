@@ -19,6 +19,7 @@ import {
   getPendingDependencies,
   type TaskDependencyRef,
 } from '@/lib/utils/task-dependency'
+import { formatCarryOverLabel, formatSprintHuLabel } from '@/lib/utils/task-sprint-order'
 
 interface Task {
   id: string
@@ -31,7 +32,9 @@ interface Task {
   position: number
   due_date: string | null
   sprint_id?: string | null
+  sprint_order?: number | null
   is_carry_over?: boolean
+  carry_over_sprint_order?: number | null
   complexity?: number | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
   dependencies?: TaskDependencyRef[]
@@ -105,6 +108,10 @@ function TaskCardView({
   const pendingDependencies = getPendingDependencies(task.dependencies ?? [])
   const blockedBadgeLabel = formatTaskBlockedBadgeLabel(pendingDependencies)
   const blockedTooltipTitle = formatTaskBlockedTooltipTitle(pendingDependencies)
+  const sprintHuLabel = formatSprintHuLabel(task.sprint_order)
+  const carryOverLabel = task.is_carry_over
+    ? formatCarryOverLabel(task.carry_over_sprint_order)
+    : null
 
   return (
     <Box
@@ -223,6 +230,23 @@ function TaskCardView({
                 #{task.task_number}
               </Box>
             )}
+            {sprintHuLabel && (
+              <Box
+                sx={{
+                  fontSize: 11,
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                  fontWeight: 650,
+                  color: isDark ? '#93C5FD' : '#1D4ED8',
+                  bgcolor: isDark ? 'rgba(59, 130, 246, 0.16)' : 'rgba(37, 99, 235, 0.1)',
+                  px: 0.75,
+                  py: 0.15,
+                  borderRadius: 1,
+                  flexShrink: 0,
+                }}
+              >
+                {sprintHuLabel}
+              </Box>
+            )}
             <Typography noWrap sx={{ fontWeight: 600, fontSize: 13.5, letterSpacing: '-0.02em' }}>
               {task.title}
             </Typography>
@@ -298,10 +322,31 @@ function TaskCardView({
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
             {task.is_carry_over && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, fontSize: 11, color: '#FF9F0A', fontWeight: 600 }}>
-                <RefreshCw className="w-3 h-3" />
-                Carry
-              </Box>
+              <Tooltip
+                title={carryOverLabel ?? 'Tarea arrastrada del sprint anterior'}
+                arrow
+                placement="top"
+              >
+                <Box
+                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.4,
+                    fontSize: 11,
+                    color: '#FF9F0A',
+                    fontWeight: 650,
+                    px: 0.6,
+                    py: 0.15,
+                    borderRadius: 999,
+                    bgcolor: isDark ? 'rgba(255, 159, 10, 0.14)' : 'rgba(255, 159, 10, 0.12)',
+                    border: '1px solid rgba(255, 159, 10, 0.28)',
+                  }}
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  {carryOverLabel ?? 'Carry'}
+                </Box>
+              </Tooltip>
             )}
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: 11, color: 'text.secondary' }}>
@@ -449,6 +494,8 @@ export const TaskCard = memo(function TaskCard({
     prev.task.position === next.task.position &&
     prev.task.complexity === next.task.complexity &&
     prev.task.is_carry_over === next.task.is_carry_over &&
+    prev.task.sprint_order === next.task.sprint_order &&
+    prev.task.carry_over_sprint_order === next.task.carry_over_sprint_order &&
     prev.task.assignees.length === next.task.assignees.length &&
     prevDeps === nextDeps &&
     prev.variant === next.variant &&

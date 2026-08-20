@@ -224,7 +224,12 @@ export async function PUT(
         updatePayload.sprint_order = sprintOrder
       }
     }
-    if ('is_carry_over' in body) updatePayload.is_carry_over = body.is_carry_over ?? false
+    if ('is_carry_over' in body) {
+      updatePayload.is_carry_over = body.is_carry_over ?? false
+      if (body.is_carry_over === false) {
+        updatePayload.carry_over_sprint_order = null
+      }
+    }
     if ('branch_name' in body) updatePayload.branch_name = body.branch_name || null
     if ('complexity' in body) updatePayload.complexity = body.complexity ?? null
     if ('reviewer_id' in body) updatePayload.reviewer_id = body.reviewer_id ?? null

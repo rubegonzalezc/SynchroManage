@@ -35,6 +35,7 @@ import {
 } from '@/lib/utils/task-dependency'
 import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
+import { formatCarryOverLabel, formatSprintHuLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
 import { useDynamicIslandToast } from '@/components/ui/dynamic-island-toast'
 import { readApiError } from '@/lib/utils/api-error'
@@ -77,7 +78,9 @@ interface TaskDetail {
   complexity?: number | null
   due_date: string | null
   sprint_id: string | null
+  sprint_order?: number | null
   is_carry_over: boolean
+  carry_over_sprint_order?: number | null
   reviewer_id?: string | null
   reviewer?: { id: string; full_name: string; avatar_url: string | null } | null
   depends_on_task_id?: string | null
@@ -585,6 +588,10 @@ export function TaskDetailDialog({
   }
 
   const isOverdue = Boolean(task?.due_date && new Date(task.due_date) < new Date() && task.status !== 'done')
+  const sprintHuLabel = formatSprintHuLabel(task?.sprint_order)
+  const carryOverLabel = task?.is_carry_over
+    ? formatCarryOverLabel(task.carry_over_sprint_order)
+    : null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -662,6 +669,16 @@ export function TaskDetailDialog({
                   {task.title}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
+                  {task.task_number != null && (
+                    <Badge variant="secondary" className="font-mono font-normal">
+                      #{task.task_number}
+                    </Badge>
+                  )}
+                  {sprintHuLabel && (
+                    <Badge variant="outline" className="font-mono font-normal text-blue-700 border-blue-300 dark:text-blue-300 dark:border-blue-800">
+                      {sprintHuLabel}
+                    </Badge>
+                  )}
                   <Badge variant="secondary" className="font-normal">
                     {categoryIcons[task.category || 'task']} {categoryLabels[task.category || 'task'] || 'Tarea'}
                   </Badge>
@@ -678,9 +695,13 @@ export function TaskDetailDialog({
                     </Badge>
                   )}
                   {task.is_carry_over && (
-                    <Badge variant="outline" className="font-normal text-amber-700 border-amber-300 dark:text-amber-300">
+                    <Badge
+                      variant="outline"
+                      className="font-normal text-amber-700 border-amber-300 dark:text-amber-300"
+                      title={carryOverLabel ?? 'Tarea arrastrada del sprint anterior'}
+                    >
                       <RefreshCw className="w-3 h-3 mr-1" />
-                      Carry over
+                      {carryOverLabel ?? 'Carry over'}
                     </Badge>
                   )}
                 </div>
