@@ -41,10 +41,11 @@ interface CreateTaskDialogProps {
   tasks?: TaskOption[]
   sprints?: SprintOption[]
   initialSprintId?: string | null
+  currentSprintId?: string | null
   onTaskCreated?: () => void
 }
 
-export function CreateTaskDialog({ projectId, projectName, members, tasks = [], sprints = [], initialSprintId, onTaskCreated }: CreateTaskDialogProps) {
+export function CreateTaskDialog({ projectId, projectName, members, tasks = [], sprints = [], initialSprintId, currentSprintId, onTaskCreated }: CreateTaskDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -344,9 +345,10 @@ export function CreateTaskDialog({ projectId, projectName, members, tasks = [], 
 
           <MultiSelectTask
             tasks={tasks}
+            sprints={sprints}
+            currentSprintId={formData.sprint_id || currentSprintId || initialSprintId}
             selectedIds={formData.depends_on_task_ids}
             onSelectionChange={(ids) => setFormData(prev => ({ ...prev, depends_on_task_ids: ids }))}
-            placeholder="Buscar por # o título..."
             disabled={loading || success}
             hint="Puedes seleccionar varias tareas que deben completarse antes de avanzar."
           />

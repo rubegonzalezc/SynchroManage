@@ -216,11 +216,13 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
           membersMap.set(m.user.id, m.user)
         })
         setMembers(Array.from(membersMap.values()))
-        setProjectTasks((data.project.tasks || []).map((t: TaskOption) => ({
+        setProjectTasks((data.project.tasks || []).map((t: TaskOption & { sprint_id?: string | null; sprint_order?: number | null }) => ({
           id: t.id,
           task_number: t.task_number,
           title: t.title,
           status: t.status,
+          sprint_id: t.sprint_id ?? null,
+          sprint_order: t.sprint_order ?? null,
         })))
       }
     } catch (err) {
@@ -592,10 +594,11 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
 
                 <MultiSelectTask
                   tasks={projectTasks}
+                  sprints={projectSprints}
+                  currentSprintId={formData.sprint_id || task?.sprint_id}
                   selectedIds={formData.depends_on_task_ids}
                   onSelectionChange={(ids) => setFormData(prev => ({ ...prev, depends_on_task_ids: ids }))}
                   excludeTaskId={taskId}
-                  placeholder="Buscar por # o título..."
                   hint="Para avanzar en esta tarea, primero deben completarse todas las dependencias seleccionadas."
                 />
 

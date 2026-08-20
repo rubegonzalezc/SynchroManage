@@ -601,9 +601,12 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
                 task_number: t.task_number,
                 title: t.title,
                 status: t.status,
+                sprint_id: t.sprint_id,
+                sprint_order: t.sprint_order ?? null,
               }))}
               sprints={project.sprints || []}
               initialSprintId={resolvedSprintId}
+              currentSprintId={resolvedSprintId}
               onTaskCreated={mutateProject}
             />
           </GlassPanel>
