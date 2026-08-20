@@ -9,6 +9,7 @@ import {
   normalizeDependsOnTaskIds,
   syncTaskDependencies,
 } from '@/lib/utils/task-dependency'
+import { getNextSprintOrder } from '@/lib/utils/task-sprint-order'
 
 // Helper para registrar actividad desde el servidor
 async function logActivityServer(
@@ -88,6 +89,11 @@ export async function POST(request: Request) {
     // Mantener assignee_id sincronizado con el primer asignado (compatibilidad hacia atrás)
     const primaryAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : null
 
+    const sprintId = body.sprint_id || null
+    const sprintOrder = sprintId
+      ? await getNextSprintOrder(supabaseAdmin, sprintId)
+      : null
+
     const { data: task, error } = await supabaseAdmin
       .from('tasks')
       .insert({
@@ -101,7 +107,8 @@ export async function POST(request: Request) {
         reviewer_id: body.reviewer_id || null,
         due_date: body.due_date || null,
         position: newPosition,
-        sprint_id: body.sprint_id || null,
+        sprint_id: sprintId,
+        sprint_order: sprintOrder,
         branch_name: body.branch_name || null,
         complexity: body.complexity ?? null,
         depends_on_task_id: dependsOnTaskIds[0] ?? null,
