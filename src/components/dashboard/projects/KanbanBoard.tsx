@@ -33,6 +33,11 @@ import {
   type TaskDependencyRef,
 } from '@/lib/utils/task-dependency'
 
+interface SprintRef {
+  id: string
+  name: string
+}
+
 interface Task {
   id: string
   task_number: number | null
@@ -44,6 +49,7 @@ interface Task {
   position: number
   due_date: string | null
   sprint_id?: string | null
+  sprint_order?: number | null
   is_carry_over?: boolean
   complexity?: number | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
@@ -70,6 +76,7 @@ interface KanbanBoardProps {
   onOptimisticMove?: (taskId: string, newStatus: string, newPosition: number) => void
   onTaskPatched?: (task: { id: string; status: string; position: number }) => void
   highlightId?: string | null
+  sprints?: SprintRef[]
 }
 
 const columns = [
@@ -107,6 +114,7 @@ export function KanbanBoard({
   onOptimisticMove,
   onTaskPatched,
   highlightId,
+  sprints = [],
 }: KanbanBoardProps) {
   const { showError } = useDynamicIslandToast()
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
@@ -437,6 +445,7 @@ export function KanbanBoard({
                       currentUserId={currentUserId}
                       onUpdate={onTasksChange}
                       highlightId={highlightId}
+                      sprints={sprints}
                     />
                   ))}
                 </KanbanColumn>
@@ -472,6 +481,7 @@ export function KanbanBoard({
                 allUsers={allUsers}
                 currentUserId={currentUserId}
                 onUpdate={() => {}}
+                sprints={sprints}
               />
             </div>
           ) : null}

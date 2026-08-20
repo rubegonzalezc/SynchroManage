@@ -7,6 +7,13 @@ import { Calendar, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, B
 import { Button } from '@/components/ui/button'
 import { TaskDetailDialog } from './TaskDetailDialog'
 import { categoryIcons, categoryLabels, categoryColors } from '@/lib/constants/categories'
+import { SprintTaskReferenceBadge } from '@/components/ui/sprint-task-reference-badge'
+import { formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
+
+interface SprintRef {
+  id: string
+  name: string
+}
 
 interface Task {
   id: string
@@ -18,6 +25,8 @@ interface Task {
   category?: string
   position: number
   due_date: string | null
+  sprint_id?: string | null
+  sprint_order?: number | null
   complexity?: number | null
   openBugsCount?: number
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
@@ -37,6 +46,7 @@ interface TaskListViewProps {
   allUsers: Member[]
   currentUserId: string
   onTasksChange: () => void
+  sprints?: SprintRef[]
 }
 
 const statusColumns = [
@@ -63,7 +73,7 @@ const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, l
 type SortField = 'priority' | 'due_date' | 'title' | 'task_number'
 type SortDirection = 'asc' | 'desc'
 
-export function TaskListView({ tasks, projectId, projectName, members, allUsers, currentUserId, onTasksChange }: TaskListViewProps) {
+export function TaskListView({ tasks, projectId, projectName, members, allUsers, currentUserId, onTasksChange, sprints = [] }: TaskListViewProps) {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [sortField, setSortField] = useState<SortField>('priority')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
@@ -172,6 +182,11 @@ export function TaskListView({ tasks, projectId, projectName, members, allUsers,
             <div className="divide-y divide-border">
               {group.tasks.map((task) => {
                 const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done'
+                const sprintReferenceLabel = formatSprintTaskReferenceLabel({
+                  sprintId: task.sprint_id,
+                  sprintOrder: task.sprint_order,
+                  sprints,
+                })
                 return (
                   <div
                     key={task.id}
@@ -183,6 +198,9 @@ export function TaskListView({ tasks, projectId, projectName, members, allUsers,
                         <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
                           #{task.task_number}
                         </span>
+                      )}
+                      {sprintReferenceLabel && (
+                        <SprintTaskReferenceBadge label={sprintReferenceLabel} />
                       )}
                       <span className="text-sm font-medium text-foreground truncate">{task.title}</span>
                     </div>

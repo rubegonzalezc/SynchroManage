@@ -1,4 +1,8 @@
-import { formatSprintHuLabel } from '@/lib/utils/task-sprint-order'
+import {
+  formatSprintHuLabel,
+  normalizeSprintOrder,
+  resolveSprintDisplayLabel,
+} from '@/lib/utils/task-sprint-order'
 
 export interface SprintOption {
   id: string
@@ -105,25 +109,18 @@ export function matchesSprintTaskSearch(task: SprintTaskOption, query: string): 
     if (`#${task.task_number}`.toLowerCase().includes(q)) return true
   }
 
-  if (task.sprint_order != null) {
-    const huLabel = formatSprintHuLabel(task.sprint_order)?.toLowerCase()
+  const sprintOrder = normalizeSprintOrder(task.sprint_order)
+  if (sprintOrder != null) {
+    const huLabel = formatSprintHuLabel(sprintOrder)?.toLowerCase()
     if (huLabel && huLabel.includes(q)) return true
 
     const huMatch = q.match(/^hu-?(\d+)$/)
-    if (huMatch && huMatch[1] === String(task.sprint_order)) return true
+    if (huMatch && huMatch[1] === String(sprintOrder)) return true
 
-    if (String(task.sprint_order).includes(numeric)) return true
+    if (String(sprintOrder).includes(numeric)) return true
   }
 
   return false
-}
-
-export function resolveSprintName(
-  sprintId: string | null | undefined,
-  sprints: SprintOption[]
-): string | null {
-  if (!sprintId) return null
-  return sprints.find((sprint) => sprint.id === sprintId)?.name ?? null
 }
 
 export function formatSprintTaskDependencyLabel(
@@ -131,10 +128,10 @@ export function formatSprintTaskDependencyLabel(
   sprints: SprintOption[]
 ): string {
   const parts: string[] = []
-  const sprintName = resolveSprintName(task.sprint_id, sprints)
+  const sprintLabel = resolveSprintDisplayLabel(task.sprint_id, sprints)
 
-  if (sprintName) {
-    parts.push(sprintName)
+  if (sprintLabel) {
+    parts.push(sprintLabel)
   } else if (!task.sprint_id) {
     parts.push('Backlog')
   }
