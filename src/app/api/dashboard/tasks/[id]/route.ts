@@ -12,6 +12,7 @@ import {
   fetchTaskDependencyIds,
   type TaskDependencyRef,
 } from '@/lib/utils/task-dependency'
+import { resolveSprintOrderForUpdate } from '@/lib/utils/task-sprint-order'
 
 // Helper para registrar actividad desde el servidor
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -153,7 +154,7 @@ export async function PUT(
     // Obtener tarea actual para comparar cambios
     const { data: currentTask } = await supabaseAdmin
       .from('tasks')
-      .select('title, status, assignee_id, reviewer_id, project_id, depends_on_task_id')
+      .select('title, status, assignee_id, reviewer_id, project_id, depends_on_task_id, sprint_id')
       .eq('id', id)
       .single()
 
@@ -213,7 +214,16 @@ export async function PUT(
       due_date: body.due_date || null,
       updated_at: new Date().toISOString(),
     }
-    if ('sprint_id' in body) updatePayload.sprint_id = body.sprint_id ?? null
+    if ('sprint_id' in body) {
+      updatePayload.sprint_id = body.sprint_id ?? null
+      const sprintOrder = await resolveSprintOrderForUpdate(supabaseAdmin, {
+        currentSprintId: currentTask?.sprint_id ?? null,
+        newSprintId: body.sprint_id ?? null,
+      })
+      if (sprintOrder !== undefined) {
+        updatePayload.sprint_order = sprintOrder
+      }
+    }
     if ('is_carry_over' in body) updatePayload.is_carry_over = body.is_carry_over ?? false
     if ('branch_name' in body) updatePayload.branch_name = body.branch_name || null
     if ('complexity' in body) updatePayload.complexity = body.complexity ?? null
