@@ -23,7 +23,7 @@ export function normalizeSprintOrder(value: unknown): number | null {
   return order
 }
 
-export function formatSprintHuLabel(sprintOrder: number | null | undefined): string | null {
+export function formatSprintHuLabel(sprintOrder: unknown): string | null {
   const order = normalizeSprintOrder(sprintOrder)
   if (order == null) return null
   return `HU-${order}`
