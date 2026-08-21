@@ -16,6 +16,11 @@ import Link from 'next/link'
 import { TaskDetailDialogStandalone } from '@/components/dashboard/tasks/TaskDetailDialogStandalone'
 import { getBranchName } from '@/lib/utils/branch-name'
 import { formatCarryOverLabel, formatSprintHuLabel } from '@/lib/utils/task-sprint-order'
+import {
+  formatTaskBlockedBadgeLabel,
+  formatTaskBlockedTooltipTitle,
+  getPendingDependencies,
+} from '@/lib/utils/task-dependency'
 import { GlassPanel } from '@/components/ui/glass-panel'
 
 export interface Task {
@@ -34,6 +39,15 @@ export interface Task {
   complexity?: number | null
   open_bugs_count?: number
   branch_name?: string | null
+  depends_on_task_ids?: string[]
+  dependencies?: {
+    id: string
+    task_number: number | null
+    title: string
+    status: string
+    sprint_id?: string | null
+    sprint_order?: number | null
+  }[]
   project: { id: string; name: string; type?: string; company?: { id: string; name: string } | null } | null
   sprint?: { id: string; name: string; status: string } | null
 }
@@ -379,6 +393,9 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
               const cat = categoryConfig[task.category || 'task'] ?? categoryConfig.task
               const overdue = isOverdue(task.due_date, task.status)
               const branchName = task.branch_name || getBranchName(task)
+              const pendingDependencies = getPendingDependencies(task.dependencies ?? [])
+              const blockedBadgeLabel = formatTaskBlockedBadgeLabel(pendingDependencies)
+              const blockedTooltipTitle = formatTaskBlockedTooltipTitle(pendingDependencies)
 
               const getSprintGroup = (t: Task) => {
                 if (t.status === 'done') return 'done'
@@ -434,6 +451,15 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
                           <span className="font-medium">
                             {formatCarryOverLabel(task.carry_over_sprint_order) ?? 'Carry over'}
                           </span>
+                        </div>
+                      )}
+                      {blockedBadgeLabel && (
+                        <div
+                          className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-semibold"
+                          title={blockedTooltipTitle}
+                        >
+                          <GitBranch className="w-3 h-3" />
+                          {blockedBadgeLabel}
                         </div>
                       )}
                       {task.due_date && (
