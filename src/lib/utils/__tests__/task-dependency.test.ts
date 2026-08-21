@@ -63,6 +63,45 @@ describe('getDependencyBlockedMessageForStatus', () => {
   })
 })
 
+describe('formatTaskBlockedBadgeLabel', () => {
+  it('muestra referencia única con #global', () => {
+    expect(
+      formatTaskBlockedBadgeLabel([{ task_number: 56, title: 'Configurar impresora' }])
+    ).toBe('Bloqueada · #56')
+  })
+
+  it('muestra conteo cuando hay varias dependencias pendientes', () => {
+    expect(
+      formatTaskBlockedBadgeLabel([
+        { task_number: 56, title: 'Configurar impresora' },
+        { task_number: 57, title: 'Validar red' },
+      ])
+    ).toBe('Bloqueada · 2 tareas')
+  })
+})
+
+describe('formatTaskBlockedTooltipTitle', () => {
+  it('lista todas las dependencias en líneas separadas', () => {
+    expect(
+      formatTaskBlockedTooltipTitle([
+        { task_number: 56, title: 'Configurar impresora' },
+        { task_number: 57, title: 'Validar red' },
+      ])
+    ).toBe('#56 Configurar impresora\n#57 Validar red')
+  })
+})
+
+describe('getPendingDependencies', () => {
+  it('filtra dependencias no completadas', () => {
+    const pending = getPendingDependencies([
+      { id: '1', task_number: 56, title: 'A', status: 'done' },
+      { id: '2', task_number: 57, title: 'B', status: 'todo' },
+    ])
+    expect(pending).toHaveLength(1)
+    expect(pending[0]?.task_number).toBe(57)
+  })
+})
+
 describe('resolveDependencyTasks', () => {
   it('prioriza el estado actualizado de projectTasks sobre dependencies cacheadas', () => {
     const result = resolveDependencyTasks(

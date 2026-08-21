@@ -33,7 +33,7 @@ import { MultiSelectTask, type TaskOption } from '@/components/ui/multi-select-t
 import { SprintTaskReferenceBadge } from '@/components/ui/sprint-task-reference-badge'
 import { formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
-import { resolveDependencyTasks } from '@/lib/utils/task-dependency'
+import { resolveDependencyTasks, formatDependencyLabel, getPendingDependencies } from '@/lib/utils/task-dependency'
 import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
 
@@ -79,7 +79,14 @@ interface TaskDetail {
   depends_on_task_id?: string | null
   depends_on_task_ids?: string[]
   depends_on?: { id: string; task_number: number | null; title: string; status: string } | null
-  dependencies?: { id: string; task_number: number | null; title: string; status: string }[]
+  dependencies?: {
+    id: string
+    task_number: number | null
+    title: string
+    status: string
+    sprint_id?: string | null
+    sprint_order?: number | null
+  }[]
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   project: { id: string; name: string } | null
   comments: Comment[]
@@ -478,6 +485,23 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   </div>
                 </div>
               </div>
+
+              {dependencyTasks.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Dependencias</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {dependencyTasks.map((dep) => (
+                      <Badge
+                        key={dep.id}
+                        variant={dep.status === 'done' ? 'secondary' : 'outline'}
+                        className="font-normal"
+                      >
+                        {formatDependencyLabel(dep)}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Form */}
               <div className="space-y-4">

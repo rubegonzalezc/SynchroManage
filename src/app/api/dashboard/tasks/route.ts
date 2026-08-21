@@ -7,6 +7,7 @@ import {
   assertTaskNotBlockedByDependency,
   normalizeDependsOnTaskIds,
   syncTaskDependencies,
+  fetchTaskDependencyRefs,
 } from '@/lib/utils/task-dependency'
 import { resolveSprintOrderForCreate, validateSprintOrderPayload } from '@/lib/utils/task-sprint-order'
 import { revalidateProjectTaskCaches } from '@/lib/utils/revalidate-project-task-cache'
@@ -317,7 +318,17 @@ export async function POST(request: Request) {
 
     revalidateProjectTaskCaches(body.project_id, { assigneeIds })
 
-    return NextResponse.json({ task: { ...task, assignees } })
+    const dependencies = await fetchTaskDependencyRefs(supabaseAdmin, task.id)
+
+    return NextResponse.json({
+      task: {
+        ...task,
+        assignees,
+        depends_on_task_ids: dependencies.map((dep) => dep.id),
+        dependencies,
+        depends_on: dependencies[0] ?? null,
+      },
+    })
   } catch (error) {
     console.error('Error creating task:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })

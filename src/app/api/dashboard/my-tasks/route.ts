@@ -2,6 +2,10 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { unstable_cache } from 'next/cache'
 import { NextResponse } from 'next/server'
+import {
+  attachTaskDependencies,
+  fetchDependenciesByTaskIds,
+} from '@/lib/utils/task-dependency'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -65,7 +69,10 @@ async function fetchMyTasks(userId: string) {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return tasks.map((t: any) => ({ ...t, open_bugs_count: bugCountByTask[t.id] ?? 0 }))
+      const baseTasks = tasks.map((t: any) => ({ ...t, open_bugs_count: bugCountByTask[t.id] ?? 0 }))
+
+      const dependenciesByTaskId = await fetchDependenciesByTaskIds(supabaseAdmin, taskIds)
+      return attachTaskDependencies(baseTasks, dependenciesByTaskId)
     },
     [`my-tasks-${userId}`],
     { tags: [`my-tasks-${userId}`, 'tasks'], revalidate: 60 }

@@ -16,8 +16,22 @@ export interface ProjectTask {
   complexity?: number | null
   depends_on_task_id?: string | null
   depends_on_task_ids?: string[]
-  depends_on?: { id: string; task_number: number | null; title: string; status: string } | null
-  dependencies?: { id: string; task_number: number | null; title: string; status: string }[]
+  depends_on?: {
+    id: string
+    task_number: number | null
+    title: string
+    status: string
+    sprint_id?: string | null
+    sprint_order?: number | null
+  } | null
+  dependencies?: {
+    id: string
+    task_number: number | null
+    title: string
+    status: string
+    sprint_id?: string | null
+    sprint_order?: number | null
+  }[]
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
   assignee?: { id: string; full_name: string; avatar_url: string | null } | null
 }

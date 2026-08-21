@@ -3,6 +3,8 @@ export interface TaskDependencyRef {
   task_number: number | null
   title: string
   status: string
+  sprint_id?: string | null
+  sprint_order?: number | null
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -107,7 +109,7 @@ export async function fetchTaskDependencyRefs(
 
   const { data, error } = await supabaseAdmin
     .from('tasks')
-    .select('id, task_number, title, status')
+    .select('id, task_number, title, status, sprint_id, sprint_order')
     .in('id', dependencyIds)
 
   if (error || !data) return []
@@ -116,6 +118,75 @@ export async function fetchTaskDependencyRefs(
   return dependencyIds
     .map((id) => byId.get(id))
     .filter((task): task is TaskDependencyRef => !!task)
+}
+
+export async function fetchDependenciesByTaskIds(
+  supabaseAdmin: SupabaseAdmin,
+  taskIds: string[]
+): Promise<Map<string, TaskDependencyRef[]>> {
+  const result = new Map<string, TaskDependencyRef[]>()
+  if (taskIds.length === 0) return result
+
+  const { data: depRows, error } = await supabaseAdmin
+    .from('task_dependencies')
+    .select('task_id, depends_on_task_id')
+    .in('task_id', taskIds)
+    .order('created_at', { ascending: true })
+
+  if (error || !depRows || depRows.length === 0) return result
+
+  const dependencyIds = [...new Set(
+    depRows.map((row: { depends_on_task_id: string }) => row.depends_on_task_id)
+  )]
+
+  const { data: depTasks, error: depTasksError } = await supabaseAdmin
+    .from('tasks')
+    .select('id, task_number, title, status, sprint_id, sprint_order')
+    .in('id', dependencyIds)
+
+  if (depTasksError || !depTasks) return result
+
+  const byId = new Map(depTasks.map((task: TaskDependencyRef) => [task.id, task]))
+  const idsByTask = new Map<string, string[]>()
+
+  for (const row of depRows as Array<{ task_id: string; depends_on_task_id: string }>) {
+    const current = idsByTask.get(row.task_id) || []
+    current.push(row.depends_on_task_id)
+    idsByTask.set(row.task_id, current)
+  }
+
+  for (const taskId of taskIds) {
+    const depIds = idsByTask.get(taskId) ?? []
+    const dependencies = depIds
+      .map((id) => byId.get(id))
+      .filter((dep): dep is TaskDependencyRef => !!dep)
+    result.set(taskId, dependencies)
+  }
+
+  return result
+}
+
+export function attachTaskDependencies<
+  T extends { id: string; depends_on_task_id?: string | null }
+>(
+  tasks: T[],
+  dependenciesByTaskId: Map<string, TaskDependencyRef[]>
+): Array<T & {
+  depends_on_task_ids: string[]
+  depends_on: TaskDependencyRef | null
+  dependencies: TaskDependencyRef[]
+}> {
+  return tasks.map((task) => {
+    const dependencies = dependenciesByTaskId.get(task.id) ?? []
+    const dependsOnTaskIds = dependencies.map((dep) => dep.id)
+
+    return {
+      ...task,
+      depends_on_task_ids: dependsOnTaskIds,
+      depends_on: dependencies[0] ?? null,
+      dependencies,
+    }
+  })
 }
 
 export async function fetchProjectDependencyMap(
@@ -426,6 +497,8 @@ export function enrichTasksWithDependencyList<
     task_number: number | null
     title: string
     status: string
+    sprint_id?: string | null
+    sprint_order?: number | null
     depends_on_task_id?: string | null
   }
 >(
@@ -446,6 +519,8 @@ export function enrichTasksWithDependencyList<
         task_number: dep.task_number,
         title: dep.title,
         status: dep.status,
+        sprint_id: dep.sprint_id ?? null,
+        sprint_order: dep.sprint_order ?? null,
       }))
 
     return {
@@ -464,13 +539,16 @@ export function getPendingDependencies(dependencies: TaskDependencyRef[]): TaskD
 export function formatTaskBlockedBadgeLabel(
   pendingDependencies: Array<Pick<TaskDependencyRef, 'task_number' | 'title'>>
 ): string {
-  const [first, ...rest] = pendingDependencies
-  if (!first) return ''
+  if (pendingDependencies.length === 0) return ''
 
-  const reference = first.task_number != null ? `#${first.task_number}` : first.title
-  if (rest.length === 0) return `Bloqueada · ${reference}`
+  if (pendingDependencies.length === 1) {
+    const reference = pendingDependencies[0].task_number != null
+      ? `#${pendingDependencies[0].task_number}`
+      : pendingDependencies[0].title
+    return `Bloqueada · ${reference}`
+  }
 
-  return `Bloqueada · ${reference} +${rest.length}`
+  return `Bloqueada · ${pendingDependencies.length} tareas`
 }
 
 export function formatTaskBlockedTooltipTitle(
