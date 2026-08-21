@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -110,7 +110,15 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   const { users } = useUsers()
   const { currentUserId, currentUserRole } = useCurrentUser()
   const searchParams = useSearchParams()
-  const highlightId = searchParams.get('highlight')
+  const highlightId = searchParams.get('highlight') ?? searchParams.get('task')
+  const initialBugId = searchParams.get('bug')
+  const shouldFocusBugs = searchParams.get('tab') === 'bugs'
+  const bugSectionRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!shouldFocusBugs || !bugSectionRef.current) return
+    bugSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [shouldFocusBugs, project?.id])
 
   // Si hay un highlight, asegurarse de que el sprint correcto esté seleccionado
   useEffect(() => {
@@ -738,17 +746,20 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
         )}
       </div>
 
-      <GlassPanel>
-        <BugSection
-          projectId={project.id}
-          members={projectMembers}
-          allUsers={allUsers}
-          currentUserId={currentUserId}
-          currentUserRole={currentUserRole}
-          sprints={project.sprints || []}
-          tasks={project.tasks.map(t => ({ id: t.id, task_number: t.task_number, title: t.title, sprint_id: t.sprint_id }))}
-        />
-      </GlassPanel>
+      <div ref={bugSectionRef}>
+        <GlassPanel>
+          <BugSection
+            projectId={project.id}
+            members={projectMembers}
+            allUsers={allUsers}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            sprints={project.sprints || []}
+            tasks={project.tasks.map(t => ({ id: t.id, task_number: t.task_number, title: t.title, sprint_id: t.sprint_id }))}
+            initialBugId={initialBugId}
+          />
+        </GlassPanel>
+      </div>
 
       <GlassPanel>
         <FileAttachments

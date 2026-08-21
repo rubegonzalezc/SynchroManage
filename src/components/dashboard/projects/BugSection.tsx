@@ -51,6 +51,7 @@ interface BugSectionProps {
   currentUserRole: string
   sprints: SprintOption[]
   tasks: TaskOption[]
+  initialBugId?: string | null
 }
 
 const statusDot: Record<string, string> = {
@@ -79,7 +80,7 @@ function getInitials(name: string | null) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
-export function BugSection({ projectId, members, allUsers, currentUserId, currentUserRole, sprints, tasks }: BugSectionProps) {
+export function BugSection({ projectId, members, allUsers, currentUserId, currentUserRole, sprints, tasks, initialBugId = null }: BugSectionProps) {
   const [bugs, setBugs] = useState<BugItem[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedBugId, setSelectedBugId] = useState<string | null>(null)
@@ -107,6 +108,18 @@ export function BugSection({ projectId, members, allUsers, currentUserId, curren
     fetchBugs()
   }, [projectId])
 
+  const openBug = (id: string) => {
+    setSelectedBugId(id)
+    setDetailOpen(true)
+  }
+
+  useEffect(() => {
+    if (!initialBugId || loading || bugs.length === 0) return
+    if (bugs.some((bug) => bug.id === initialBugId)) {
+      openBug(initialBugId)
+    }
+  }, [initialBugId, loading, bugs])
+
   const filteredBugs = bugs.filter(b => {
     const matchesSprint = sprintFilter === 'all'
       ? true
@@ -132,11 +145,6 @@ export function BugSection({ projectId, members, allUsers, currentUserId, curren
       else next.add(key)
       return next
     })
-  }
-
-  const openBug = (id: string) => {
-    setSelectedBugId(id)
-    setDetailOpen(true)
   }
 
   const openBugs = bugs.filter(b => b.status === 'open' || b.status === 'in_progress').length

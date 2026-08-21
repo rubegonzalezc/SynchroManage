@@ -1,12 +1,13 @@
 'use client'
 
-import { AppBar, Box, IconButton, InputBase, Stack, Toolbar } from '@mui/material'
+import { AppBar, Box, IconButton, InputBase, Stack, Toolbar, Typography } from '@mui/material'
 import MenuRounded from '@mui/icons-material/MenuRounded'
 import SearchRounded from '@mui/icons-material/SearchRounded'
 import { NotificationsDropdown } from '@/components/dashboard/NotificationsDropdown'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { useTheme } from '@/components/theme-provider'
 import { tokens } from '@/theme/designTokens'
+import { useSearchCommand } from '@/components/dashboard/SearchCommandProvider'
 
 interface AppHeaderProps {
   onMenuClick: () => void
@@ -15,6 +16,7 @@ interface AppHeaderProps {
 export function AppHeader({ onMenuClick }: AppHeaderProps) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
+  const { openPalette } = useSearchCommand()
 
   const glass = {
     bgcolor: isDark ? 'rgba(44, 44, 46, 0.62)' : 'rgba(255, 255, 255, 0.72)',
@@ -47,31 +49,55 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         </IconButton>
 
         <Box
+          component="button"
+          type="button"
+          onClick={openPalette}
           sx={{
-            display: { xs: 'none', md: 'flex' },
-            flex: 1,
+            display: 'flex',
+            flex: { xs: 1, md: 'unset' },
             alignItems: 'center',
-            maxWidth: 420,
+            maxWidth: { xs: '100%', md: 420 },
+            width: { md: 420 },
             height: 40,
             px: 1.75,
             borderRadius: 999,
+            cursor: 'pointer',
+            textAlign: 'left',
             ...glass,
           }}
+          aria-label="Abrir búsqueda rápida"
         >
           <SearchRounded sx={{ fontSize: 18, color: 'text.secondary', mr: 1 }} />
           <InputBase
             readOnly
             placeholder="Buscar"
-            sx={{ flex: 1, fontSize: 15, letterSpacing: '-0.01em' }}
-            inputProps={{ 'aria-label': 'Búsqueda global' }}
+            sx={{ flex: 1, fontSize: 15, letterSpacing: '-0.01em', pointerEvents: 'none' }}
+            inputProps={{ 'aria-hidden': true, tabIndex: -1 }}
           />
+          <Typography
+            component="span"
+            sx={{
+              display: { xs: 'none', sm: 'inline' },
+              fontSize: 11,
+              color: 'text.secondary',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1,
+              px: 0.75,
+              py: 0.25,
+              ml: 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ⌘K
+          </Typography>
         </Box>
 
         <Stack
           direction="row"
           spacing={0.25}
           sx={{
-            ml: 'auto',
+            ml: { xs: 0, md: 'auto' },
             alignItems: 'center',
             height: 40,
             px: 0.4,
