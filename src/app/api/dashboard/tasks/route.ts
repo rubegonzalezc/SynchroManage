@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
 import {
@@ -9,7 +8,8 @@ import {
   normalizeDependsOnTaskIds,
   syncTaskDependencies,
 } from '@/lib/utils/task-dependency'
-import { getNextSprintOrder } from '@/lib/utils/task-sprint-order'
+import { resolveSprintOrderForCreate, validateSprintOrderPayload } from '@/lib/utils/task-sprint-order'
+import { revalidateProjectTaskCaches } from '@/lib/utils/revalidate-project-task-cache'
 
 // Helper para registrar actividad desde el servidor
 async function logActivityServer(
@@ -90,9 +90,20 @@ export async function POST(request: Request) {
     const primaryAssigneeId = assigneeIds.length > 0 ? assigneeIds[0] : null
 
     const sprintId = body.sprint_id || null
-    const sprintOrder = sprintId
-      ? await getNextSprintOrder(supabaseAdmin, sprintId)
-      : null
+    const sprintOrderError = validateSprintOrderPayload({
+      sprintId,
+      sprintOrder: body.sprint_order,
+      hasSprintOrderField: 'sprint_order' in body,
+    })
+    if (sprintOrderError) {
+      return NextResponse.json({ error: sprintOrderError }, { status: 400 })
+    }
+
+    const sprintOrder = await resolveSprintOrderForCreate(supabaseAdmin, {
+      sprintId,
+      sprintOrder: body.sprint_order,
+      hasSprintOrderField: 'sprint_order' in body,
+    })
 
     const { data: task, error } = await supabaseAdmin
       .from('tasks')
@@ -304,8 +315,7 @@ export async function POST(request: Request) {
       assignees = assigneesData || []
     }
 
-    revalidateTag(`project-${body.project_id}`, 'max')
-    revalidateTag('tasks', 'max')
+    revalidateProjectTaskCaches(body.project_id, { assigneeIds })
 
     return NextResponse.json({ task: { ...task, assignees } })
   } catch (error) {
@@ -401,10 +411,15 @@ export async function PATCH(request: Request) {
       )
     }
 
-    // Invalidar caché del proyecto para que SWR reciba datos actualizados en el refetch
     if (currentTask?.project_id) {
-      revalidateTag(`project-${currentTask.project_id}`, 'max')
-      revalidateTag('tasks', 'max')
+      const { data: assigneesData } = await supabaseAdmin
+        .from('task_assignees')
+        .select('user_id')
+        .eq('task_id', taskId)
+
+      revalidateProjectTaskCaches(currentTask.project_id, {
+        assigneeIds: (assigneesData || []).map((row: { user_id: string }) => row.user_id),
+      })
     }
 
     return NextResponse.json({ task: { ...task, assignees } })

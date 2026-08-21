@@ -5,6 +5,8 @@ import {
   formatSprintTaskReferenceLabel,
   getSprintOrderUpdateAction,
   resolveSprintDisplayLabel,
+  resolveSprintOrderFieldsForUpdate,
+  validateSprintOrderPayload,
 } from '../task-sprint-order'
 
 describe('getSprintOrderUpdateAction', () => {
@@ -53,6 +55,78 @@ describe('formatCarryOverLabel', () => {
   it('muestra la HU del sprint anterior', () => {
     expect(formatCarryOverLabel(2)).toBe('Sprint anterior HU-2')
     expect(formatCarryOverLabel(null)).toBeNull()
+  })
+})
+
+describe('validateSprintOrderPayload', () => {
+  it('rechaza sprint_order sin sprint_id', () => {
+    expect(
+      validateSprintOrderPayload({
+        sprintId: null,
+        sprintOrder: 2,
+        hasSprintOrderField: true,
+      })
+    ).toBe('sprint_order solo puede definirse cuando hay sprint_id')
+  })
+
+  it('rechaza valores no enteros positivos', () => {
+    expect(
+      validateSprintOrderPayload({
+        sprintId: 's1',
+        sprintOrder: 0,
+        hasSprintOrderField: true,
+      })
+    ).toBe('sprint_order debe ser un entero positivo')
+  })
+
+  it('permite sprint_order con sprint_id', () => {
+    expect(
+      validateSprintOrderPayload({
+        sprintId: 's1',
+        sprintOrder: 3,
+        hasSprintOrderField: true,
+      })
+    ).toBeNull()
+  })
+})
+
+describe('resolveSprintOrderFieldsForUpdate', () => {
+  it('autoasigna al cambiar sprint_id sin sprint_order explícito', async () => {
+    const supabaseAdmin = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            not: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: async () => ({ data: { sprint_order: 4 }, error: null }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    }
+
+    const result = await resolveSprintOrderFieldsForUpdate(supabaseAdmin, {
+      currentSprintId: 's1',
+      bodySprintId: 's2',
+      hasSprintIdField: true,
+      hasSprintOrderField: false,
+    })
+
+    expect(result).toEqual({ sprintOrder: 5 })
+  })
+
+  it('respeta sprint_order explícito en PUT', async () => {
+    const result = await resolveSprintOrderFieldsForUpdate({} as never, {
+      currentSprintId: 's1',
+      bodySprintOrder: 7,
+      hasSprintIdField: false,
+      hasSprintOrderField: true,
+    })
+
+    expect(result).toEqual({ sprintOrder: 7 })
   })
 })
 

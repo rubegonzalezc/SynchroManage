@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
 import {
@@ -12,7 +11,8 @@ import {
   fetchTaskDependencyIds,
   type TaskDependencyRef,
 } from '@/lib/utils/task-dependency'
-import { resolveSprintOrderForUpdate } from '@/lib/utils/task-sprint-order'
+import { resolveSprintOrderFieldsForUpdate } from '@/lib/utils/task-sprint-order'
+import { revalidateProjectTaskCaches } from '@/lib/utils/revalidate-project-task-cache'
 
 // Helper para registrar actividad desde el servidor
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,7 +66,7 @@ export async function GET(
         assignee:profiles!assignee_id(id, full_name, email, avatar_url),
         reviewer:profiles!reviewer_id(id, full_name, avatar_url),
         project:projects(id, name),
-        sprint:sprints(id, name, status),
+        sprint:sprints(id, name, status, order_index),
         comments(
           id, content, created_at, updated_at,
           user:profiles(id, full_name, avatar_url, role:roles(name))
@@ -154,7 +154,7 @@ export async function PUT(
     // Obtener tarea actual para comparar cambios
     const { data: currentTask } = await supabaseAdmin
       .from('tasks')
-      .select('title, status, assignee_id, reviewer_id, project_id, depends_on_task_id, sprint_id')
+      .select('title, status, assignee_id, reviewer_id, project_id, depends_on_task_id, sprint_id, sprint_order')
       .eq('id', id)
       .single()
 
@@ -214,14 +214,25 @@ export async function PUT(
       due_date: body.due_date || null,
       updated_at: new Date().toISOString(),
     }
-    if ('sprint_id' in body) {
-      updatePayload.sprint_id = body.sprint_id ?? null
-      const sprintOrder = await resolveSprintOrderForUpdate(supabaseAdmin, {
+    if ('sprint_id' in body || 'sprint_order' in body) {
+      if ('sprint_id' in body) {
+        updatePayload.sprint_id = body.sprint_id ?? null
+      }
+
+      const sprintOrderResult = await resolveSprintOrderFieldsForUpdate(supabaseAdmin, {
         currentSprintId: currentTask?.sprint_id ?? null,
-        newSprintId: body.sprint_id ?? null,
+        bodySprintId: body.sprint_id,
+        bodySprintOrder: body.sprint_order,
+        hasSprintIdField: 'sprint_id' in body,
+        hasSprintOrderField: 'sprint_order' in body,
       })
-      if (sprintOrder !== undefined) {
-        updatePayload.sprint_order = sprintOrder
+
+      if (sprintOrderResult.error) {
+        return NextResponse.json({ error: sprintOrderResult.error }, { status: 400 })
+      }
+
+      if (sprintOrderResult.sprintOrder !== undefined) {
+        updatePayload.sprint_order = sprintOrderResult.sprintOrder
       }
     }
     if ('is_carry_over' in body) {
@@ -508,8 +519,7 @@ export async function PUT(
     }
 
     if (currentTask?.project_id) {
-      revalidateTag(`project-${currentTask.project_id}`, 'max')
-      revalidateTag('tasks', 'max')
+      revalidateProjectTaskCaches(currentTask.project_id, { assigneeIds })
     }
 
     const dependencies = await fetchTaskDependencyRefs(supabaseAdmin, id)
@@ -576,8 +586,7 @@ export async function DELETE(
         taskToDelete.title,
         { project_id: taskToDelete.project_id }
       )
-      revalidateTag(`project-${taskToDelete.project_id}`, 'max')
-      revalidateTag('tasks', 'max')
+      revalidateProjectTaskCaches(taskToDelete.project_id)
     }
 
     return NextResponse.json({ success: true })

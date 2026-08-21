@@ -146,6 +146,88 @@ export async function resolveSprintOrderForUpdate(
   return getNextSprintOrder(supabaseAdmin, options.newSprintId as string)
 }
 
+/** Valida que sprint_order solo se envíe con sprint_id y sea entero positivo. */
+export function validateSprintOrderPayload(options: {
+  sprintId: string | null | undefined
+  sprintOrder: unknown
+  hasSprintOrderField: boolean
+}): string | null {
+  const { sprintId, sprintOrder, hasSprintOrderField } = options
+  if (!hasSprintOrderField) return null
+
+  if (sprintOrder != null) {
+    const normalized = normalizeSprintOrder(sprintOrder)
+    if (normalized == null) {
+      return 'sprint_order debe ser un entero positivo'
+    }
+    if (!sprintId) {
+      return 'sprint_order solo puede definirse cuando hay sprint_id'
+    }
+  }
+
+  return null
+}
+
+export async function resolveSprintOrderForCreate(
+  supabaseAdmin: SupabaseAdmin,
+  options: {
+    sprintId: string | null
+    sprintOrder?: unknown
+    hasSprintOrderField: boolean
+  }
+): Promise<number | null> {
+  const { sprintId, sprintOrder, hasSprintOrderField } = options
+  if (!sprintId) return null
+
+  if (hasSprintOrderField && sprintOrder != null) {
+    return normalizeSprintOrder(sprintOrder)
+  }
+
+  return getNextSprintOrder(supabaseAdmin, sprintId)
+}
+
+export async function resolveSprintOrderFieldsForUpdate(
+  supabaseAdmin: SupabaseAdmin,
+  options: {
+    currentSprintId: string | null | undefined
+    bodySprintId?: unknown
+    bodySprintOrder?: unknown
+    hasSprintIdField: boolean
+    hasSprintOrderField: boolean
+  }
+): Promise<{ sprintOrder?: number | null; error?: string }> {
+  const effectiveSprintId = options.hasSprintIdField
+    ? ((options.bodySprintId as string | null | undefined) ?? null)
+    : (options.currentSprintId ?? null)
+
+  if (options.hasSprintOrderField) {
+    const validationError = validateSprintOrderPayload({
+      sprintId: effectiveSprintId,
+      sprintOrder: options.bodySprintOrder,
+      hasSprintOrderField: true,
+    })
+    if (validationError) return { error: validationError }
+
+    if (options.bodySprintOrder == null) {
+      return { sprintOrder: null }
+    }
+
+    return { sprintOrder: normalizeSprintOrder(options.bodySprintOrder) }
+  }
+
+  if (options.hasSprintIdField) {
+    const sprintOrder = await resolveSprintOrderForUpdate(supabaseAdmin, {
+      currentSprintId: options.currentSprintId,
+      newSprintId: (options.bodySprintId as string | null | undefined) ?? null,
+    })
+    if (sprintOrder !== undefined) {
+      return { sprintOrder }
+    }
+  }
+
+  return {}
+}
+
 export interface CarryOverTaskRef {
   id: string
   sprint_order: number | null
