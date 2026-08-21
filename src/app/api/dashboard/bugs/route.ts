@@ -1,6 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import {
+  hasVisibleProjects,
+  resolveVisibleProjectScope,
+  type VisibleProjectScope,
+} from '@/lib/utils/project-visibility'
+
+const TRIAGE_ROLES = new Set(['admin', 'pm', 'tech_lead'])
 
 function getAdmin() {
   return createClient(
@@ -37,7 +44,62 @@ const BUG_SELECT = `
   )
 `
 
-// GET - Listar bugs de un proyecto
+const GLOBAL_BUG_SELECT = `
+  id, project_id, title, severity, status, created_at, updated_at,
+  project:projects(id, name),
+  task:tasks(id, task_number, title),
+  assignee:profiles!bugs_assignee_id_fkey(id, full_name, avatar_url)
+`
+
+function applyProjectScope<T extends { in: (column: string, values: string[]) => T }>(
+  query: T,
+  scope: VisibleProjectScope,
+  column: string
+): T | 'empty' {
+  if (scope.mode === 'all') return query
+  if (scope.projectIds.length === 0) return 'empty'
+  return query.in(column, scope.projectIds)
+}
+
+async function getGlobalBugs(
+  admin: ReturnType<typeof getAdmin>,
+  scope: VisibleProjectScope,
+  filters: {
+    severity?: string | null
+    status?: string | null
+    projectId?: string | null
+    assigneeId?: string | null
+  }
+) {
+  let query = admin.from('bugs').select(GLOBAL_BUG_SELECT).order('created_at', { ascending: false })
+
+  const scoped = applyProjectScope(query, scope, 'project_id')
+  if (scoped === 'empty') return []
+
+  query = scoped
+
+  if (filters.projectId) {
+    if (scope.mode === 'ids' && !scope.projectIds.includes(filters.projectId)) {
+      return []
+    }
+    query = query.eq('project_id', filters.projectId)
+  }
+
+  if (filters.severity) query = query.eq('severity', filters.severity)
+  if (filters.status) query = query.eq('status', filters.status)
+
+  if (filters.assigneeId === 'unassigned') {
+    query = query.is('assignee_id', null)
+  } else if (filters.assigneeId) {
+    query = query.eq('assignee_id', filters.assigneeId)
+  }
+
+  const { data: bugs, error } = await query
+  if (error) throw new Error(error.message)
+  return bugs || []
+}
+
+// GET - Listar bugs de un proyecto o vista global de triage
 export async function GET(request: Request) {
   try {
     const supabaseServer = await createServerClient()
@@ -46,7 +108,36 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url)
     const projectId = url.searchParams.get('project_id')
-    if (!projectId) return NextResponse.json({ error: 'Se requiere project_id' }, { status: 400 })
+
+    if (!projectId) {
+      const { data: profile } = await supabaseServer
+        .from('profiles')
+        .select('role:roles(name)')
+        .eq('id', user.id)
+        .single()
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const roleName = (profile?.role as any)?.name as string | undefined
+      if (!roleName || !TRIAGE_ROLES.has(roleName)) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+      }
+
+      const admin = getAdmin()
+      const scope = await resolveVisibleProjectScope(admin, user.id, roleName)
+
+      if (!hasVisibleProjects(scope)) {
+        return NextResponse.json({ bugs: [] })
+      }
+
+      const bugs = await getGlobalBugs(admin, scope, {
+        severity: url.searchParams.get('severity'),
+        status: url.searchParams.get('status'),
+        projectId: url.searchParams.get('project_id_filter'),
+        assigneeId: url.searchParams.get('assignee_id'),
+      })
+
+      return NextResponse.json({ bugs })
+    }
 
     const admin = getAdmin()
     const { data: bugs, error } = await admin
