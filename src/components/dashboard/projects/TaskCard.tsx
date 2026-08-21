@@ -210,46 +210,63 @@ function TaskCardView({
           <GripVertical className="w-4 h-4" />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0, pr: onOpenEdit && !isOverlay ? 3 : 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-            {task.task_number != null && (
-              <Box
-                sx={{
-                  fontSize: 11,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                  color: 'text.secondary',
-                  bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.05)',
-                  px: 0.75,
-                  py: 0.15,
-                  borderRadius: 1,
-                  flexShrink: 0,
-                }}
-              >
-                #{task.task_number}
-              </Box>
-            )}
-            {sprintReferenceLabel && (
-              <Tooltip title={sprintReferenceLabel} arrow placement="top">
+          {(task.task_number != null || sprintReferenceLabel) && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, flexWrap: 'wrap' }}>
+              {task.task_number != null && (
                 <Box
                   sx={{
                     fontSize: 11,
                     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                    fontWeight: 650,
-                    color: isDark ? '#93C5FD' : '#1D4ED8',
-                    bgcolor: isDark ? 'rgba(59, 130, 246, 0.16)' : 'rgba(37, 99, 235, 0.1)',
+                    color: 'text.secondary',
+                    bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.05)',
                     px: 0.75,
                     py: 0.15,
                     borderRadius: 1,
                     flexShrink: 0,
                   }}
                 >
-                  {sprintReferenceLabel}
+                  #{task.task_number}
                 </Box>
-              </Tooltip>
-            )}
-            <Typography noWrap sx={{ fontWeight: 600, fontSize: 13.5, letterSpacing: '-0.02em' }}>
+              )}
+              {sprintReferenceLabel && (
+                <Tooltip title={sprintReferenceLabel} arrow placement="top">
+                  <Box
+                    sx={{
+                      fontSize: 11,
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                      fontWeight: 650,
+                      color: isDark ? '#93C5FD' : '#1D4ED8',
+                      bgcolor: isDark ? 'rgba(59, 130, 246, 0.16)' : 'rgba(37, 99, 235, 0.1)',
+                      px: 0.75,
+                      py: 0.15,
+                      borderRadius: 1,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {sprintReferenceLabel}
+                  </Box>
+                </Tooltip>
+              )}
+            </Box>
+          )}
+          <Tooltip title={task.title} arrow placement="top" enterDelay={400}>
+            <Typography
+              sx={{
+                fontWeight: 600,
+                fontSize: 13.5,
+                lineHeight: 1.35,
+                letterSpacing: '-0.02em',
+                mb: 0.5,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                wordBreak: 'break-word',
+              }}
+            >
               {task.title}
             </Typography>
-          </Box>
+          </Tooltip>
 
           {task.description && (
             <Typography

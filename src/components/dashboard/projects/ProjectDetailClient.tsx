@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -168,8 +168,8 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
     return activeSprint?.id ?? null
   }, [project, selectedSprintId])
 
-  // Filtrar tareas según sprint seleccionado y filtros activos
-  const filteredTasks = useMemo(() => {
+  // Filtrar tareas según sprint seleccionado (Kanban) o todas (lista) + filtros activos
+  const tasksWithMeta = useMemo(() => {
     if (!project) return []
     return project.tasks.map(t => ({
       ...t,
@@ -177,24 +177,36 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
       sprint_order: t.sprint_order ?? null,
       assignees: t.assignees?.length ? t.assignees : t.assignee ? [t.assignee] : [],
       openBugsCount: bugsByTask[t.id] ?? 0,
-    })).filter(task => {
-      // Filtro de sprint
-      const matchesSprint = resolvedSprintId === null
+    }))
+  }, [project?.tasks, bugsByTask])
+
+  const filterTask = useCallback((task: typeof tasksWithMeta[number], applySprintFilter: boolean) => {
+    const matchesSprint = !applySprintFilter || (
+      resolvedSprintId === null
         ? task.sprint_id === null
         : task.sprint_id === resolvedSprintId
+    )
 
-      const matchesSearch = taskSearch === '' ||
-        task.title.toLowerCase().includes(taskSearch.toLowerCase()) ||
-        (task.description?.toLowerCase().includes(taskSearch.toLowerCase())) ||
-        `#${task.task_number}`.includes(taskSearch)
-      const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter
-      const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter
-      const matchesAssignee = assigneeFilter === 'all' ||
-        (assigneeFilter === 'unassigned' && task.assignees.length === 0) ||
-        task.assignees.some(a => a.id === assigneeFilter)
-      return matchesSprint && matchesSearch && matchesPriority && matchesCategory && matchesAssignee
-    })
-  }, [project?.tasks, resolvedSprintId, taskSearch, priorityFilter, categoryFilter, assigneeFilter])
+    const matchesSearch = taskSearch === '' ||
+      task.title.toLowerCase().includes(taskSearch.toLowerCase()) ||
+      (task.description?.toLowerCase().includes(taskSearch.toLowerCase())) ||
+      `#${task.task_number}`.includes(taskSearch)
+    const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter
+    const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter
+    const matchesAssignee = assigneeFilter === 'all' ||
+      (assigneeFilter === 'unassigned' && task.assignees.length === 0) ||
+      task.assignees.some(a => a.id === assigneeFilter)
+
+    return matchesSprint && matchesSearch && matchesPriority && matchesCategory && matchesAssignee
+  }, [resolvedSprintId, taskSearch, priorityFilter, categoryFilter, assigneeFilter])
+
+  const filteredTasks = useMemo(() => {
+    return tasksWithMeta.filter(task => filterTask(task, true))
+  }, [tasksWithMeta, filterTask])
+
+  const listFilteredTasks = useMemo(() => {
+    return tasksWithMeta.filter(task => filterTask(task, false))
+  }, [tasksWithMeta, filterTask])
 
   const formatDate = (date: string | null) => {
     if (!date) return '-'
@@ -700,7 +712,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
         ) : (
           <Suspense fallback={<KanbanSkeleton />}>
             <TaskListView
-              tasks={filteredTasks}
+              tasks={listFilteredTasks}
               projectId={project.id}
               projectName={project.name}
               members={projectMembers}
@@ -708,6 +720,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               currentUserId={currentUserId}
               onTasksChange={mutateProject}
               sprints={project.sprints || []}
+              selectedSprintId={resolvedSprintId}
             />
           </Suspense>
         )}
