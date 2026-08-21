@@ -16,6 +16,7 @@ import {
   ListTodo,
   GitPullRequest,
   X,
+  Bug,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -42,6 +43,7 @@ const menuItems: MenuItem[] = [
   { title: 'Empresas', icon: Building2, href: '/dashboard/companies', roles: ['admin'] },
   { title: 'Proyectos', icon: FolderKanban, href: '/projects', roles: ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'] },
   { title: 'Control de Cambios', icon: GitPullRequest, href: '/change-controls', roles: ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'] },
+  { title: 'Bugs', icon: Bug, href: '/dashboard/bugs', roles: ['admin', 'pm', 'tech_lead'] },
   { title: 'Configuración', icon: Settings, href: '/dashboard/settings', roles: ['admin'] },
 ]
 

@@ -37,6 +37,7 @@ import {
   ListTodo,
   GitPullRequest,
   BarChart3,
+  Bug,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -85,6 +86,12 @@ const menuItems: MenuItem[] = [
     icon: GitPullRequest,
     href: '/change-controls',
     roles: ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'],
+  },
+  {
+    title: 'Bugs',
+    icon: Bug,
+    href: '/dashboard/bugs',
+    roles: ['admin', 'pm', 'tech_lead'],
   },
   {
     title: 'Reporte',

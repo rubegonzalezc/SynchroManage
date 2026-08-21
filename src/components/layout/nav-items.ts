@@ -6,6 +6,7 @@ import BusinessRounded from '@mui/icons-material/BusinessRounded'
 import FolderRounded from '@mui/icons-material/FolderRounded'
 import AccountTreeRounded from '@mui/icons-material/AccountTreeRounded'
 import BarChartRounded from '@mui/icons-material/BarChartRounded'
+import BugReportRounded from '@mui/icons-material/BugReportRounded'
 import SettingsRounded from '@mui/icons-material/SettingsRounded'
 
 export interface NavItem {
@@ -29,6 +30,7 @@ export const navItems: NavItem[] = [
   { title: 'Mis Tareas', href: '/my-tasks', icon: AssignmentRounded, group: 'principal', accent: '#34D399', roles: ['admin', 'pm', 'tech_lead', 'developer'] },
   { title: 'Proyectos', href: '/projects', icon: FolderRounded, group: 'trabajo', accent: '#A78BFA', roles: ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'] },
   { title: 'Control de Cambios', href: '/change-controls', icon: AccountTreeRounded, group: 'trabajo', accent: '#FBBF24', roles: ['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'] },
+  { title: 'Bugs', href: '/dashboard/bugs', icon: BugReportRounded, group: 'trabajo', accent: '#EF4444', roles: ['admin', 'pm', 'tech_lead'] },
   { title: 'Usuarios', href: '/dashboard/users', icon: PeopleRounded, group: 'admin', accent: '#38BDF8', roles: ['admin'] },
   { title: 'Empresas', href: '/dashboard/companies', icon: BusinessRounded, group: 'admin', accent: '#FB923C', roles: ['admin'] },
   { title: 'Reporte', href: '/dashboard/reports', icon: BarChartRounded, group: 'admin', accent: '#F472B6', roles: ['admin', 'pm'] },
