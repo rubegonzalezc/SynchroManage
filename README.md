@@ -47,6 +47,7 @@ Gestor de proyectos informáticos construido con Next.js y Supabase.
 - Sincronización en tiempo real entre usuarios
 - 5 columnas: Backlog, Por Hacer, En Progreso, En Revisión, Completado
 - Numeración automática de tareas (#1, #2, etc.)
+- Numeración local por sprint (`HU-1`, `HU-2`, …) sin reemplazar el `#global` — ver [Modelo de numeración](docs/sprints/modelo-de-numeracion.md)
 - Asignación de PM, Tech Lead, Developers y Stakeholders
 - Prioridades: Baja, Media, Alta, Urgente
 - Fechas límite con indicador de vencimiento

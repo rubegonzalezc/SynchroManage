@@ -5,7 +5,7 @@ Planificación del equipo (Rubén González, José, Sebastián).
 | Sprint | Tema | Documento |
 |--------|------|-----------|
 | **1** | Dependencias operativas y visibilidad de bloqueos | [sprint-01-dependencias.md](./sprint-01-dependencias.md) |
-| **2** | Organización por sprint, dependencias múltiples y selector por sprint | [sprint-02-organizacion-por-sprint.md](./sprint-02-organizacion-por-sprint.md) |
+| **2** | Organización por sprint, dependencias múltiples y selector por sprint | [sprint-02-organizacion-por-sprint.md](./sprint-02-organizacion-por-sprint.md) · [**Modelo `#global` vs `HU-N`**](modelo-de-numeracion.md) |
 | **3** | Productividad (búsqueda, bugs global) y calidad al cerrar | [sprint-03-productividad-y-calidad.md](./sprint-03-productividad-y-calidad.md) |
 
 ## Orden recomendado
