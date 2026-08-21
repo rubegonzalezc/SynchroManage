@@ -34,6 +34,7 @@ import {
   resolveDependencyTasks,
 } from '@/lib/utils/task-dependency'
 import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import { TaskActivityHistory } from '@/components/dashboard/tasks/TaskActivityHistory'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
 import { formatCarryOverLabel, formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
@@ -181,6 +182,7 @@ export function TaskDetailDialog({
   const [projectSprints, setProjectSprints] = useState<SprintOption[]>([])
   const [projectTasks, setProjectTasks] = useState<TaskOption[]>([])
   const [autoBranchName, setAutoBranchName] = useState(true)
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -365,6 +367,7 @@ export function TaskDetailDialog({
       }
       
       onUpdate()
+      setActivityRefreshKey((key) => key + 1)
       if (initialMode === 'view') {
         await fetchTask()
         setMode('view')
@@ -406,6 +409,7 @@ export function TaskDetailDialog({
       setFormData((prev) => ({ ...prev, status: newStatus }))
       setTask((prev) => (prev ? { ...prev, status: newStatus } : null))
       onUpdate()
+      setActivityRefreshKey((key) => key + 1)
     } catch (error) {
       console.error('Error updating status:', error)
       const errorMessage = 'No se pudo cambiar el estado'
@@ -819,6 +823,10 @@ export function TaskDetailDialog({
                 <FileAttachments taskId={taskId} currentUserId={currentUserId} />
               </SheetSection>
 
+              <SheetSection title="Historial">
+                <TaskActivityHistory taskId={taskId} refreshKey={activityRefreshKey} />
+              </SheetSection>
+
               <SheetSection title="Comentarios">
                 {hasNewComments && (
                   <button
@@ -1071,6 +1079,10 @@ export function TaskDetailDialog({
 
             <SheetSection title="Archivos">
               <FileAttachments taskId={taskId} currentUserId={currentUserId} />
+            </SheetSection>
+
+            <SheetSection title="Historial">
+              <TaskActivityHistory taskId={taskId} refreshKey={activityRefreshKey} />
             </SheetSection>
 
             <SheetSection title="Comentarios">

@@ -35,6 +35,7 @@ import { formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
 import { resolveDependencyTasks, formatDependencyLabel, getPendingDependencies } from '@/lib/utils/task-dependency'
 import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import { TaskActivityHistory } from '@/components/dashboard/tasks/TaskActivityHistory'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
 
 interface User {
@@ -134,6 +135,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
   const [projectSprints, setProjectSprints] = useState<SprintOption[]>([])
   const [projectTasks, setProjectTasks] = useState<TaskOption[]>([])
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -314,6 +316,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
 
       fetchTask()
       onTaskUpdated?.()
+      setActivityRefreshKey((key) => key + 1)
     } catch (error) {
       console.error('Error saving task:', error)
       const errorMessage = 'No se pudo guardar la tarea'
@@ -654,6 +657,12 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   taskId={taskId}
                   currentUserId={currentUserId}
                 />
+              </div>
+
+              {/* History */}
+              <div className="border-t border-border pt-4">
+                <h4 className="font-medium text-foreground mb-3">Historial</h4>
+                <TaskActivityHistory taskId={taskId} refreshKey={activityRefreshKey} />
               </div>
 
               {/* Comments */}
