@@ -32,6 +32,7 @@ interface UseProjectReturn {
   mutate: () => void
   optimisticMoveTask: (taskId: string, newStatus: string, newPosition: number) => void
   applyTaskPatch: (task: Partial<ProjectTask> & { id: string }) => void
+  applySprintOrderUpdates: (updates: { id: string; sprint_order: number }[]) => void
 }
 
 const projectFetcher = (url: string) =>
@@ -77,6 +78,23 @@ export function useProject(projectId: string): UseProjectReturn {
     )
   }
 
+  const applySprintOrderUpdates = (updates: { id: string; sprint_order: number }[]) => {
+    if (!data || updates.length === 0) return
+    const orderById = new Map(updates.map((update) => [update.id, update.sprint_order]))
+    mutate(
+      {
+        project: {
+          ...data.project,
+          tasks: data.project.tasks.map((task) => {
+            const nextOrder = orderById.get(task.id)
+            return nextOrder != null ? { ...task, sprint_order: nextOrder } : task
+          }),
+        },
+      },
+      { revalidate: false }
+    )
+  }
+
   return {
     project: data?.project,
     isLoading,
@@ -84,5 +102,6 @@ export function useProject(projectId: string): UseProjectReturn {
     mutate,
     optimisticMoveTask,
     applyTaskPatch,
+    applySprintOrderUpdates,
   }
 }

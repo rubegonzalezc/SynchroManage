@@ -106,7 +106,7 @@ const statusColors: Record<string, string> = {
 }
 
 export function ProjectDetailClient({ projectId, backHref = '/projects', backLabel = 'Volver a proyectos' }: { projectId: string; backHref?: string; backLabel?: string }) {
-  const { project, isLoading: loading, error: projectError, mutate: mutateProject, optimisticMoveTask, applyTaskPatch } = useProject(projectId)
+  const { project, isLoading: loading, error: projectError, mutate: mutateProject, optimisticMoveTask, applyTaskPatch, applySprintOrderUpdates } = useProject(projectId)
   const { users } = useUsers()
   const { currentUserId, currentUserRole } = useCurrentUser()
   const searchParams = useSearchParams()
@@ -207,6 +207,15 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   const listFilteredTasks = useMemo(() => {
     return tasksWithMeta.filter(task => filterTask(task, false))
   }, [tasksWithMeta, filterTask])
+
+  const hasListFilters =
+    taskSearch !== '' ||
+    priorityFilter !== 'all' ||
+    categoryFilter !== 'all' ||
+    assigneeFilter !== 'all'
+
+  const canReorderSprintTasks =
+    ['admin', 'pm', 'tech_lead'].includes(currentUserRole) && !hasListFilters
 
   const formatDate = (date: string | null) => {
     if (!date) return '-'
@@ -721,6 +730,9 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               onTasksChange={mutateProject}
               sprints={project.sprints || []}
               selectedSprintId={resolvedSprintId}
+              canReorder={canReorderSprintTasks}
+              showReorderHint={['admin', 'pm', 'tech_lead'].includes(currentUserRole) && hasListFilters}
+              onSprintOrderUpdates={applySprintOrderUpdates}
             />
           </Suspense>
         )}
