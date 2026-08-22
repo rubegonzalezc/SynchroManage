@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { BugsTableClient } from '@/components/dashboard/bugs/BugsTableClient'
+import BugsLoading from './loading'
 
 const TRIAGE_ROLES = new Set(['admin', 'pm', 'tech_lead'])
 
@@ -25,6 +27,8 @@ export default async function BugsPage() {
   }
 
   return (
-    <BugsTableClient currentUserId={user.id} />
+    <Suspense fallback={<BugsLoading />}>
+      <BugsTableClient currentUserId={user.id} />
+    </Suspense>
   )
 }
