@@ -5,13 +5,20 @@ import Link from 'next/link'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GlassPanel } from '@/components/ui/glass-panel'
 import { BugDetailDialog } from '@/components/dashboard/projects/BugDetailDialog'
 import { useUsers } from '@/hooks/useUsers'
+import { useBugTriageFilters } from '@/hooks/useBugTriageFilters'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import {
+  BUG_SEVERITY_CONFIG,
+  BUG_SEVERITY_ORDER,
+  BUG_STATUS_CONFIG,
+} from '@/lib/constants/bug-triage'
+import { cn } from '@/lib/utils'
 import {
   Bug, ExternalLink, Loader2, RefreshCw, Search, X,
 } from 'lucide-react'
@@ -37,20 +44,6 @@ interface Member {
 
 interface BugsTableClientProps {
   currentUserId: string
-}
-
-const severityConfig: Record<string, { label: string; color: string }> = {
-  low: { label: 'Baja', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  medium: { label: 'Media', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
-  high: { label: 'Alta', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
-  critical: { label: 'Crítica', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-}
-
-const statusConfig: Record<string, { label: string; color: string }> = {
-  open: { label: 'Abierto', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-  in_progress: { label: 'En Progreso', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-  resolved: { label: 'Resuelto', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-  closed: { label: 'Cerrado', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400' },
 }
 
 function getInitials(name: string | null) {
@@ -85,23 +78,22 @@ function buildProjectMembers(project: {
 
 export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
   const { users } = useUsers()
+  const { filters, setFilters, clearFilters, hasActiveFilters } = useBugTriageFilters()
   const allUsers: Member[] = users.map(u => ({
     id: u.id,
     full_name: u.full_name,
     avatar_url: u.avatar_url ?? null,
   }))
 
+  const [searchInput, setSearchInput] = useState(filters.search)
+  const debouncedSearch = useDebouncedValue(searchInput, 300)
+
   const [bugs, setBugs] = useState<GlobalBug[]>([])
   const [projectOptions, setProjectOptions] = useState<Array<{ id: string; name: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
-
-  const [search, setSearch] = useState('')
-  const [severityFilter, setSeverityFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [projectFilter, setProjectFilter] = useState('all')
-  const [assigneeFilter, setAssigneeFilter] = useState('all')
+  const [updatingBugId, setUpdatingBugId] = useState<string | null>(null)
 
   const [detailOpen, setDetailOpen] = useState(false)
   const [loadingContext, setLoadingContext] = useState(false)
@@ -111,16 +103,25 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
   const [dialogTasks, setDialogTasks] = useState<Array<{ id: string; task_number: number | null; title: string }>>([])
   const [dialogProjectName, setDialogProjectName] = useState('')
 
+  useEffect(() => {
+    setSearchInput(filters.search)
+  }, [filters.search])
+
+  useEffect(() => {
+    if (debouncedSearch !== filters.search) {
+      setFilters({ search: debouncedSearch })
+    }
+  }, [debouncedSearch, filters.search, setFilters])
+
   const fetchBugs = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
       const params = new URLSearchParams()
-      if (severityFilter !== 'all') params.set('severity', severityFilter)
-      if (statusFilter !== 'all') params.set('status', statusFilter)
-      if (projectFilter !== 'all') params.set('project_id_filter', projectFilter)
-      if (assigneeFilter !== 'all') params.set('assignee_id', assigneeFilter)
+      if (filters.status !== 'all') params.set('status', filters.status)
+      if (filters.project !== 'all') params.set('project_id_filter', filters.project)
+      if (filters.assignee !== 'all') params.set('assignee_id', filters.assignee)
 
       const query = params.toString()
       const res = await fetch(`/api/dashboard/bugs${query ? `?${query}` : ''}`)
@@ -133,7 +134,7 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
     } finally {
       setLoading(false)
     }
-  }, [severityFilter, statusFilter, projectFilter, assigneeFilter])
+  }, [filters.status, filters.project, filters.assignee])
 
   useEffect(() => {
     fetchBugs()
@@ -161,35 +162,42 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
   )
 
   const filteredBugs = useMemo(() => {
-    if (!search.trim()) return bugs
-    const term = search.trim().toLowerCase()
-    return bugs.filter((bug) =>
-      bug.title.toLowerCase().includes(term) ||
-      bug.project?.name.toLowerCase().includes(term) ||
-      bug.task?.title.toLowerCase().includes(term) ||
-      (bug.task?.task_number != null && `#${bug.task.task_number}`.includes(term)) ||
-      bug.assignee?.full_name.toLowerCase().includes(term)
-    )
-  }, [bugs, search])
+    let result = bugs
 
-  const openCount = bugs.filter(b => b.status === 'open').length
-  const inProgressCount = bugs.filter(b => b.status === 'in_progress').length
-  const criticalCount = bugs.filter(b => b.severity === 'critical' && b.status !== 'closed').length
+    if (filters.severity !== 'all') {
+      result = result.filter((bug) => bug.severity === filters.severity)
+    }
 
-  const clearFilters = () => {
-    setSearch('')
-    setSeverityFilter('all')
-    setStatusFilter('all')
-    setProjectFilter('all')
-    setAssigneeFilter('all')
-  }
+    if (filters.search.trim()) {
+      const term = filters.search.trim().toLowerCase()
+      result = result.filter((bug) =>
+        bug.title.toLowerCase().includes(term) ||
+        bug.project?.name.toLowerCase().includes(term) ||
+        bug.task?.title.toLowerCase().includes(term) ||
+        (bug.task?.task_number != null && `#${bug.task.task_number}`.includes(term)) ||
+        bug.assignee?.full_name.toLowerCase().includes(term)
+      )
+    }
 
-  const hasActiveFilters =
-    search !== '' ||
-    severityFilter !== 'all' ||
-    statusFilter !== 'all' ||
-    projectFilter !== 'all' ||
-    assigneeFilter !== 'all'
+    return result
+  }, [bugs, filters.severity, filters.search])
+
+  const severityCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      low: 0,
+      medium: 0,
+      high: 0,
+      critical: 0,
+    }
+
+    for (const bug of bugs) {
+      if (counts[bug.severity] !== undefined) {
+        counts[bug.severity] += 1
+      }
+    }
+
+    return counts
+  }, [bugs])
 
   const pillClass = (selected: boolean) =>
     `px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${
@@ -197,6 +205,37 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
         ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
         : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground'
     }`
+
+  const quickUpdateBug = async (
+    bugId: string,
+    payload: { severity?: string; assignee_id?: string | null }
+  ) => {
+    setUpdatingBugId(bugId)
+    try {
+      const res = await fetch(`/api/dashboard/bugs/${bugId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al actualizar bug')
+
+      const updated = data.bug
+      setBugs((prev) => prev.map((bug) => {
+        if (bug.id !== bugId) return bug
+        return {
+          ...bug,
+          severity: updated.severity ?? bug.severity,
+          status: updated.status ?? bug.status,
+          assignee: updated.assignee ?? null,
+        }
+      }))
+    } catch (err) {
+      console.error('Error updating bug:', err)
+    } finally {
+      setUpdatingBugId(null)
+    }
+  }
 
   const openBugDetail = async (bug: GlobalBug) => {
     setSelectedBug(bug)
@@ -265,31 +304,46 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
         </Button>
       </div>
 
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
         <GlassPanel padding={2.25}>
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Total</p>
+          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Total visible</p>
           {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#0A84FF' }}>{bugs.length}</p>
+            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#0A84FF' }}>
+              {bugs.length}
+            </p>
           )}
         </GlassPanel>
-        <GlassPanel padding={2.25}>
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Abiertos</p>
-          {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#FF453A' }}>{openCount}</p>
-          )}
-        </GlassPanel>
-        <GlassPanel padding={2.25}>
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">En progreso</p>
-          {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#FF9F0A' }}>{inProgressCount}</p>
-          )}
-        </GlassPanel>
-        <GlassPanel padding={2.25}>
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Críticos activos</p>
-          {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#BF5AF2' }}>{criticalCount}</p>
-          )}
-        </GlassPanel>
+        {BUG_SEVERITY_ORDER.map((severity) => {
+          const cfg = BUG_SEVERITY_CONFIG[severity]
+          const selected = filters.severity === severity
+
+          return (
+            <button
+              key={severity}
+              type="button"
+              onClick={() => setFilters({ severity: selected ? 'all' : severity })}
+              className="text-left"
+            >
+              <GlassPanel
+                padding={2.25}
+                className={cn(
+                  'transition-colors h-full',
+                  selected && 'ring-2 ring-primary/40'
+                )}
+              >
+                <p className="text-[12px] font-medium text-muted-foreground tracking-tight">{cfg.label}</p>
+                {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
+                  <p
+                    className="text-[28px] font-semibold tracking-tight leading-none mt-2"
+                    style={{ color: cfg.accent }}
+                  >
+                    {severityCounts[severity] ?? 0}
+                  </p>
+                )}
+              </GlassPanel>
+            </button>
+          )
+        })}
       </div>
 
       <GlassPanel padding={2.5} className="space-y-4">
@@ -297,14 +351,14 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Buscar por título, proyecto, tarea o asignado…"
               className="pl-9"
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <Select value={filters.project} onValueChange={(value) => setFilters({ project: value })}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Proyecto" />
               </SelectTrigger>
@@ -315,7 +369,7 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <Select value={filters.assignee} onValueChange={(value) => setFilters({ assignee: value })}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Asignado" />
               </SelectTrigger>
@@ -337,31 +391,31 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button type="button" className={pillClass(severityFilter === 'all')} onClick={() => setSeverityFilter('all')}>
+          <button type="button" className={pillClass(filters.severity === 'all')} onClick={() => setFilters({ severity: 'all' })}>
             Todas las severidades
           </button>
-          {Object.entries(severityConfig).map(([value, cfg]) => (
+          {BUG_SEVERITY_ORDER.map((value) => (
             <button
               key={value}
               type="button"
-              className={pillClass(severityFilter === value)}
-              onClick={() => setSeverityFilter(value)}
+              className={pillClass(filters.severity === value)}
+              onClick={() => setFilters({ severity: value })}
             >
-              {cfg.label}
+              {BUG_SEVERITY_CONFIG[value].label}
             </button>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button type="button" className={pillClass(statusFilter === 'all')} onClick={() => setStatusFilter('all')}>
+          <button type="button" className={pillClass(filters.status === 'all')} onClick={() => setFilters({ status: 'all' })}>
             Todos los estados
           </button>
-          {Object.entries(statusConfig).map(([value, cfg]) => (
+          {Object.entries(BUG_STATUS_CONFIG).map(([value, cfg]) => (
             <button
               key={value}
               type="button"
-              className={pillClass(statusFilter === value)}
-              onClick={() => setStatusFilter(value)}
+              className={pillClass(filters.status === value)}
+              onClick={() => setFilters({ status: value })}
             >
               {cfg.label}
             </button>
@@ -405,8 +459,8 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredBugs.map((bug) => {
-                  const sev = severityConfig[bug.severity] ?? severityConfig.medium
-                  const sta = statusConfig[bug.status] ?? statusConfig.open
+                  const sta = BUG_STATUS_CONFIG[bug.status as keyof typeof BUG_STATUS_CONFIG] ?? BUG_STATUS_CONFIG.open
+                  const isUpdating = updatingBugId === bug.id
 
                   return (
                     <tr
@@ -414,10 +468,23 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
                       className="hover:bg-muted/30 transition-colors cursor-pointer"
                       onClick={() => openBugDetail(bug)}
                     >
-                      <td className="px-4 py-3">
-                        <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${sev.color}`}>
-                          {sev.label}
-                        </span>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={bug.severity}
+                          disabled={isUpdating}
+                          onValueChange={(value) => quickUpdateBug(bug.id, { severity: value })}
+                        >
+                          <SelectTrigger className="h-8 w-[118px] border-0 bg-transparent shadow-none px-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {BUG_SEVERITY_ORDER.map((value) => (
+                              <SelectItem key={value} value={value}>
+                                {BUG_SEVERITY_CONFIG[value].label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${sta.color}`}>
@@ -425,7 +492,10 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
                         </span>
                       </td>
                       <td className="px-4 py-3 font-medium text-foreground max-w-[280px]">
-                        <span className="line-clamp-2">{bug.title}</span>
+                        <div className="flex items-center gap-2">
+                          {isUpdating && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />}
+                          <span className="line-clamp-2">{bug.title}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                         {bug.project?.name || '—'}
@@ -435,22 +505,27 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
                           ? `${bug.task.task_number != null ? `#${bug.task.task_number} ` : ''}${bug.task.title}`
                           : '—'}
                       </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
-                        {bug.assignee ? (
-                          <div className="flex items-center gap-2">
-                            <Avatar className="w-6 h-6">
-                              <AvatarImage src={bug.assignee.avatar_url || undefined} />
-                              <AvatarFallback className="text-[10px] bg-muted">
-                                {getInitials(bug.assignee.full_name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-muted-foreground truncate max-w-[120px]">
-                              {bug.assignee.full_name}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground italic">Sin asignar</span>
-                        )}
+                      <td className="px-4 py-3 hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={bug.assignee?.id ?? 'unassigned'}
+                          disabled={isUpdating}
+                          onValueChange={(value) => quickUpdateBug(
+                            bug.id,
+                            { assignee_id: value === 'unassigned' ? null : value }
+                          )}
+                        >
+                          <SelectTrigger className="h-8 min-w-[150px] max-w-[200px] border-0 bg-transparent shadow-none px-1">
+                            <SelectValue placeholder="Sin asignar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unassigned">Sin asignar</SelectItem>
+                            {assigneeOptions.map((assignee) => (
+                              <SelectItem key={assignee.id} value={assignee.id}>
+                                {assignee.full_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell whitespace-nowrap">
                         {formatDate(bug.created_at)}
