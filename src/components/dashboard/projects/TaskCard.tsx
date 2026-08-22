@@ -419,6 +419,7 @@ function SortableTaskCard(props: TaskCardBaseProps & { highlightId?: string | nu
       setTimeout(() => {
         cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         setHighlighted(true)
+        openDialog('view')
         setTimeout(() => setHighlighted(false), 2000)
       }, 400)
     }

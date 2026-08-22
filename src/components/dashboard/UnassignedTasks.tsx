@@ -48,7 +48,7 @@ export function UnassignedTasks({ tasks }: UnassignedTasksProps) {
         <div className="space-y-1">
           {tasks.map(task => {
             const base = task.project?.type === 'change_control' ? '/change-controls' : '/projects'
-            const href = task.project ? `${base}/${task.project.id}?highlight=${task.id}` : '#'
+            const href = task.project ? `${base}/${task.project.id}?task=${task.id}` : '#'
             return (
               <Link
                 key={task.id}

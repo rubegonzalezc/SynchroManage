@@ -1,7 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -77,6 +78,10 @@ function buildProjectMembers(project: {
 }
 
 export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
+  const searchParams = useSearchParams()
+  const focusBugId = searchParams.get('bug')
+  const openedBugFocusRef = useRef(false)
+
   const { users } = useUsers()
   const { filters, setFilters, clearFilters, hasActiveFilters } = useBugTriageFilters()
   const allUsers: Member[] = users.map(u => ({
@@ -139,6 +144,16 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
   useEffect(() => {
     fetchBugs()
   }, [fetchBugs, refreshKey])
+
+  useEffect(() => {
+    if (!focusBugId || loading || openedBugFocusRef.current) return
+
+    const bug = bugs.find((item) => item.id === focusBugId)
+    if (!bug) return
+
+    openedBugFocusRef.current = true
+    void openBugDetail(bug)
+  }, [focusBugId, bugs, loading])
 
   useEffect(() => {
     fetch('/api/dashboard/projects')

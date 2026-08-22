@@ -1,5 +1,7 @@
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { UsersTableClient } from '@/components/dashboard/users/UsersTableClient'
+import UsersLoading from './loading'
 
 export default async function UsersPage() {
   const supabase = await createClient()
@@ -10,6 +12,8 @@ export default async function UsersPage() {
     .order('id')
 
   return (
-    <UsersTableClient roles={roles || []} />
+    <Suspense fallback={<UsersLoading />}>
+      <UsersTableClient roles={roles || []} />
+    </Suspense>
   )
 }

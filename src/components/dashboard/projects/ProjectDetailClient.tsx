@@ -755,6 +755,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
               canReorder={canReorderSprintTasks}
               showReorderHint={['admin', 'pm', 'tech_lead'].includes(currentUserRole) && hasListFilters}
               onSprintOrderUpdates={applySprintOrderUpdates}
+              highlightId={highlightId}
             />
           </Suspense>
         )}

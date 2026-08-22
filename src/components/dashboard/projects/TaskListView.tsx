@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -93,6 +93,7 @@ interface TaskListViewProps {
   canReorder?: boolean
   showReorderHint?: boolean
   onSprintOrderUpdates?: (updates: { id: string; sprint_order: number }[]) => void
+  highlightId?: string | null
 }
 
 const statusLabels: Record<string, string> = {
@@ -451,12 +452,20 @@ export function TaskListView({
   canReorder = false,
   showReorderHint = false,
   onSprintOrderUpdates,
+  highlightId = null,
 }: TaskListViewProps) {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
   const [sortField, setSortField] = useState<SortField>('priority')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [savingSprintId, setSavingSprintId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!highlightId) return
+    if (tasks.some((task) => task.id === highlightId)) {
+      setSelectedTaskId(highlightId)
+    }
+  }, [highlightId, tasks])
 
   const sprintGroups = useMemo(() => {
     const groups = groupTasksBySprint(tasks, sprints)
