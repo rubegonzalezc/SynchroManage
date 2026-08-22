@@ -11,6 +11,10 @@ import {
 } from '@/lib/utils/task-dependency'
 import { resolveSprintOrderForCreate, validateSprintOrderPayload } from '@/lib/utils/task-sprint-order'
 import { revalidateProjectTaskCaches } from '@/lib/utils/revalidate-project-task-cache'
+import {
+  assertTaskNotBlockedByOpenBugs,
+  formatBlockedByOpenBugsMessage,
+} from '@/lib/utils/task-open-bugs'
 
 // Helper para registrar actividad desde el servidor
 async function logActivityServer(
@@ -374,6 +378,17 @@ export async function PATCH(request: Request) {
       })
       if (blockedError) {
         return NextResponse.json({ error: blockedError }, { status: 400 })
+      }
+
+      const blockingBugs = await assertTaskNotBlockedByOpenBugs(supabaseAdmin, {
+        taskId,
+        newStatus: status,
+      })
+      if (blockingBugs) {
+        return NextResponse.json({
+          error: formatBlockedByOpenBugsMessage(blockingBugs),
+          blocking_bugs: blockingBugs,
+        }, { status: 400 })
       }
     }
 

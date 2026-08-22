@@ -33,7 +33,8 @@ import {
   formatDependencyLabel,
   resolveDependencyTasks,
 } from '@/lib/utils/task-dependency'
-import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import type { BlockingBugRef } from '@/lib/utils/task-open-bugs'
 import { TaskActivityHistory } from '@/components/dashboard/tasks/TaskActivityHistory'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
 import { formatCarryOverLabel, formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
@@ -92,6 +93,7 @@ interface TaskDetail {
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   assignees: { id: string; full_name: string; avatar_url: string | null }[]
   comments: Comment[]
+  blocking_bugs?: BlockingBugRef[]
 }
 
 interface TaskDetailDialogProps {
@@ -570,6 +572,7 @@ export function TaskDetailDialog({
     task?.dependencies,
     projectTasks
   )
+  const blockingBugs = task?.blocking_bugs ?? []
 
   const handleProjectTaskStatusUpdate = useCallback((updatedTaskId: string, status: string) => {
     setProjectTasks((prev) =>
@@ -724,6 +727,11 @@ export function TaskDetailDialog({
 
               <SheetSection title="Estado">
                 <DependencyBlockedWarning dependencyTasks={dependencyTasks} className="mb-3" />
+                <OpenBugsBlockedWarning
+                  blockingBugs={blockingBugs}
+                  projectId={projectId}
+                  className="mb-3"
+                />
                 <Select
                   value={task.status}
                   onValueChange={handleStatusChange}
@@ -733,7 +741,7 @@ export function TaskDetailDialog({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {renderTaskStatusSelectItems(dependencyTasks)}
+                    {renderTaskStatusSelectItems(dependencyTasks, blockingBugs)}
                   </SelectContent>
                 </Select>
                 {statusSaving && (
@@ -930,10 +938,16 @@ export function TaskDetailDialog({
               <div className="grid grid-cols-2 gap-4 min-w-0">
                 <div className="space-y-2">
                   <Label>Estado</Label>
+                  <DependencyBlockedWarning dependencyTasks={dependencyTasks} />
+                  <OpenBugsBlockedWarning
+                    blockingBugs={blockingBugs}
+                    projectId={projectId}
+                    className="mt-2"
+                  />
                   <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {renderTaskStatusSelectItems(dependencyTasks)}
+                      {renderTaskStatusSelectItems(dependencyTasks, blockingBugs)}
                     </SelectContent>
                   </Select>
                 </div>

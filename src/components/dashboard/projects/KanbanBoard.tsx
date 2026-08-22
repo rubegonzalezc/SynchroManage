@@ -32,6 +32,10 @@ import {
   resolveTaskDependenciesForMove,
   type TaskDependencyRef,
 } from '@/lib/utils/task-dependency'
+import {
+  getOpenBugsBlockedMessageForStatus,
+  type BlockingBugRef,
+} from '@/lib/utils/task-open-bugs'
 import type { ProjectTask } from '@/lib/types/task'
 
 interface SprintRef {
@@ -44,6 +48,7 @@ type Task = ProjectTask & {
   dependencies?: TaskDependencyRef[]
   depends_on_task_ids?: string[]
   depends_on_task_id?: string | null
+  blockingBugs?: BlockingBugRef[]
 }
 
 interface Member {
@@ -181,15 +186,18 @@ export function KanbanBoard({
       .sort((a, b) => a.position - b.position)
   }
 
-  const getBlockedMessageForMove = (task: Task, targetStatus: string) =>
-    getDependencyBlockedMessageForStatus(
+  const getBlockedMessageForMove = (task: Task, targetStatus: string) => {
+    const dependencyMessage = getDependencyBlockedMessageForStatus(
       resolveTaskDependenciesForMove(task, tasks),
       targetStatus
     )
+    if (dependencyMessage) return dependencyMessage
 
-  const activeTaskDependencies = activeTask
-    ? resolveTaskDependenciesForMove(activeTask, tasks)
-    : []
+    return getOpenBugsBlockedMessageForStatus(task.blockingBugs ?? [], targetStatus)
+  }
+
+  const getDropBlockedMessage = (task: Task, targetStatus: string) =>
+    getBlockedMessageForMove(task, targetStatus)
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find((t) => t.id === event.active.id)
@@ -394,7 +402,7 @@ export function KanbanBoard({
           {columns.map((column) => {
             const columnTasks = getTasksByStatus(column.id)
             const dropBlockedMessage = activeTask
-              ? getDependencyBlockedMessageForStatus(activeTaskDependencies, column.id)
+              ? getDropBlockedMessage(activeTask, column.id)
               : null
             const isDropForbidden =
               !!dropBlockedMessage && activeTask?.status !== column.id
