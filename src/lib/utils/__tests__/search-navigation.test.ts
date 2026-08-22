@@ -7,9 +7,9 @@ import {
 } from '@/lib/utils/search-navigation'
 
 describe('getTaskSearchHref', () => {
-  it('apunta al proyecto con highlight de tarea', () => {
+  it('apunta al proyecto con task en query', () => {
     expect(getTaskSearchHref({ id: 'task-1', project_id: 'proj-1' })).toBe(
-      '/projects/proj-1?highlight=task-1'
+      '/projects/proj-1?task=task-1'
     )
   })
 })
@@ -31,6 +31,10 @@ describe('getBugSearchHref', () => {
     expect(getBugSearchHref({ id: 'bug-1', project_id: 'proj-1' })).toBe(
       '/projects/proj-1?tab=bugs&bug=bug-1'
     )
+  })
+
+  it('usa vista global si no hay proyecto', () => {
+    expect(getBugSearchHref({ id: 'bug-1', project_id: '' })).toBe('/dashboard/bugs?bug=bug-1')
   })
 })
 

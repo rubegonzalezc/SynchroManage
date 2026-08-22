@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -13,6 +14,7 @@ import { CreateUserDialog } from './CreateUserDialog'
 import { Search, ChevronLeft, ChevronRight, X, RefreshCw, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GlassPanel } from '@/components/ui/glass-panel'
+import { cn } from '@/lib/utils'
 
 interface Role {
   id: number
@@ -61,6 +63,10 @@ const roleLabels: Record<string, string> = {
 }
 
 export function UsersTableClient({ roles }: UsersTableClientProps) {
+  const searchParams = useSearchParams()
+  const focusUserId = searchParams.get('user')
+  const openedFocusRef = useRef(false)
+
   const [users, setUsers] = useState<User[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
@@ -156,6 +162,34 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
   useEffect(() => {
     setCurrentPage(1)
   }, [search, roleFilter, statusFilter, companyFilter, pageSize])
+
+  useEffect(() => {
+    if (!focusUserId || loading || filteredUsers.length === 0) return
+
+    const index = filteredUsers.findIndex((user) => user.id === focusUserId)
+    if (index < 0) return
+
+    setCurrentPage(Math.floor(index / pageSize) + 1)
+
+    const timeout = window.setTimeout(() => {
+      document.getElementById(`user-row-${focusUserId}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+    }, 150)
+
+    return () => window.clearTimeout(timeout)
+  }, [focusUserId, filteredUsers, loading, pageSize])
+
+  useEffect(() => {
+    if (!focusUserId || loading || users.length === 0 || openedFocusRef.current) return
+
+    const user = users.find((item) => item.id === focusUserId)
+    if (!user) return
+
+    openedFocusRef.current = true
+    setSearch(user.full_name || user.email || '')
+  }, [focusUserId, loading, users])
 
   const clearFilters = () => {
     setSearch('')
@@ -316,7 +350,11 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
               return (
                 <div
                   key={user.id}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+                  id={`user-row-${user.id}`}
+                  className={cn(
+                    'flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors',
+                    focusUserId === user.id && 'ring-2 ring-primary/40 bg-primary/5'
+                  )}
                 >
                   <Avatar className="w-9 h-9 flex-shrink-0">
                     <AvatarImage src={user.avatar_url || undefined} />

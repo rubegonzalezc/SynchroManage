@@ -6,7 +6,7 @@ import type {
 } from '@/lib/types/search'
 
 export function getTaskSearchHref(task: Pick<DashboardSearchTask, 'id' | 'project_id'>): string {
-  return `/projects/${task.project_id}?highlight=${task.id}`
+  return `/projects/${task.project_id}?task=${task.id}`
 }
 
 export function getProjectSearchHref(project: Pick<DashboardSearchProject, 'id' | 'type'>): string {
@@ -16,7 +16,10 @@ export function getProjectSearchHref(project: Pick<DashboardSearchProject, 'id' 
 }
 
 export function getBugSearchHref(bug: Pick<DashboardSearchBug, 'id' | 'project_id'>): string {
-  return `/projects/${bug.project_id}?tab=bugs&bug=${bug.id}`
+  if (bug.project_id) {
+    return `/projects/${bug.project_id}?tab=bugs&bug=${bug.id}`
+  }
+  return `/dashboard/bugs?bug=${bug.id}`
 }
 
 export function getUserSearchHref(
