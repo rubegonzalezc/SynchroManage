@@ -8,6 +8,12 @@ Planificación del equipo (Rubén González, José, Sebastián).
 | **2** | Organización por sprint, dependencias múltiples y selector por sprint | [sprint-02-organizacion-por-sprint.md](./sprint-02-organizacion-por-sprint.md) · [**Modelo `#global` vs `HU-N`**](modelo-de-numeracion.md) |
 | **3** | Productividad (búsqueda, bugs global) y calidad al cerrar | [sprint-03-productividad-y-calidad.md](./sprint-03-productividad-y-calidad.md) |
 
+## Control de cambios activo
+
+| CC | Épica | Sprints |
+|----|-------|---------|
+| **[CC-21082026](../cc-21082026/)** | Operar sin fricción | 3 sprints · ~85 pts |
+
 ## Orden recomendado
 
 1. **Sprint 1** — Base de dependencias (API + UI).
