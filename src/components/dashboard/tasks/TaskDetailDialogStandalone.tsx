@@ -34,7 +34,8 @@ import { SprintTaskReferenceBadge } from '@/components/ui/sprint-task-reference-
 import { formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
 import { resolveDependencyTasks, formatDependencyLabel, getPendingDependencies } from '@/lib/utils/task-dependency'
-import { DependencyBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import type { BlockingBugRef } from '@/lib/utils/task-open-bugs'
 import { TaskActivityHistory } from '@/components/dashboard/tasks/TaskActivityHistory'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
 
@@ -91,6 +92,7 @@ interface TaskDetail {
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
   project: { id: string; name: string } | null
   comments: Comment[]
+  blocking_bugs?: BlockingBugRef[]
 }
 
 interface TaskDetailDialogStandaloneProps {
@@ -399,6 +401,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
     task?.dependencies,
     projectTasks
   )
+  const blockingBugs = task?.blocking_bugs ?? []
 
   const handleProjectTaskStatusUpdate = useCallback((updatedTaskId: string, status: string) => {
     setProjectTasks((prev) =>
@@ -542,10 +545,15 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   <div className="space-y-2">
                     <Label>Estado</Label>
                     <DependencyBlockedWarning dependencyTasks={dependencyTasks} />
+                    <OpenBugsBlockedWarning
+                      blockingBugs={blockingBugs}
+                      projectId={task.project?.id ?? ''}
+                      className="mt-2"
+                    />
                     <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {renderTaskStatusSelectItems(dependencyTasks)}
+                        {renderTaskStatusSelectItems(dependencyTasks, blockingBugs)}
                       </SelectContent>
                     </Select>
                   </div>

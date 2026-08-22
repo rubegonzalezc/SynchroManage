@@ -12,7 +12,7 @@ import {
 import { createPortal } from 'react-dom'
 import { AlertTriangle, CheckCircle2, GitBranch, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { isDependencyBlockedMessage } from '@/lib/utils/api-error'
+import { isDependencyBlockedMessage, isOpenBugsBlockedMessage } from '@/lib/utils/api-error'
 
 type ToastVariant = 'error' | 'success' | 'info'
 
@@ -36,6 +36,13 @@ function getToastMeta(message: string, variant: ToastVariant, title?: string) {
     return {
       title: title ?? 'Dependencia pendiente',
       Icon: GitBranch,
+    }
+  }
+
+  if (isOpenBugsBlockedMessage(message)) {
+    return {
+      title: title ?? 'Bugs abiertos',
+      Icon: AlertTriangle,
     }
   }
 
@@ -136,7 +143,9 @@ export function DynamicIslandToastProvider({ children }: { children: ReactNode }
                   toast.variant === 'error' && (
                     isDependencyBlockedMessage(toast.message)
                       ? 'bg-amber-500/20 text-amber-300'
-                      : 'bg-red-500/20 text-red-300'
+                      : isOpenBugsBlockedMessage(toast.message)
+                        ? 'bg-red-500/20 text-red-300'
+                        : 'bg-red-500/20 text-red-300'
                   ),
                   toast.variant === 'info' && 'bg-blue-500/20 text-blue-300'
                 )}

@@ -17,3 +17,7 @@ export async function readApiError(
 export function isDependencyBlockedMessage(message: string): boolean {
   return message.startsWith('No puedes avanzar esta tarea hasta completar')
 }
+
+export function isOpenBugsBlockedMessage(message: string): boolean {
+  return message.startsWith('No puedes completar esta tarea mientras tenga bugs abiertos')
+}

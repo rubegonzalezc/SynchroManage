@@ -25,6 +25,7 @@ import { SprintHeader } from './SprintHeader'
 import { CreateSprintDialog } from './CreateSprintDialog'
 import type { Sprint } from './CreateSprintDialog'
 import type { ProjectTask } from '@/lib/types/task'
+import { groupBlockingBugsByTaskId, type BlockingBugRef } from '@/lib/utils/task-open-bugs'
 import { BugSection } from './BugSection'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useUsers } from '@/hooks/useUsers'
@@ -151,20 +152,32 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [assigneeFilter, setAssigneeFilter] = useState('all')
 
-  // Bugs por tarea (para mostrar conteo en list view)
+  // Bugs por tarea (conteo y bloqueo al completar)
   const [bugsByTask, setBugsByTask] = useState<Record<string, number>>({})
+  const [blockingBugsByTask, setBlockingBugsByTask] = useState<Record<string, BlockingBugRef[]>>({})
   useEffect(() => {
     if (!project?.id) return
     fetch(`/api/dashboard/bugs?project_id=${project.id}`)
       .then(r => r.json())
       .then(data => {
         const counts: Record<string, number> = {}
-        for (const bug of (data.bugs || [])) {
-          if (bug.task_id && (bug.status === 'open' || bug.status === 'in_progress')) {
-            counts[bug.task_id] = (counts[bug.task_id] || 0) + 1
-          }
+        const grouped = groupBlockingBugsByTaskId(
+          (data.bugs || []).map((bug: {
+            id: string
+            title: string
+            status: string
+            task_id?: string | null
+            project_id?: string
+          }) => ({
+            ...bug,
+            project_id: bug.project_id ?? project.id,
+          }))
+        )
+        for (const [taskId, bugs] of Object.entries(grouped)) {
+          counts[taskId] = bugs.length
         }
         setBugsByTask(counts)
+        setBlockingBugsByTask(grouped)
       })
       .catch(() => {})
   }, [project?.id])
@@ -185,8 +198,9 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
       sprint_order: t.sprint_order ?? null,
       assignees: t.assignees?.length ? t.assignees : t.assignee ? [t.assignee] : [],
       openBugsCount: bugsByTask[t.id] ?? 0,
+      blockingBugs: blockingBugsByTask[t.id] ?? [],
     }))
-  }, [project?.tasks, bugsByTask])
+  }, [project?.tasks, bugsByTask, blockingBugsByTask])
 
   const filterTask = useCallback((task: typeof tasksWithMeta[number], applySprintFilter: boolean) => {
     const matchesSprint = !applySprintFilter || (

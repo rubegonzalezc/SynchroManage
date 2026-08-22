@@ -13,6 +13,11 @@ import {
 } from '@/lib/utils/task-dependency'
 import { resolveSprintOrderFieldsForUpdate } from '@/lib/utils/task-sprint-order'
 import { revalidateProjectTaskCaches } from '@/lib/utils/revalidate-project-task-cache'
+import {
+  assertTaskNotBlockedByOpenBugs,
+  fetchBlockingBugsForTask,
+  formatBlockedByOpenBugsMessage,
+} from '@/lib/utils/task-open-bugs'
 
 // Helper para registrar actividad desde el servidor
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,6 +108,7 @@ export async function GET(
       .filter(Boolean)
 
     let dependencies: TaskDependencyRef[] = await fetchTaskDependencyRefs(supabaseAdmin, id)
+    const blocking_bugs = await fetchBlockingBugsForTask(supabaseAdmin, id)
 
     return NextResponse.json({
       task: {
@@ -111,6 +117,7 @@ export async function GET(
         depends_on_task_ids: dependencies.map((dep) => dep.id),
         dependencies,
         depends_on: dependencies[0] ?? null,
+        blocking_bugs,
       },
     })
   } catch (error) {
@@ -202,6 +209,17 @@ export async function PUT(
       })
       if (blockedError) {
         return NextResponse.json({ error: blockedError }, { status: 400 })
+      }
+
+      const blockingBugs = await assertTaskNotBlockedByOpenBugs(supabaseAdmin, {
+        taskId: id,
+        newStatus: body.status,
+      })
+      if (blockingBugs) {
+        return NextResponse.json({
+          error: formatBlockedByOpenBugsMessage(blockingBugs),
+          blocking_bugs: blockingBugs,
+        }, { status: 400 })
       }
     }
 
