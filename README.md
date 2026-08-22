@@ -179,6 +179,68 @@ Sistema de archivos adjuntos para tareas y proyectos:
 - Eliminar archivos (autor, admin o PM)
 - Disponible en detalle de tareas y en la vista del proyecto
 
+### Búsqueda global (Cmd+K)
+
+Paleta de comandos para encontrar recursos sin perder contexto:
+
+- **Atajo:** `⌘K` (macOS) o `Ctrl+K` (Windows/Linux). También desde la barra de búsqueda del header.
+- **Alcance:** tareas, proyectos, controles de cambio, bugs y usuarios.
+- **Mínimo:** 2 caracteres. La búsqueda se ejecuta con debounce de 300 ms vía `GET /api/dashboard/search`.
+- **Navegación al seleccionar un resultado:**
+
+| Tipo | Destino |
+| --- | --- |
+| Tarea | `/projects/[id]?task=[taskId]` — abre el detalle de la tarea |
+| Proyecto | `/projects/[id]` |
+| Control de cambios | `/change-controls/[id]` |
+| Bug (con proyecto) | `/projects/[id]?tab=bugs&bug=[bugId]` |
+| Bug (sin proyecto) | `/dashboard/bugs?bug=[bugId]` |
+| Usuario (tú) | `/profile` |
+| Usuario (otro) | `/dashboard/users?user=[userId]` — filtra y resalta la fila |
+
+**Dentro de la paleta:** `↑` / `↓` para navegar, `Enter` para abrir, `Esc` para cerrar.
+
+### Vista global de bugs
+
+Página de triage cross-proyecto en `/dashboard/bugs` (sidebar → **Bugs**).
+
+- **Roles con acceso:** Admin, PM y Tech Lead.
+- **Resumen:** tarjetas por severidad (Baja, Media, Alta, Crítica) y total visible.
+- **Filtros:** búsqueda por texto, proyecto, asignado (incluye «Sin asignar»), severidad y estado.
+- **Acciones rápidas en tabla:** cambiar severidad y asignado sin abrir el detalle.
+- **Detalle:** clic en una fila abre el diálogo completo del bug (mismo componente que en el proyecto).
+- **Deep link:** `?bug=[bugId]` abre el detalle automáticamente (útil desde Cmd+K o enlaces compartidos).
+- **Filtros en URL** (compartibles y persistentes al recargar):
+
+| Parámetro | Descripción | Valor por defecto |
+| --- | --- | --- |
+| `q` | Texto de búsqueda | _(vacío)_ |
+| `severity` | `low`, `medium`, `high`, `critical` | `all` |
+| `status` | `open`, `in_progress`, `resolved`, `closed` | `all` |
+| `project` | UUID del proyecto | `all` |
+| `assignee` | UUID del usuario o `unassigned` | `all` |
+
+Ejemplo: `/dashboard/bugs?severity=critical&assignee=unassigned&status=open`
+
+### Regla: no cerrar tarea con bugs abiertos
+
+El sistema impide marcar una tarea como **Completado** si tiene bugs vinculados en estado **Abierto** o **En Progreso**.
+
+- **Dónde aplica:** Kanban (drag & drop), selector de estado en el detalle de tarea y API (`PATCH /api/dashboard/tasks`, `PUT /api/dashboard/tasks/[id]`).
+- **Mensaje:** se muestra el listado de bugs bloqueantes con enlace directo a cada uno.
+- **Cómo desbloquear:** resolver o cerrar los bugs vinculados (estados **Resuelto** o **Cerrado**). Los bugs en **En Progreso** también bloquean el cierre.
+- **Soporte:** si un usuario no puede completar una tarea, revisar la pestaña **Bugs** del proyecto o la vista global `/dashboard/bugs` filtrando por la tarea asociada.
+
+### Atajos de teclado
+
+| Atajo | Acción |
+| --- | --- |
+| `⌘K` / `Ctrl+K` | Abrir búsqueda global |
+| `⌘B` / `Ctrl+B` | Mostrar u ocultar sidebar |
+| `↑` / `↓` | Navegar resultados en la paleta de búsqueda |
+| `Enter` | Abrir resultado seleccionado en la paleta |
+| `Esc` | Cerrar diálogos (paleta de búsqueda, modales) |
+
 ### Modo Oscuro
 
 - Toggle de tema en el sidebar
@@ -201,6 +263,7 @@ src/
 │   │   ├── layout.tsx
 │   │   ├── page.tsx            # Dashboard con métricas por rol
 │   │   ├── users/              # Gestión de usuarios
+│   │   ├── bugs/               # Vista global de triage de bugs
 │   │   ├── companies/          # Gestión de empresas
 │   │   └── settings/           # Configuración del sistema
 │   ├── projects/               # Gestión de proyectos
@@ -223,6 +286,8 @@ src/
 │   │   ├── comments/
 │   │   ├── notifications/
 │   │   ├── activity/
+│   │   ├── bugs/
+│   │   ├── search/
 │   │   ├── check-due-tasks/
 │   │   └── settings/
 │   ├── auth/
@@ -486,6 +551,9 @@ Bucket `uploads` para archivos:
 | `/api/dashboard/comments/[id]` | DELETE | Eliminar comentario |
 | `/api/dashboard/notifications` | GET, POST, PATCH | Notificaciones |
 | `/api/dashboard/activity` | GET, POST | Actividad del sistema |
+| `/api/dashboard/bugs` | GET | Listar bugs (global o por proyecto) |
+| `/api/dashboard/bugs/[id]` | GET, PUT, DELETE | Bug específico |
+| `/api/dashboard/search` | GET | Búsqueda unificada (command palette) |
 | `/api/dashboard/check-due-tasks` | POST | Verificar tareas por vencer (admin) |
 | `/api/dashboard/settings` | GET, PUT | Configuración |
 
@@ -575,7 +643,7 @@ npm run dev
 ### UX / Productividad
 
 - [ ] Filtros en el Kanban (por asignado, prioridad, categoría, fecha)
-- [ ] Búsqueda global (proyectos, tareas, usuarios)
+- [x] Búsqueda global (proyectos, tareas, bugs, usuarios)
 - [ ] Duplicar tareas
 - [ ] Vista de lista alternativa al Kanban (tabla con ordenamiento)
 - [ ] Textarea para descripción de tareas y proyectos
