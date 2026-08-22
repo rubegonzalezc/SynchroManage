@@ -168,6 +168,8 @@ export async function PUT(
       (a: { user_id: string }) => a.user_id
     )
 
+    const previousDependencyIds = await fetchTaskDependencyIds(supabaseAdmin, id)
+
     // Calcular diferencias: añadidos (B\A) y removidos (A\B)
     const addedIds = assigneeIds.filter(aid => !currentAssigneeIds.includes(aid))
     const removedIds = currentAssigneeIds.filter((cid: string) => !assigneeIds.includes(cid))
@@ -359,6 +361,110 @@ export async function PUT(
               project_id: currentTask.project_id,
               unassigned_user_id: profile.id,
               unassigned_user_name: profile.full_name,
+            }
+          )
+        }
+      }
+
+      // Registrar actividad de asignación para cada nuevo asignado
+      if (addedIds.length > 0) {
+        const { data: addedProfiles } = await supabaseAdmin
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', addedIds)
+
+        for (const profile of addedProfiles || []) {
+          await logActivityServer(
+            supabaseAdmin,
+            user.id,
+            'assigned',
+            'task',
+            id,
+            body.title,
+            {
+              project_id: currentTask.project_id,
+              assignee_id: profile.id,
+              assignee_name: profile.full_name,
+            }
+          )
+        }
+      }
+
+      if ('sprint_id' in body) {
+        const newSprintId = body.sprint_id ?? null
+        const oldSprintId = currentTask.sprint_id ?? null
+
+        if (newSprintId !== oldSprintId) {
+          const sprintIds = [newSprintId, oldSprintId].filter(Boolean) as string[]
+          const sprintNameMap: Record<string, string> = {}
+
+          if (sprintIds.length > 0) {
+            const { data: sprints } = await supabaseAdmin
+              .from('sprints')
+              .select('id, name')
+              .in('id', sprintIds)
+
+            for (const sprint of sprints || []) {
+              sprintNameMap[sprint.id] = sprint.name
+            }
+          }
+
+          await logActivityServer(
+            supabaseAdmin,
+            user.id,
+            'sprint_changed',
+            'task',
+            id,
+            body.title,
+            {
+              project_id: currentTask.project_id,
+              from_sprint_id: oldSprintId,
+              from_sprint_name: oldSprintId ? sprintNameMap[oldSprintId] : 'Sin sprint',
+              to_sprint_id: newSprintId,
+              to_sprint_name: newSprintId ? sprintNameMap[newSprintId] : 'Sin sprint',
+            }
+          )
+        }
+      }
+
+      const dependencyInputChanged =
+        dependsOnTaskIdsInput !== undefined || 'depends_on_task_id' in body
+
+      if (dependencyInputChanged) {
+        const newDependencyIds = await fetchTaskDependencyIds(supabaseAdmin, id)
+        const addedDependencyIds = newDependencyIds.filter(
+          (depId) => !previousDependencyIds.includes(depId)
+        )
+        const removedDependencyIds = previousDependencyIds.filter(
+          (depId) => !newDependencyIds.includes(depId)
+        )
+
+        if (addedDependencyIds.length > 0 || removedDependencyIds.length > 0) {
+          const allDependencyIds = [...new Set([...addedDependencyIds, ...removedDependencyIds])]
+          const { data: dependencyTasks } = await supabaseAdmin
+            .from('tasks')
+            .select('id, task_number, title')
+            .in('id', allDependencyIds)
+
+          const dependencyMap = new Map(
+            (dependencyTasks || []).map((depTask) => [depTask.id, depTask])
+          )
+
+          await logActivityServer(
+            supabaseAdmin,
+            user.id,
+            'dependency_changed',
+            'task',
+            id,
+            body.title,
+            {
+              project_id: currentTask.project_id,
+              added: addedDependencyIds
+                .map((depId) => dependencyMap.get(depId))
+                .filter(Boolean),
+              removed: removedDependencyIds
+                .map((depId) => dependencyMap.get(depId))
+                .filter(Boolean),
             }
           )
         }

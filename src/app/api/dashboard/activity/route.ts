@@ -13,8 +13,13 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const parsedLimit = parseInt(searchParams.get('limit') || '10', 10)
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 50)
+      : 10
     const projectId = searchParams.get('project_id')
+    const entityId = searchParams.get('entity_id')
+    const entityType = searchParams.get('entity_type')
 
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,10 +36,11 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
       .limit(limit)
 
-    // Filtrar por proyecto si se especifica
-    if (projectId) {
-      // Usar filtro combinado: proyectos directos (entity_type=project y entity_id=projectId)
-      // O tareas/comentarios del proyecto (details->>project_id = projectId)
+    // Filtrar por entidad (p. ej. historial de una tarea)
+    if (entityId && entityType) {
+      query = query.eq('entity_type', entityType).eq('entity_id', entityId)
+    } else if (projectId) {
+      // Filtrar por proyecto si se especifica
       query = query.or(
         `and(entity_type.eq.project,entity_id.eq.${projectId}),details->>project_id.eq.${projectId}`
       )

@@ -8,21 +8,13 @@ import {
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
+import {
+  type ActivityLogEntry,
+  formatActivityRelativeDate,
+  getActivityDescription,
+} from '@/lib/utils/activity-format'
 
-interface Activity {
-  id: string
-  action: string
-  entity_type: string
-  entity_id: string | null
-  entity_name: string | null
-  details: Record<string, unknown> | null
-  created_at: string
-  user: {
-    id: string
-    full_name: string
-    avatar_url: string | null
-  } | null
-}
+interface Activity extends ActivityLogEntry {}
 
 interface ProjectActivityProps {
   projectId: string
@@ -41,30 +33,8 @@ const actionIcons: Record<string, React.ReactNode> = {
   detached: <Paperclip className="w-4 h-4 text-red-500" />,
   reviewer_assigned: <ShieldCheck className="w-4 h-4 text-violet-500" />,
   reviewer_removed: <ShieldCheck className="w-4 h-4 text-red-400" />,
-}
-
-const actionLabels: Record<string, string> = {
-  created: 'creó',
-  updated: 'actualizó',
-  deleted: 'eliminó',
-  assigned: 'asignó',
-  unassigned: 'desasignó',
-  completed: 'completó',
-  commented: 'comentó en',
-  status_changed: 'cambió el estado de',
-  attached: 'adjuntó un archivo en',
-  detached: 'eliminó un archivo de',
-  reviewer_assigned: 'asignó revisor en',
-  reviewer_removed: 'removió el revisor de',
-}
-
-const entityLabels: Record<string, string> = {
-  project: 'el proyecto',
-  change_control: 'el control de cambios',
-  task: 'la tarea',
-  bug: 'el bug',
-  comment: 'un comentario',
-  member: 'un miembro',
+  sprint_changed: <History className="w-4 h-4 text-cyan-500" />,
+  dependency_changed: <History className="w-4 h-4 text-sky-500" />,
 }
 
 export function ProjectActivity({ projectId }: ProjectActivityProps) {
@@ -131,57 +101,9 @@ export function ProjectActivity({ projectId }: ProjectActivityProps) {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
-  const formatDateTime = (date: string) => {
-    const now = new Date()
-    const activityDate = new Date(date)
-    const diffMs = now.getTime() - activityDate.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
+  const formatDateTime = formatActivityRelativeDate
 
-    if (diffMins < 1) return 'Ahora'
-    if (diffMins < 60) return `Hace ${diffMins} min`
-    if (diffHours < 24) return `Hace ${diffHours}h`
-    if (diffDays < 7) return `Hace ${diffDays}d`
-    
-    return activityDate.toLocaleDateString('es-CL', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-  const getActivityDescription = (activity: Activity) => {
-    const action = actionLabels[activity.action] || activity.action
-    const entity = entityLabels[activity.entity_type] || activity.entity_type
-    const entityName = activity.entity_name ? `"${activity.entity_name}"` : ''
-    
-    // Detalles adicionales
-    let extra = ''
-    if (activity.details) {
-      if (activity.action === 'status_changed' && activity.details.from && activity.details.to) {
-        extra = ` de "${activity.details.from}" a "${activity.details.to}"`
-      }
-      if (activity.action === 'assigned' && activity.details.assignee_name) {
-        extra = ` a ${activity.details.assignee_name}`
-      }
-      if (activity.action === 'unassigned' && activity.details.unassigned_user_name) {
-        extra = ` a ${activity.details.unassigned_user_name}`
-      }
-      if (activity.action === 'reviewer_assigned' && activity.details.reviewer_name) {
-        extra = ` → ${activity.details.reviewer_name}`
-      }
-      if (activity.action === 'reviewer_removed' && activity.details.reviewer_name) {
-        extra = ` (${activity.details.reviewer_name})`
-      }
-      if ((activity.action === 'attached' || activity.action === 'detached') && activity.details.file_name) {
-        extra = ` (${activity.details.file_name})`
-      }
-    }
-    
-    return `${action} ${entity} ${entityName}${extra}`
-  }
+  const getActivityDescriptionForProject = (activity: Activity) => getActivityDescription(activity)
 
   return (
     <div className="rounded-[24px] bg-white/55 dark:bg-white/[0.04] border border-white/70 dark:border-white/10 p-6 backdrop-blur-xl">
@@ -228,7 +150,7 @@ export function ProjectActivity({ projectId }: ProjectActivityProps) {
                   <p className="text-sm text-foreground">
                     <span className="font-medium">{activity.user?.full_name || 'Usuario'}</span>
                     {' '}
-                    <span className="text-muted-foreground">{getActivityDescription(activity)}</span>
+                    <span className="text-muted-foreground">{getActivityDescriptionForProject(activity)}</span>
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">

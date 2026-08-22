@@ -50,6 +50,8 @@ export const ActivityActions = {
   COMPLETED: 'completed',
   INVITED: 'invited',
   STATUS_CHANGED: 'status_changed',
+  SPRINT_CHANGED: 'sprint_changed',
+  DEPENDENCY_CHANGED: 'dependency_changed',
 } as const
 
 // Tipos de entidades
