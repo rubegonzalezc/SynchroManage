@@ -18,14 +18,17 @@
 - Cada **proyecto** de SynchroManage se enlaza a **un repositorio** y define ramas de desarrollo y producción.
 - Las ramas de tarea se crean desde la **rama de desarrollo**, no desde producción.
 
-## Relación con CC anterior
+## Relación con otros CC
 
-| CC | Épica | Versión |
-|----|-------|---------|
-| [CC-21082026](../cc-21082026/) | Operar sin fricción | `0.2.0` |
-| **CC-22082026** | Conectar con Git | `0.3.0` |
+| CC | Épica | Versión | Orden |
+|----|-------|---------|-------|
+| [CC-21082026](../cc-21082026/) | Operar sin fricción | `0.2.0` | En paralelo |
+| [CC-23082026](../cc-23082026/) | Migrar a Better Auth | `0.2.5` | **Obligatorio antes de este CC** |
+| **CC-22082026** | Conectar con Git | `0.3.0` | Después de CC-23082026 |
 
-**Dependencia recomendada:** CC-21082026 Sprint 1 estable (o al menos flujo de crear tarea sin regresiones). No comparte HUs; puede planificarse en paralelo si el equipo lo permite.
+**Dependencia bloqueante:** [CC-23082026](../cc-23082026/) debe cerrarse antes de iniciar CC-22082026. La autenticación GitHub por usuario (OAuth o PAT) se implementa sobre Better Auth, no sobre Supabase Auth.
+
+**Dependencia recomendada:** CC-21082026 Sprint 1 estable (flujo de crear tarea sin regresiones).
 
 ---
 
