@@ -19,12 +19,17 @@
 - Las ramas de tarea se bifurcan desde la **rama de desarrollo**, no desde producción.
 - **No** se crea rama automáticamente al crear la tarea: solo nombre sugerido + botón manual.
 
-## Relación con CC anterior
+## Relación con otros CC
 
-| CC | Épica | Versión |
-|----|-------|---------|
-| [CC-21082026](../cc-21082026/) | Operar sin fricción | `0.2.0` |
-| **CC-22082026** | Conectar con Git | `0.3.0` |
+| CC | Épica | Versión | Orden |
+|----|-------|---------|-------|
+| [CC-21082026](../cc-21082026/) | Operar sin fricción | `0.2.0` | En paralelo |
+| [CC-23082026](../cc-23082026/) | Migrar a Better Auth | `0.2.5` | **Obligatorio antes de este CC** |
+| **CC-22082026** | Conectar con Git | `0.3.0` | Después de CC-23082026 |
+
+**Dependencia bloqueante:** [CC-23082026](../cc-23082026/) debe cerrarse antes de iniciar CC-22082026. La autenticación GitHub por usuario (OAuth o PAT) se implementa sobre Better Auth, no sobre Supabase Auth.
+
+**Dependencia recomendada:** CC-21082026 Sprint 1 estable (flujo de crear tarea sin regresiones).
 
 ---
 
