@@ -13,7 +13,7 @@ Planificación del equipo (Rubén González, José, Sebastián).
 | CC | Épica | Sprints |
 |----|-------|---------|
 | **[CC-21082026](../cc-21082026/)** | Operar sin fricción | 3 sprints · ~85 pts |
-| **[CC-22082026](../cc-22082026/)** | Conectar con Git | 2 sprints · ~53 pts · release `0.3.0` |
+| **[CC-22082026](../cc-22082026/)** | Conectar con Git (botón Crear rama + PAT usuario) | 2 sprints · ~56 pts · release `0.3.0` |
 
 ## Orden recomendado
 
