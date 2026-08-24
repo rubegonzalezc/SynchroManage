@@ -5,18 +5,19 @@
 **Fecha de apertura:** 22/08/2026  
 **Versión objetivo del producto:** `0.3.0`  
 **Equipo:** Rubén González, José, Sebastián  
-**Estado:** Planificado (solo documentación)
+**Estado:** Planificado (documentación actualizada)
 
 ## Épica
 
-**Conectar con Git** — Al crear una tarea, la rama existe en GitHub; el equipo ve enlace, copia y estado del PR sin salir de SynchroManage.
+**Conectar con Git** — El dev crea la rama en GitHub con un botón desde la tarea; ve enlace, copia y estado del PR sin salir de SynchroManage.
 
 ## Contexto
 
-- Una sola cuenta/organización de **GitHub Free** (sin coste adicional).
-- Token o GitHub App a nivel **sistema** (variables de entorno), no por usuario.
-- Cada **proyecto** de SynchroManage se enlaza a **un repositorio** y define ramas de desarrollo y producción.
-- Las ramas de tarea se crean desde la **rama de desarrollo**, no desde producción.
+- **GitHub Free** (sin coste adicional).
+- **Token por usuario** (PAT u OAuth en perfil): la rama se crea con la identidad de quien pulsa **Crear rama**.
+- **Config por proyecto**: repositorio + rama de desarrollo + rama de producción.
+- Las ramas de tarea se bifurcan desde la **rama de desarrollo**, no desde producción.
+- **No** se crea rama automáticamente al crear la tarea: solo nombre sugerido + botón manual.
 
 ## Relación con otros CC
 
@@ -36,52 +37,50 @@
 
 ### Al crear una tarea
 
-1. Se genera `branch_name` (convención existente: `{categoría}/{slug}-{task_number}`).
-2. Si el proyecto tiene Git configurado, la API crea la rama en GitHub **desde `git_development_branch`**.
-3. Se guarda en la tarea: `branch_name`, URL de la rama, SHA opcional, timestamp.
-4. Si Git falla: la tarea **sí se crea**; se muestra aviso y opción de reintentar.
+1. Se genera o muestra `branch_name` (convención existente: `{categoría}/{slug}-{task_number}`).
+2. **No** se llama a GitHub.
+3. En el detalle aparece el nombre de rama + botón **Crear rama** (si aún no existe en remoto).
+
+### Al pulsar «Crear rama»
+
+1. El usuario debe tener **GitHub conectado** en su perfil (PAT).
+2. El proyecto debe tener **integración Git** activa (repo + ramas).
+3. La API crea `refs/heads/{branch_name}` en GitHub desde `git_development_branch` usando el **token del usuario**.
+4. Se guarda `git_branch_url`, SHA y timestamp; el botón pasa a enlace **Abrir en GitHub**.
 
 ### En la UI de la tarea
 
-| Elemento | Comportamiento |
-|----------|----------------|
-| **Rama** | Texto clicable → abre la rama en GitHub. Botón copiar (ya existe, se mantiene). |
-| **PR** | Solo visible si hay PR asociado a esa rama. Muestra estado: **Abierto** / **Merged** (y **Cerrado** sin merge si aplica). Si no hay PR, no se muestra la fila. |
+| Estado | Qué se ve |
+|--------|-----------|
+| Rama sin crear en GitHub | `branch_name` + **Copiar** + botón **Crear rama** |
+| Rama creada | `branch_name` clicable + **Copiar** + enlace GitHub |
+| Sin Git en proyecto | Solo `branch_name` + **Copiar** (como hoy) |
+| **PR** | Solo si hay PR de esa rama: **Abierto** / **Merged** |
 
-### Configuración por proyecto
+### Configuración
 
-> **No en la descripción libre del proyecto.** Campos dedicados en editar proyecto (o sección «Integración Git»), para validación, API y permisos.
+| Dónde | Qué |
+|-------|-----|
+| **Proyecto** | Owner, repo, rama desarrollo, rama producción, activar integración |
+| **Perfil usuario** | PAT de GitHub (cifrado), @username, conectar / desconectar |
 
-| Campo | Ejemplo | Uso |
-|-------|---------|-----|
-| `git_repo_owner` | `rubegonzalezc` | Owner del repo |
-| `git_repo_name` | `SynchroManage` | Nombre del repo |
-| `git_development_branch` | `develop` | Base al **crear** ramas de tarea |
-| `git_production_branch` | `main` | Referencia documental / futuros flujos de release |
-| `git_integration_enabled` | `true` | Activar creación automática de ramas |
-
-URL derivada: `https://github.com/{owner}/{repo}/tree/{branch_name}`
-
-Ver detalle en [modelo-git.md](./modelo-git.md).
+Ver [modelo-git.md](./modelo-git.md).
 
 ---
 
-## Flujo del desarrollador (clone y trabajo)
+## Flujo del desarrollador
 
 ```text
-1. Clonar el repo una vez (desde GitHub).
-2. Checkout local de la rama de desarrollo:
+1. En Perfil → Conectar GitHub (PAT).
+2. PM configura repo + develop + main en el proyecto.
+3. Crear tarea → ver nombre de rama sugerido (ej. feature/login-58).
+4. Abrir detalle → clic en «Crear rama».
+5. En local:
      git fetch origin
-     git checkout develop && git pull
-3. Al crear la tarea en SynchroManage → la rama feature/... ya existe en origin.
-4. En local:
-     git fetch origin
-     git checkout feature/mi-tarea-58
-5. Commits, push y PR hacia develop (convención del equipo en GitHub).
-6. SynchroManage muestra el PR y su estado en la tarea.
+     git checkout feature/login-58
+6. Commits, push y PR hacia develop.
+7. SynchroManage muestra PR · Abierto / Merged en la tarea.
 ```
-
-Las ramas de tarea **nunca** se ramifican desde `main`/`production`; siempre desde **desarrollo**.
 
 ---
 
@@ -89,14 +88,14 @@ Las ramas de tarea **nunca** se ramifican desde `main`/`production`; siempre des
 
 | Incluye | Excluye |
 |---------|---------|
-| Config Git por proyecto (repo + ramas dev/prod) | Multi-cuenta GitHub |
-| Creación automática de rama al crear tarea | GitLab / Bitbucket (fase 2) |
-| Enlace clicable + copiar rama | Crear el PR desde SynchroManage |
-| Campo PR con estado (abierto / merged) | Auto-merge |
-| Webhook GitHub `pull_request` | GitHub Enterprise de pago |
-| Reintento manual si falla la creación de rama | Ramas en múltiples repos por tarea |
+| Config Git por proyecto | Creación automática al crear tarea |
+| Token GitHub por usuario (perfil) | Multi-organización GitHub |
+| Botón **Crear rama** en detalle de tarea | GitLab / Bitbucket |
+| Enlace + copiar rama | Crear PR desde SynchroManage |
+| Campo PR (abierto / merged) | Auto-merge |
+| Webhook PR (token sistema opcional) | |
 
-**Coste:** $0 (GitHub Free + API + webhook).
+**Coste:** $0.
 
 ---
 
@@ -104,45 +103,34 @@ Las ramas de tarea **nunca** se ramifican desde `main`/`production`; siempre des
 
 | Sprint | Tema | Documento | Puntos |
 |--------|------|-----------|--------|
-| **1** | Repo, ramas automáticas y enlaces | [sprint-01-ramas-y-repositorio.md](./sprint-01-ramas-y-repositorio.md) | ~29 pts |
+| **1** | Repo, perfil GitHub y botón Crear rama | [sprint-01-ramas-y-repositorio.md](./sprint-01-ramas-y-repositorio.md) | ~32 pts |
 | **2** | PR en tarea y sincronización | [sprint-02-pull-requests.md](./sprint-02-pull-requests.md) | ~24 pts |
 
-**Total estimado:** ~53 pts · **2 sprints**.
+**Total:** ~56 pts · **2 sprints**.
 
 ---
 
-## Variables de entorno (sistema)
+## Variables de entorno
 
 ```env
-# Cuenta única GitHub (PAT fine-grained o classic)
-GITHUB_TOKEN=ghp_...
-# Opcional: secret para validar webhooks
+# Cifrado de PAT por usuario en DB
+ENCRYPTION_KEY=...
+
+# Solo Sprint 2 — webhook PR (no crea ramas)
 GITHUB_WEBHOOK_SECRET=...
 ```
 
-Permisos mínimos del token: `contents:read/write`, `pull_requests:read` (repo scope).
-
 ---
 
-## Definition of Done (global)
+## Demo de cierre
 
-- Probado con repo real de SynchroManage en GitHub Free.
-- Proyecto sin Git configurado: crear tarea funciona sin rama remota (degradación elegante).
-- Mensajes en español.
-- Documentación en README y [modelo-git.md](./modelo-git.md).
-- Sin exponer `GITHUB_TOKEN` al cliente.
-
----
-
-## Demo de cierre (CC completo)
-
-1. Configurar proyecto con repo + `develop` + `main`.
-2. Crear tarea → ver rama en GitHub y enlace en detalle.
-3. Abrir PR en GitHub desde esa rama → en SynchroManage aparece **PR · Abierto**.
-4. Merge del PR → estado **Merged** en la tarea.
-5. Tarea sin PR → columna PR vacía / oculta.
+1. Usuario conecta GitHub en perfil.
+2. Proyecto con repo + `develop` + `main`.
+3. Crear tarea → **Crear rama** → rama visible en GitHub.
+4. PR abierto → **PR · Abierto** en tarea.
+5. Merge → **PR · Merged**.
 
 ## Documentación relacionada
 
 - [Modelo Git y ramas](./modelo-git.md)
-- [Ramas por `#global`](../sprints/modelo-de-numeracion.md#ramas-git) (convención de nombres existente)
+- [Ramas por `#global`](../sprints/modelo-de-numeracion.md#ramas-git)

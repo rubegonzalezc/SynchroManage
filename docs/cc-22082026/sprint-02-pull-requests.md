@@ -4,7 +4,7 @@
 **Proyecto:** SynchroManage  
 **Duración sugerida:** 2 semanas  
 **Equipo:** 3 desarrolladores  
-**Depende de:** Sprint 1 de CC-22082026 (ramas en GitHub)
+**Depende de:** Sprint 1 de CC-22082026 (botón Crear rama y ramas en GitHub)
 
 | Desarrollador | Perfil | Rol en el sprint |
 |---------------|--------|------------------|
