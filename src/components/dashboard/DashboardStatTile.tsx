@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { GlassPanel } from '@/components/ui/glass-panel'
+import { tokens } from '@/theme/designTokens'
 
 export function DashboardStatTile({
   title,
@@ -23,10 +24,10 @@ export function DashboardStatTile({
         padding={2.25}
         sx={{
           height: '100%',
-          transition: 'transform 400ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 400ms cubic-bezier(0.22, 1, 0.36, 1)',
+          transition: `transform 400ms ${tokens.ease}, box-shadow 400ms ${tokens.ease}`,
           '&:hover': {
             transform: 'translateY(-3px)',
-            boxShadow: '0 18px 40px rgba(15, 23, 42, 0.1)',
+            boxShadow: 'var(--shadow-lift), var(--glass-inner-top)',
           },
         }}
       >

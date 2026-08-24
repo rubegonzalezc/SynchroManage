@@ -1,29 +1,29 @@
-import { tokens } from './designTokens'
+import { darkTokens, tokens, type ThemeMode } from './designTokens'
 import type { PaletteOptions } from '@mui/material/styles'
 
-export function getPalette(mode: 'light' | 'dark'): PaletteOptions {
+export function getPalette(mode: ThemeMode): PaletteOptions {
   if (mode === 'dark') {
     return {
       mode: 'dark',
       primary: {
-        main: tokens.primaryLight,
-        dark: tokens.primary,
-        light: '#93C5FD',
-        contrastText: tokens.navyDark,
+        main: darkTokens.primary,
+        dark: darkTokens.primaryDark,
+        light: darkTokens.primaryLight,
+        contrastText: darkTokens.background,
       },
       background: {
-        default: tokens.navyDark,
-        paper: tokens.navy,
+        default: darkTokens.background,
+        paper: darkTokens.surface,
       },
       text: {
-        primary: '#F8FAFC',
-        secondary: '#94A3B8',
+        primary: darkTokens.text,
+        secondary: darkTokens.textMuted,
       },
-      divider: 'rgba(255,255,255,0.12)',
-      success: { main: '#34D399' },
-      warning: { main: '#FBBF24' },
-      error: { main: '#F87171' },
-      info: { main: tokens.primaryLight },
+      divider: darkTokens.border,
+      success: { main: darkTokens.success },
+      warning: { main: darkTokens.warning },
+      error: { main: darkTokens.error },
+      info: { main: darkTokens.info },
     }
   }
 

@@ -2,10 +2,16 @@
 
 import { createTheme } from '@mui/material/styles'
 import { getPalette } from './palette'
-import { tokens } from './designTokens'
-import { glassSx } from './glass'
+import { tokens, type ThemeMode } from './designTokens'
+import { glassSurfaceSx } from './glass'
 
-export function createAppTheme(mode: 'light' | 'dark') {
+/**
+ * Las superficies (fondos, bordes, sombras) se expresan con las variables CSS
+ * de src/styles/design-system.css, no con `mode`. Así el modo oscuro ya está
+ * pintado antes de que React hidrate. `mode` solo alimenta la paleta, que es
+ * lo que MUI necesita para calcular contrastes y colores de texto.
+ */
+export function createAppTheme(mode: ThemeMode) {
   const theme = createTheme({
     palette: getPalette(mode),
     typography: {
@@ -31,10 +37,8 @@ export function createAppTheme(mode: 'light' | 'dark') {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
-            backgroundColor: theme.palette.background.default,
-            backgroundImage: mode === 'dark'
-              ? 'radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.14), transparent 50%), radial-gradient(ellipse 50% 40% at 100% 0%, rgba(96, 165, 250, 0.08), transparent 45%)'
-              : 'radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.08), transparent 50%), radial-gradient(ellipse 50% 40% at 100% 0%, rgba(96, 165, 250, 0.07), transparent 45%)',
+            backgroundColor: 'var(--background)',
+            backgroundImage: 'var(--body-glow)',
             backgroundAttachment: 'fixed',
           },
         },
@@ -42,16 +46,15 @@ export function createAppTheme(mode: 'light' | 'dark') {
       MuiPaper: {
         styleOverrides: {
           root: {
-            ...glassSx(theme),
+            ...glassSurfaceSx,
             borderRadius: 24,
-            backgroundImage: glassSx(theme).backgroundImage,
           },
         },
       },
       MuiCard: {
         styleOverrides: {
           root: {
-            ...glassSx(theme),
+            ...glassSurfaceSx,
             borderRadius: 24,
             overflow: 'hidden',
           },
@@ -85,7 +88,7 @@ export function createAppTheme(mode: 'light' | 'dark') {
         styleOverrides: {
           root: {
             borderRadius: 14,
-            backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.7)',
+            backgroundColor: 'var(--field-bg)',
             transition: `box-shadow 300ms ${tokens.ease}`,
             '&:hover .MuiOutlinedInput-notchedOutline': {
               borderColor: tokens.primaryLight,
@@ -102,7 +105,7 @@ export function createAppTheme(mode: 'light' | 'dark') {
         },
         styleOverrides: {
           paper: {
-            ...glassSx(theme),
+            ...glassSurfaceSx,
             borderRadius: 28,
           },
         },
@@ -110,7 +113,7 @@ export function createAppTheme(mode: 'light' | 'dark') {
       MuiMenu: {
         styleOverrides: {
           paper: {
-            ...glassSx(theme),
+            ...glassSurfaceSx,
             borderRadius: 18,
             minWidth: 180,
           },
@@ -119,7 +122,7 @@ export function createAppTheme(mode: 'light' | 'dark') {
       MuiPopover: {
         styleOverrides: {
           paper: {
-            ...glassSx(theme),
+            ...glassSurfaceSx,
             borderRadius: 18,
           },
         },
@@ -135,7 +138,7 @@ export function createAppTheme(mode: 'light' | 'dark') {
       MuiTableContainer: {
         styleOverrides: {
           root: {
-            ...glassSx(theme),
+            ...glassSurfaceSx,
             borderRadius: 20,
             overflow: 'hidden',
           },
@@ -144,22 +147,22 @@ export function createAppTheme(mode: 'light' | 'dark') {
       MuiTableCell: {
         styleOverrides: {
           root: {
-            borderColor: theme.palette.divider,
+            borderColor: 'var(--border)',
           },
           head: {
             fontWeight: 600,
-            color: theme.palette.text.secondary,
-            backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(238, 243, 250, 0.8)',
+            color: 'var(--muted-foreground)',
+            backgroundColor: 'var(--table-head-bg)',
           },
         },
       },
       MuiTableRow: {
         styleOverrides: {
           root: {
-            backgroundColor: mode === 'dark' ? tokens.navy : '#FFFFFF',
+            backgroundColor: 'var(--table-row-bg)',
             transition: `background-color 300ms ${tokens.ease}`,
             '&:hover': {
-              backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.04)' : '#F8FBFF',
+              backgroundColor: 'var(--table-row-hover)',
             },
           },
         },

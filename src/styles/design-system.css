@@ -1,18 +1,74 @@
 /* SynchroManage — Apple Liquid Enterprise */
 
+/*
+ * Superficies del liquid glass. Estas variables son la fuente única de verdad:
+ * al vivir en CSS, el modo oscuro queda aplicado en el primer pintado sin
+ * depender de JavaScript. `glassTokens` en src/theme/designTokens.ts es su
+ * espejo en TS y solo se usa donde hace falta un color concreto (charts SVG).
+ */
 :root {
   --ease-liquid: cubic-bezier(0.22, 1, 0.36, 1);
+
   --shadow-soft: 0 8px 32px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-lift: 0 16px 40px rgba(15, 23, 42, 0.1), 0 2px 6px rgba(15, 23, 42, 0.05);
+  --shadow-glass: 0 8px 28px rgba(15, 23, 42, 0.06);
+
   --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-bg-soft: rgba(255, 255, 255, 0.58);
+  --glass-bg-strong: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.68);
+  --glass-highlight: rgba(255, 255, 255, 0.35);
+  --glass-highlight-soft: rgba(255, 255, 255, 0.55);
+  --glass-inner-top: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  --field-bg: rgba(255, 255, 255, 0.7);
+  --table-row-bg: #ffffff;
+  --table-row-hover: #f8fbff;
+  --table-head-bg: rgba(238, 243, 250, 0.8);
+
+  /* El sidebar es oscuro en ambos modos: es identidad de marca. */
+  --sidebar-surface: #0b1224;
+  --sidebar-surface-border: rgba(255, 255, 255, 0.14);
+  --sidebar-shadow: 0 24px 60px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  --sidebar-glow-primary: rgba(37, 99, 235, 0.42);
+  --sidebar-glow-accent: rgba(124, 58, 237, 0.22);
+  --sidebar-sheen: rgba(255, 255, 255, 0.08);
+
+  --body-glow:
+    radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.08), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(96, 165, 250, 0.07), transparent 45%);
 }
 
 .dark {
-  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.45);
+  /* Sobre un fondo casi negro una sombra negra casi no se ve: el borde
+     luminoso es el que define el canto y la sombra solo separa del fondo. */
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-glass: 0 8px 28px rgba(0, 0, 0, 0.45);
+
   --glass-bg: rgba(15, 23, 42, 0.72);
+  --glass-bg-soft: rgba(15, 23, 42, 0.55);
+  --glass-bg-strong: rgba(15, 23, 42, 0.9);
   --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
+  --glass-highlight-soft: rgba(255, 255, 255, 0.07);
+  --glass-inner-top: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  --field-bg: rgba(255, 255, 255, 0.04);
+  --table-row-bg: rgba(15, 23, 42, 0.6);
+  --table-row-hover: rgba(255, 255, 255, 0.04);
+  --table-head-bg: rgba(255, 255, 255, 0.03);
+
+  --sidebar-surface: #111c31;
+  --sidebar-surface-border: rgba(255, 255, 255, 0.16);
+  --sidebar-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --sidebar-glow-primary: rgba(37, 99, 235, 0.3);
+  --sidebar-glow-accent: rgba(124, 58, 237, 0.16);
+  --sidebar-sheen: rgba(255, 255, 255, 0.06);
+
+  --body-glow:
+    radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(96, 165, 250, 0.06), transparent 45%);
 }
 
 html {
@@ -22,17 +78,9 @@ html {
 body {
   font-family: var(--font-sans), "Plus Jakarta Sans", system-ui, sans-serif;
   background-color: var(--background);
-  background-image:
-    radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.08), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(96, 165, 250, 0.07), transparent 45%);
+  background-image: var(--body-glow);
   background-attachment: fixed;
   transition: background-color 400ms var(--ease-liquid), color 400ms var(--ease-liquid);
-}
-
-.dark body {
-  background-image:
-    radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.12), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(96, 165, 250, 0.06), transparent 45%);
 }
 
 .liquid-ease {
@@ -55,12 +103,8 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, transparent 40%);
+  background: linear-gradient(180deg, var(--glass-highlight) 0%, transparent 40%);
   opacity: 0.7;
-}
-
-.dark .liquid-glass::before {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 40%);
 }
 
 .hover-lift {

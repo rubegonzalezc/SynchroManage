@@ -126,7 +126,7 @@ export default function LoginPage() {
       <div className="min-h-screen relative flex items-center justify-center">
         {/* Theme Toggle - Posición fija */}
         <div className="fixed top-6 right-6 z-50">
-          <div className="flex items-center gap-1 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-full p-1 shadow-[0_8px_32px_rgba(15,23,42,0.06)]">
+          <div className="flex items-center gap-1 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-full p-1 shadow-[0_8px_32px_rgba(15,23,42,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
             <Button
               variant={theme === 'light' ? 'secondary' : 'ghost'}
               size="icon"
@@ -205,7 +205,7 @@ export default function LoginPage() {
       
       {/* Theme Toggle - Posición fija */}
       <div className="fixed top-6 right-6 z-50">
-        <div className="flex items-center gap-1 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-full p-1 shadow-[0_8px_32px_rgba(15,23,42,0.06)]">
+        <div className="flex items-center gap-1 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-full p-1 shadow-[0_8px_32px_rgba(15,23,42,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
           <Button
             variant={theme === 'light' ? 'secondary' : 'ghost'}
             size="icon"

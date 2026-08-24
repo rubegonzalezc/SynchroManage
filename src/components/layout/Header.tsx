@@ -5,7 +5,6 @@ import MenuRounded from '@mui/icons-material/MenuRounded'
 import SearchRounded from '@mui/icons-material/SearchRounded'
 import { NotificationsDropdown } from '@/components/dashboard/NotificationsDropdown'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { useTheme } from '@/components/theme-provider'
 import { tokens } from '@/theme/designTokens'
 import { useSearchCommand } from '@/components/dashboard/SearchCommandProvider'
 
@@ -14,16 +13,16 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ onMenuClick }: AppHeaderProps) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
   const { openPalette } = useSearchCommand()
 
+  // Variables CSS en lugar de `resolvedTheme`: el cristal queda correcto en el
+  // primer pintado, sin esperar a que React hidrate.
   const glass = {
-    bgcolor: isDark ? 'rgba(44, 44, 46, 0.62)' : 'rgba(255, 255, 255, 0.72)',
+    bgcolor: 'var(--glass-bg)',
     backdropFilter: 'blur(28px) saturate(180%)',
     WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-    border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.7)',
-    boxShadow: '0 8px 28px rgba(15, 23, 42, 0.06)',
+    border: '1px solid var(--glass-border)',
+    boxShadow: 'var(--shadow-glass)',
   }
 
   return (

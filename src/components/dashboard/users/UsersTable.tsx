@@ -37,10 +37,10 @@ interface UsersTableProps {
 }
 
 const roleBadgeColors: Record<string, string> = {
-  admin: 'bg-red-100 text-red-700 border-red-200',
-  pm: 'bg-blue-100 text-blue-700 border-blue-200',
-  tech_lead: 'bg-purple-100 text-purple-700 border-purple-200',
-  developer: 'bg-green-100 text-green-700 border-green-200',
+  admin: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50',
+  pm: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50',
+  tech_lead: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-900/50',
+  developer: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900/50',
 }
 
 const roleLabels: Record<string, string> = {
@@ -68,51 +68,51 @@ export function UsersTable({ users, roles }: UsersTableProps) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white">
+    <div className="rounded-lg border border-border bg-card">
       <Table>
         <TableHeader>
-          <TableRow className="bg-slate-50">
-            <TableHead className="text-slate-600">Usuario</TableHead>
-            <TableHead className="text-slate-600">Rol</TableHead>
-            <TableHead className="text-slate-600">Fecha Registro</TableHead>
-            <TableHead className="text-slate-600 text-right">Acciones</TableHead>
+          <TableRow className="bg-muted/50">
+            <TableHead className="text-muted-foreground">Usuario</TableHead>
+            <TableHead className="text-muted-foreground">Rol</TableHead>
+            <TableHead className="text-muted-foreground">Fecha Registro</TableHead>
+            <TableHead className="text-muted-foreground text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {users.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                 No hay usuarios registrados
               </TableCell>
             </TableRow>
           ) : (
             users.map((user) => (
-              <TableRow key={user.id} className="hover:bg-slate-50">
+              <TableRow key={user.id} className="hover:bg-muted/50">
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="w-9 h-9">
                       <AvatarImage src={user.avatar_url || undefined} />
-                      <AvatarFallback className="bg-slate-200 text-slate-600 text-xs">
+                      <AvatarFallback className="bg-muted text-muted-foreground text-xs">
                         {getInitials(user.full_name, user.email)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-slate-800">
+                      <p className="font-medium text-foreground">
                         {user.full_name || 'Sin nombre'}
                       </p>
-                      <p className="text-sm text-slate-500">{user.email}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <Badge 
                     variant="outline" 
-                    className={roleBadgeColors[user.role?.name || ''] || 'bg-slate-100 text-slate-700'}
+                    className={roleBadgeColors[user.role?.name || ''] || 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}
                   >
                     {roleLabels[user.role?.name || ''] || user.role?.name || 'Sin rol'}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-slate-600">
+                <TableCell className="text-muted-foreground">
                   {formatDate(user.created_at)}
                 </TableCell>
                 <TableCell className="text-right">

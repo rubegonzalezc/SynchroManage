@@ -2,7 +2,13 @@
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { Box, Typography } from '@mui/material'
-import { appleChart, chartTick, getChartTooltipStyle } from '@/theme/chartTheme'
+import {
+  appleChart,
+  getChartCursorFill,
+  getChartItemStyle,
+  getChartTick,
+  getChartTooltipStyle,
+} from '@/theme/chartTheme'
 import { useTheme } from '@/components/theme-provider'
 
 interface Props {
@@ -27,12 +33,12 @@ export function ProjectStatusChart({ data }: Props) {
     <Box sx={{ width: '100%', minWidth: 0, height: 180 }}>
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} barSize={26} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-        <XAxis dataKey="name" tick={chartTick} axisLine={false} tickLine={false} />
-        <YAxis tick={chartTick} axisLine={false} tickLine={false} allowDecimals={false} />
+        <XAxis dataKey="name" tick={getChartTick(isDark)} axisLine={false} tickLine={false} />
+        <YAxis tick={getChartTick(isDark)} axisLine={false} tickLine={false} allowDecimals={false} />
         <Tooltip
-          cursor={{ fill: isDark ? 'rgba(10,132,255,0.08)' : 'rgba(10,132,255,0.06)' }}
+          cursor={getChartCursorFill(isDark)}
           contentStyle={getChartTooltipStyle(isDark)}
-          itemStyle={{ color: isDark ? '#F5F5F7' : '#1C1C1E' }}
+          itemStyle={getChartItemStyle(isDark)}
         />
         <Bar dataKey="count" radius={[10, 10, 6, 6]}>
           {data.map((entry, i) => (

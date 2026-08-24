@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { Box, Typography } from '@mui/material'
-import { appleChart, getChartTooltipStyle } from '@/theme/chartTheme'
+import { appleChart, getChartItemStyle, getChartTooltipStyle } from '@/theme/chartTheme'
 import { useTheme } from '@/components/theme-provider'
 
 interface Props {
@@ -59,7 +59,7 @@ export function TaskStatusChart({ done, inProgress, review, pending, backlog }: 
             </Pie>
             <Tooltip
               contentStyle={getChartTooltipStyle(isDark)}
-              itemStyle={{ color: isDark ? '#F5F5F7' : '#1C1C1E' }}
+              itemStyle={getChartItemStyle(isDark)}
               cursor={false}
             />
           </PieChart>

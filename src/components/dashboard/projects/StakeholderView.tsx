@@ -80,7 +80,7 @@ function getFileIcon(fileType: string) {
   if (fileType.startsWith('image/')) return <ImageIcon className="w-4 h-4 text-blue-500" />
   if (fileType === 'application/pdf') return <FileText className="w-4 h-4 text-red-500" />
   if (fileType.includes('spreadsheet') || fileType.includes('excel')) return <FileSpreadsheet className="w-4 h-4 text-green-600" />
-  return <File className="w-4 h-4 text-slate-500" />
+  return <File className="w-4 h-4 text-muted-foreground" />
 }
 
 // ─── Sprint Timeline Item ─────────────────────────────────────────────────────
