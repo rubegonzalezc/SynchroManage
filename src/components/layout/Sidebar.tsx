@@ -183,17 +183,15 @@ function SidebarPanel({
         minHeight: 0,
         overflow: 'hidden',
         borderRadius: { xs: 0, md: '28px' },
-        bgcolor: '#0B1224',
+        bgcolor: 'var(--sidebar-surface)',
         backgroundImage: `
-          radial-gradient(ellipse 100% 50% at 0% 0%, rgba(37, 99, 235, 0.42), transparent 55%),
-          radial-gradient(ellipse 80% 40% at 100% 0%, rgba(124, 58, 237, 0.22), transparent 50%),
-          linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 22%)
+          radial-gradient(ellipse 100% 50% at 0% 0%, var(--sidebar-glow-primary), transparent 55%),
+          radial-gradient(ellipse 80% 40% at 100% 0%, var(--sidebar-glow-accent), transparent 50%),
+          linear-gradient(180deg, var(--sidebar-sheen) 0%, transparent 22%)
         `,
-        border: { xs: 'none', md: '1px solid rgba(255,255,255,0.14)' },
-        boxShadow: {
-          xs: 'none',
-          md: '0 24px 60px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255,255,255,0.14)',
-        },
+        border: { xs: 'none', md: '1px solid var(--sidebar-surface-border)' },
+        boxShadow: { xs: 'none', md: 'var(--sidebar-shadow)' },
+        transition: `background-color 400ms ${tokens.ease}, box-shadow 400ms ${tokens.ease}`,
       }}
     >
       <Box
@@ -400,7 +398,7 @@ export function AppSidebar({ user, mobileOpen, onMobileClose }: AppSidebarProps)
           display: { xs: 'block', md: 'none' },
           '& .MuiDrawer-paper': {
             ...paperReset,
-            bgcolor: tokens.navy,
+            bgcolor: 'var(--sidebar-surface)',
             overflow: 'hidden',
           },
         }}

@@ -105,7 +105,7 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
 
       {/* Drawer */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-[#0F172A] border-r border-white/10 flex flex-col transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] ${
+        className={`fixed top-0 left-0 z-50 h-full w-72 bg-[#0F172A] dark:bg-[#111C31] border-r border-white/10 dark:border-white/[0.16] flex flex-col transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

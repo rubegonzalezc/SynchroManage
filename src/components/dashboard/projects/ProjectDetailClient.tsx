@@ -682,7 +682,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           {/* View toggle */}
-          <div className="flex items-center gap-1 rounded-full p-1 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/70 dark:border-white/10 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <div className="flex items-center gap-1 rounded-full p-1 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/70 dark:border-white/10 shadow-[0_8px_24px_rgba(15,23,42,0.05)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
             <Button
               variant={viewMode === 'kanban' ? 'default' : 'ghost'}
               size="sm"

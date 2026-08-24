@@ -344,7 +344,7 @@ export function SprintAnalytics({ sprintId }: SprintAnalyticsProps) {
                   formatter={(v) => v === 'completed' ? 'Completadas' : v === 'total' ? 'Total' : 'Carry Over'}
                   wrapperStyle={{ fontSize: 11 }}
                 />
-                <Bar dataKey="total" fill="#e2e8f0" radius={[3, 3, 0, 0]} name="total" />
+                <Bar dataKey="total" fill="var(--border)" radius={[3, 3, 0, 0]} name="total" />
                 <Bar dataKey="completed" fill="#22c55e" radius={[3, 3, 0, 0]} name="completed" />
                 <Bar dataKey="carryOver" fill="#f59e0b" radius={[3, 3, 0, 0]} name="carryOver" />
                 {/* Avg velocity reference line */}

@@ -2,7 +2,13 @@
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { Box, Typography } from '@mui/material'
-import { appleChart, chartTick, getChartTooltipStyle } from '@/theme/chartTheme'
+import {
+  appleChart,
+  getChartCursorFill,
+  getChartItemStyle,
+  getChartTick,
+  getChartTooltipStyle,
+} from '@/theme/chartTheme'
 import { useTheme } from '@/components/theme-provider'
 
 const ROLE_COLORS: Record<string, string> = {
@@ -43,14 +49,14 @@ export function UsersRoleChart({ data }: Props) {
             type="category"
             dataKey="label"
             width={118}
-            tick={chartTick}
+            tick={getChartTick(isDark)}
             axisLine={false}
             tickLine={false}
           />
           <Tooltip
-            cursor={{ fill: isDark ? 'rgba(10,132,255,0.08)' : 'rgba(10,132,255,0.06)' }}
+            cursor={getChartCursorFill(isDark)}
             contentStyle={getChartTooltipStyle(isDark)}
-            itemStyle={{ color: isDark ? '#F5F5F7' : '#1C1C1E' }}
+            itemStyle={getChartItemStyle(isDark)}
           />
           <Bar dataKey="count" radius={[0, 8, 8, 0]} name="Usuarios">
             {data.map((entry) => (

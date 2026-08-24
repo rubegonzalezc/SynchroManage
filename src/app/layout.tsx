@@ -25,6 +25,13 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Aplica la clase `dark` antes del primer pintado, para que no se vea el
+ * destello de modo claro. Va inline y de forma síncrona a propósito: cualquier
+ * alternativa asíncrona pintaría primero y corregiría después.
+ */
+const themeBootstrap = `(function(){try{var d=document.documentElement,p=localStorage.getItem("theme");if(p!=="light"&&p!=="dark"&&p!=="system")p="system";var r=p==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p;d.classList.toggle("dark",r==="dark");d.style.colorScheme=r;}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,6 +39,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body className={`${plusJakarta.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider>
           <ThemeRegistry>
