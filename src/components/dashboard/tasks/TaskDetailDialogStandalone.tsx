@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { MentionInput, renderMentions, extractMentionedUserIds } from '@/components/ui/mention-input'
+import { MentionInput, renderMentions, extractMentionedUserIds, extractMentionAll } from '@/components/ui/mention-input'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Loader2, Trash2, Send, RefreshCw, ExternalLink, GitBranch, Copy, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -342,7 +342,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
         const data = await response.json()
         setTask(prev => prev ? { ...prev, comments: [...prev.comments, data.comment] } : null)
         
-        // Notificar menciones
+        // Notificar menciones individuales
         const mentionedUserIds = extractMentionedUserIds(newComment, allUsers)
         for (const userId of mentionedUserIds) {
           await fetch('/api/dashboard/notifications', {
@@ -358,6 +358,27 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
               comment_id: data.comment.id,
             }),
           })
+        }
+
+        // Si se usó @Todos, notificar a integrantes del proyecto (excluir autor y ya mencionados)
+        if (extractMentionAll(newComment)) {
+          const allMembersToNotify = members.filter(u => u.id !== currentUserId && !mentionedUserIds.includes(u.id))
+          for (const member of allMembersToNotify) {
+            await fetch('/api/dashboard/notifications', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: member.id,
+                type: 'mention',
+                title: 'Te mencionaron en un comentario',
+                message: `Mencionaron a @Todos en la tarea "${task.title}"${task.project?.name ? ` del proyecto "${task.project.name}"` : ''}`,
+                link: `/projects/${task.project?.id}`,
+                task_id: taskId,
+                project_id: task.project?.id,
+                comment_id: data.comment.id,
+              }),
+            })
+          }
         }
         setNewComment('')
       }
