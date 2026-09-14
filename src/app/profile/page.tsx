@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Calendar, Loader2, CheckCircle, AlertCircle, Camera, Upload } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/auth/client'
 import { GlassPanel } from '@/components/ui/glass-panel'
 
 interface Profile {
@@ -56,28 +56,19 @@ export default function ProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
 
-  const supabase = createClient()
-
   useEffect(() => {
     fetchProfile()
   }, [])
 
   const fetchProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const response = await fetch('/api/dashboard/me')
+      if (!response.ok) return
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*, role:roles(name)')
-        .eq('id', user.id)
-        .single()
-
+      const data = await response.json()
+      const profileData = data.user
       if (profileData) {
-        setProfile({
-          ...profileData,
-          email: user.email || '',
-        })
+        setProfile(profileData as Profile)
         setFullName(profileData.full_name || '')
       }
     } catch (err) {
@@ -93,15 +84,16 @@ export default function ProfilePage() {
     setError(null)
 
     try {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', profile.id)
+      const response = await fetch('/api/dashboard/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName }),
+      })
 
-      if (updateError) throw updateError
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Error al guardar')
+      }
 
       setProfile({ ...profile, full_name: fullName })
       setSaved(true)
@@ -137,41 +129,21 @@ export default function ProfilePage() {
     setAvatarError(null)
 
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}.${fileExt}`
-      const filePath = `profiles/${profile.id}/${fileName}`
+      const formData = new FormData()
+      formData.append('file', file)
 
-      if (profile.avatar_url) {
-        const oldPath = profile.avatar_url.split('/uploads/')[1]
-        if (oldPath) {
-          await supabase.storage.from('uploads').remove([oldPath])
-        }
+      const response = await fetch('/api/dashboard/me/avatar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Error al subir imagen')
       }
 
-      const { error: uploadError } = await supabase.storage
-        .from('uploads')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-        })
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(filePath)
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          avatar_url: publicUrl,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', profile.id)
-
-      if (updateError) throw updateError
-
-      setProfile({ ...profile, avatar_url: publicUrl })
+      const data = await response.json()
+      setProfile({ ...profile, avatar_url: data.avatar_url })
     } catch (err) {
       console.error('Error uploading avatar:', err)
       setAvatarError(err instanceof Error ? err.message : 'Error al subir imagen')
@@ -205,20 +177,19 @@ export default function ProfilePage() {
     setChangingPassword(true)
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: profile!.email,
-        password: currentPassword,
+      const { error: updateError } = await authClient.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: false,
       })
 
-      if (signInError) {
-        throw new Error('La contraseña actual es incorrecta')
+      if (updateError) {
+        throw new Error(
+          updateError.message?.includes('password')
+            ? 'La contraseña actual es incorrecta'
+            : updateError.message || 'Error al cambiar contraseña'
+        )
       }
-
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword
-      })
-
-      if (updateError) throw updateError
 
       setPasswordSuccess(true)
       setCurrentPassword('')

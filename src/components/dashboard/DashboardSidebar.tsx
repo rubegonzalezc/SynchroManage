@@ -39,7 +39,7 @@ import {
   BarChart3,
   Bug,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { signOut } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 
 interface MenuItem {
@@ -127,7 +127,6 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
   const userRole = user.role || 'admin'
 
   // Filtrar items del menú según el rol del usuario
@@ -137,7 +136,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
   })
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await signOut()
     router.push('/login')
     router.refresh()
   }

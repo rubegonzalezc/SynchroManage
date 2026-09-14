@@ -1,34 +1,15 @@
-import { createClient } from '@/lib/supabase/server'
+import { getLayoutUserOrRedirect } from '@/lib/auth/get-layout-user'
 import { DashboardLayoutClient } from '@/components/dashboard/DashboardLayoutClient'
-
-// La autenticación y validación de rol están centralizadas en src/middleware.ts
-// Este layout solo obtiene los datos del perfil para renderizar la UI
 
 export default async function MyTasksLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, avatar_url, role:roles(name)')
-    .eq('id', user!.id)
-    .single()
-
-  const roleName = (profile?.role as unknown as { name: string } | null)?.name
+  const user = await getLayoutUserOrRedirect()
 
   return (
-    <DashboardLayoutClient
-      user={{
-        email: user!.email || '',
-        full_name: profile?.full_name || null,
-        avatar_url: profile?.avatar_url || null,
-        role: roleName,
-      }}
-    >
+    <DashboardLayoutClient user={user}>
       {children}
     </DashboardLayoutClient>
   )

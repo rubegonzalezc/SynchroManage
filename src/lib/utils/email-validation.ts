@@ -4,7 +4,6 @@
 const VALID_NOTIFICATION_TYPES = [
   'project_assigned',
   'task_assigned',
-  'password_reset',
   'user_invited',
 ] as const
 
@@ -24,7 +23,7 @@ export function isValidEmail(email: string): boolean {
 
 /**
  * Validates that the given string is one of the supported notification types:
- * 'project_assigned', 'task_assigned', or 'password_reset'.
+ * 'project_assigned', 'task_assigned', or 'user_invited'.
  */
 export function isValidNotificationType(type: string): boolean {
   return VALID_NOTIFICATION_TYPES.includes(type as NotificationType)

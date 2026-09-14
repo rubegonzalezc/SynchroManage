@@ -26,7 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { createClient } from '@/lib/supabase/client'
+import { signOut } from '@/lib/auth/client'
 
 interface MenuItem {
   title: string
@@ -69,7 +69,6 @@ interface MobileSidebarProps {
 export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
   const userRole = user.role || 'admin'
   const [mounted, setMounted] = useState(false)
 
@@ -83,7 +82,7 @@ export function MobileSidebar({ open, onClose, user }: MobileSidebarProps) {
   })
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await signOut()
     router.push('/login')
     router.refresh()
   }

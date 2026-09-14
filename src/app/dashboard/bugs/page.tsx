@@ -1,23 +1,21 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
+import { getServerSession } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { BugsTableClient } from '@/components/dashboard/bugs/BugsTableClient'
 import BugsLoading from './loading'
 
 const TRIAGE_ROLES = new Set(['admin', 'pm', 'tech_lead'])
 
 export default async function BugsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const session = await getServerSession()
+  if (!session?.user) redirect('/login')
 
-  if (!user) {
-    redirect('/login')
-  }
-
+  const supabase = createAdminClient()
   const { data: profile } = await supabase
     .from('profiles')
     .select('role:roles(name)')
-    .eq('id', user.id)
+    .eq('id', session.user.id)
     .single()
 
   const roleName = (profile?.role as unknown as { name: string } | null)?.name
@@ -28,7 +26,7 @@ export default async function BugsPage() {
 
   return (
     <Suspense fallback={<BugsLoading />}>
-      <BugsTableClient currentUserId={user.id} />
+      <BugsTableClient currentUserId={session.user.id} />
     </Suspense>
   )
 }

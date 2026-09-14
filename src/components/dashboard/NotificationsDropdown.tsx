@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
+import { useSession } from '@/lib/auth/client'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -249,23 +250,15 @@ export function NotificationsDropdown() {
 
   // ── Init + realtime ────────────────────────────────────────────────────────
 
+  const { data: session } = useSession()
+
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !session?.user) return
     const controller = new AbortController()
-    const supabase = createClient()
-
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (controller.signal.aborted) return
-      if (user) {
-        setUserId(user.id)
-        fetchNotifications(controller.signal)
-      }
-    }
-
-    getUser()
+    setUserId(session.user.id)
+    fetchNotifications(controller.signal)
     return () => controller.abort()
-  }, [mounted])
+  }, [mounted, session?.user?.id])
 
   useEffect(() => {
     if (!userId) return

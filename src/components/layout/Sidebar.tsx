@@ -16,7 +16,7 @@ import {
 import LogoutRounded from '@mui/icons-material/LogoutRounded'
 import PersonOutlineRounded from '@mui/icons-material/PersonOutlineRounded'
 import KeyboardArrowUpRounded from '@mui/icons-material/KeyboardArrowUpRounded'
-import { createClient } from '@/lib/supabase/client'
+import { signOut } from '@/lib/auth/client'
 import { tokens } from '@/theme/designTokens'
 import { filterNavItems, isNavActive, navGroups, roleLabels, type NavItem } from './nav-items'
 
@@ -161,14 +161,13 @@ function SidebarPanel({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
   const userRole = user.role || 'admin'
   const items = filterNavItems(userRole)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   const handleLogout = async () => {
     setAnchorEl(null)
-    await supabase.auth.signOut()
+    await signOut()
     router.push('/login')
     router.refresh()
   }

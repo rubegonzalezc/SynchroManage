@@ -1,11 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import {
   hasVisibleProjects,
   resolveVisibleProjectScope,
   type VisibleProjectScope,
 } from '@/lib/utils/project-visibility'
+
+function getRouteAdmin() {
+  return createAdminClient()
+}
 
 const TRIAGE_ROLES = new Set(['admin', 'pm', 'tech_lead'])
 
@@ -102,15 +107,14 @@ async function getGlobalBugs(
 // GET - Listar bugs de un proyecto o vista global de triage
 export async function GET(request: Request) {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const url = new URL(request.url)
     const projectId = url.searchParams.get('project_id')
 
     if (!projectId) {
-      const { data: profile } = await supabaseServer
+      const { data: profile } = await getRouteAdmin()
         .from('profiles')
         .select('role:roles(name)')
         .eq('id', user.id)
@@ -157,8 +161,7 @@ export async function GET(request: Request) {
 // POST - Crear bug
 export async function POST(request: Request) {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const body = await request.json()

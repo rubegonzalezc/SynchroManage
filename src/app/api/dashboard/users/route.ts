@@ -1,7 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { unstable_cache } from 'next/cache'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getAuthUsersMetadata } from '@/lib/auth/user-management'
+
+function getRouteAdmin() {
+  return createAdminClient()
+}
 
 function getSupabaseAdmin() {
   return createClient(
@@ -69,9 +75,6 @@ const getCachedAdminUsers = unstable_cache(
       }
     }
 
-    const { data: authUsers, error: authError } = await admin.auth.admin.listUsers()
-    if (authError) throw new Error(authError.message)
-
     const { data: profiles, error: profilesError } = await admin
       .from('profiles')
       .select(`*, role:roles(id, name, description), company:companies(id, name)`)
@@ -79,18 +82,21 @@ const getCachedAdminUsers = unstable_cache(
 
     if (profilesError) throw new Error(profilesError.message)
 
-    return profiles?.map(p => {
-      const authUser = authUsers.users.find(u => u.id === p.id)
+    const profileList = profiles ?? []
+    const authMeta = await getAuthUsersMetadata(profileList.map((p) => p.id))
+
+    return profileList.map((p) => {
+      const meta = authMeta[p.id]
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fallbackRole = (p.role as any)?.name
       const roles = userRolesMap[p.id] ?? (fallbackRole ? [fallbackRole] : [])
       return {
         ...p,
         roles,
-        email_confirmed: authUser?.email_confirmed_at ? true : false,
-        last_sign_in: authUser?.last_sign_in_at || null,
+        email_confirmed: meta?.emailVerified ?? false,
+        last_sign_in: meta?.lastSignIn ?? null,
       }
-    }) ?? []
+    })
   },
   ['users-admin-list'],
   { tags: ['users'], revalidate: 120 }
@@ -98,14 +104,13 @@ const getCachedAdminUsers = unstable_cache(
 
 export async function GET() {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const { data: profile } = await supabaseServer
+    const { data: profile } = await getRouteAdmin()
       .from('profiles')
       .select('role:roles(name)')
       .eq('id', user.id)

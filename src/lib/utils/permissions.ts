@@ -1,12 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
+import { getApiUser } from '@/lib/auth/server'
 import { RoleName, Permission, PERMISSIONS } from '@/lib/types/roles'
 
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
+
 export async function getUserRole(): Promise<RoleName | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
+  const user = await getApiUser()
   if (!user) return null
 
+  const supabase = getSupabaseAdmin()
   const { data } = await supabase
     .from('profiles')
     .select('role:roles(name)')

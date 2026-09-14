@@ -1,6 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+function getRouteAdmin() {
+  return createAdminClient()
+}
 
 interface TaskRow {
   id: string
@@ -16,14 +21,13 @@ function getRoleName(role: unknown): string {
 
 export async function GET(req: NextRequest) {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const { data: currentProfile } = await supabaseServer
+    const { data: currentProfile } = await getRouteAdmin()
       .from('profiles')
       .select('role:roles(name)')
       .eq('id', user.id)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { authClient } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -21,42 +21,24 @@ export default function LoginPage() {
   const [mounted, setMounted] = useState(false)
   const [linkExpired, setLinkExpired] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
   const { theme, setTheme, resolvedTheme } = useTheme()
 
   useEffect(() => {
     setMounted(true)
     
-    // Verificar si hay un token de invitación en el hash
     const handleInviteToken = async () => {
-      const hash = window.location.hash
+      const params = new URLSearchParams(window.location.search)
+      const error = params.get('error')
 
-      // Detectar enlace expirado o inválido
-      if (hash && (hash.includes('error_code=otp_expired') || hash.includes('error=access_denied'))) {
+      if (error === 'INVALID_TOKEN' || error === 'EXPIRED_TOKEN') {
         setLinkExpired(true)
         setCheckingSession(false)
         return
       }
 
-      if (hash && hash.includes('access_token') && hash.includes('type=invite')) {
-        // Hay un token de invitación, redirigir a establecer contraseña
-        router.push(`/auth/set-password${hash}`)
-        return
-      }
-
-      // Verificar si ya hay sesión activa
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        // Ya tiene sesión, redirigir según rol
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role:roles(name)')
-          .eq('id', session.user.id)
-          .single()
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const roleName = (profile?.role as any)?.name as string | undefined
-        redirectByRole(roleName)
+      const session = await authClient.getSession()
+      if (session.data?.user) {
+        await redirectByRoleFromApi()
         return
       }
 
@@ -64,16 +46,30 @@ export default function LoginPage() {
     }
 
     handleInviteToken()
-  }, [router, supabase])
+  }, [router])
 
-  const redirectByRole = (roleName: string | undefined) => {
-    // Todos los roles van al dashboard
-    if (['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'].includes(roleName || '')) {
-      router.push('/dashboard')
-    } else {
+  const redirectByRoleFromApi = async () => {
+    try {
+      const response = await fetch('/api/dashboard/me')
+      if (!response.ok) {
+        router.push('/')
+        router.refresh()
+        return
+      }
+
+      const data = await response.json()
+      const roleName = data.user?.role?.name as string | undefined
+
+      if (['admin', 'pm', 'tech_lead', 'developer', 'stakeholder'].includes(roleName || '')) {
+        router.push('/dashboard')
+      } else {
+        router.push('/')
+      }
+      router.refresh()
+    } catch {
       router.push('/')
+      router.refresh()
     }
-    router.refresh()
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -81,34 +77,21 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await authClient.signIn.email({
       email,
       password,
     })
 
     if (error) {
-      setError('Credenciales incorrectas')
+      const message = error.message?.toLowerCase().includes('verify')
+        ? 'Debes verificar tu correo antes de iniciar sesión'
+        : 'Credenciales incorrectas'
+      setError(message)
       setLoading(false)
       return
     }
 
-    // Obtener el rol del usuario para redirigir
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role:roles(name)')
-        .eq('id', user.id)
-        .single()
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const roleName = (profile?.role as any)?.name as string | undefined
-      redirectByRole(roleName)
-    } else {
-      router.push('/')
-      router.refresh()
-    }
+    await redirectByRoleFromApi()
   }
 
   // Mostrar loading mientras verifica sesión

@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:auth-user": "node --env-file=.env.local scripts/seed-better-auth-user.mjs",
+    "test:resend": "node --env-file=.env.local scripts/send-test-resend-email.mjs",
+    "upload:email-assets": "node --env-file=.env.local scripts/upload-email-assets.mjs",
+    "migrate:auth-users": "node --env-file=.env.local scripts/migrate-users-to-better-auth.mjs",
+    "test:invite-email": "node --env-file=.env.local scripts/send-test-invite-email.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -28,6 +33,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.91.1",
+    "better-auth": "^1.7.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -35,17 +41,20 @@
     "jspdf-autotable": "^3.8.4",
     "lucide-react": "^0.563.0",
     "next": "16.1.4",
+    "pg": "^8.23.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-day-picker": "^9.13.0",
     "react-dom": "19.2.3",
     "recharts": "^3.8.1",
+    "resend": "^6.28.0",
     "swr": "^2.4.1",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",

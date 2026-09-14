@@ -9,10 +9,10 @@ import { isValidEmail, isValidNotificationType } from '../email-validation'
  *
  * For any string that is not a valid email (empty, without @, without domain, etc.)
  * OR any notification type string that is not `project_assigned`, `task_assigned`
- * or `password_reset`, the validation function must reject the request.
+ * or `user_invited`, the validation function must reject the request.
  */
 
-const VALID_TYPES = ['project_assigned', 'task_assigned', 'password_reset'] as const
+const VALID_TYPES = ['project_assigned', 'task_assigned', 'user_invited'] as const
 
 describe('Feature: email-notifications-resend, Property 1: validation rejects invalid emails and types', () => {
   it('valid emails (fc.emailAddress()) are accepted by isValidEmail', () => {
@@ -63,13 +63,13 @@ describe('Feature: email-notifications-resend, Property 1: validation rejects in
     )
   })
 
-  it('the three valid notification types are accepted by isValidNotificationType', () => {
+  it('valid notification types are accepted by isValidNotificationType', () => {
     for (const type of VALID_TYPES) {
       expect(isValidNotificationType(type)).toBe(true)
     }
   })
 
-  it('random strings that are not one of the three valid types are rejected by isValidNotificationType', () => {
+  it('random strings that are not valid types are rejected by isValidNotificationType', () => {
     fc.assert(
       fc.property(
         fc.string().filter((s) => !VALID_TYPES.includes(s as (typeof VALID_TYPES)[number])),

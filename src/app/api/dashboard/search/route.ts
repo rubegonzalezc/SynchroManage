@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type {
   DashboardSearchBug,
   DashboardSearchProject,
@@ -22,6 +23,10 @@ import {
   resolveVisibleProjectScope,
   type VisibleProjectScope,
 } from '@/lib/utils/project-visibility'
+
+function getRouteAdmin() {
+  return createAdminClient()
+}
 
 function getSupabaseAdmin() {
   return createClient(
@@ -203,10 +208,7 @@ async function searchUsers(
 /** Búsqueda unificada para command palette e integraciones (HU-02). */
 export async function GET(request: Request) {
   try {
-    const supabaseServer = await createServerClient()
-    const {
-      data: { user },
-    } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -220,7 +222,7 @@ export async function GET(request: Request) {
       return NextResponse.json(emptySearchResponse())
     }
 
-    const { data: profile } = await supabaseServer
+    const { data: profile } = await getRouteAdmin()
       .from('profiles')
       .select('role:roles(name)')
       .eq('id', user.id)

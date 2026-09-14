@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { PERMISSIONS } from '@/lib/types/roles'
 import { resolveVisibleProjectScope } from '@/lib/utils/project-visibility'
 import { resolveSprintOrderForCreate } from '@/lib/utils/task-sprint-order'
 import { revalidateProjectTaskCaches } from '@/lib/utils/revalidate-project-task-cache'
 import { fetchTaskDependencyRefs } from '@/lib/utils/task-dependency'
+import { getApiUser } from '@/lib/auth/server'
 import {
   buildDuplicateTaskInsertPayload,
   isAllowedDuplicateTaskStatus,
@@ -69,16 +69,13 @@ export async function POST(
 ) {
   try {
     const { id: sourceTaskId } = await params
-    const supabaseServer = await createServerClient()
-    const {
-      data: { user },
-    } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const { data: profile } = await supabaseServer
+    const { data: profile } = await getSupabaseAdmin()
       .from('profiles')
       .select('role:roles(name)')
       .eq('id', user.id)

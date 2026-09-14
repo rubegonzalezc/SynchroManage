@@ -1,8 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { assignCarryOverTasks } from '@/lib/utils/task-sprint-order'
+import { getApiUser } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+function getRouteAdmin() {
+  return createAdminClient()
+}
 
 function supabaseAdmin() {
   return createClient(
@@ -27,11 +32,10 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const { data: profile } = await supabaseServer
+    const { data: profile } = await getRouteAdmin()
       .from('profiles')
       .select('role:roles(name)')
       .eq('id', user.id)

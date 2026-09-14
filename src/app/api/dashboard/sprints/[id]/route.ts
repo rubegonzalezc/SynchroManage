@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+function getRouteAdmin() {
+  return createAdminClient()
+}
 
 function supabaseAdmin() {
   return createClient(
@@ -11,8 +16,8 @@ function supabaseAdmin() {
   )
 }
 
-async function getRole(supabaseServer: Awaited<ReturnType<typeof createServerClient>>, userId: string) {
-  const { data } = await supabaseServer.from('profiles').select('role:roles(name)').eq('id', userId).single()
+async function getRole(supabaseAdmin: ReturnType<typeof createAdminClient>, userId: string) {
+  const { data } = await getRouteAdmin().from('profiles').select('role:roles(name)').eq('id', userId).single()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data?.role as any)?.name as string | undefined
 }
@@ -24,11 +29,10 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const role = await getRole(supabaseServer, user.id)
+    const role = await getRole(getRouteAdmin(), user.id)
     if (!role || !['admin', 'pm'].includes(role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
@@ -68,11 +72,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const role = await getRole(supabaseServer, user.id)
+    const role = await getRole(getRouteAdmin(), user.id)
     if (!role || !['admin', 'pm'].includes(role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }

@@ -1,4 +1,6 @@
-﻿import { createClient } from '@/lib/supabase/server'
+﻿import { getServerSession } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { redirect } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import Link from 'next/link'
 import { UpcomingMeetings } from '@/components/dashboard/UpcomingMeetings'
@@ -72,14 +74,16 @@ const actionColors: Record<string, string> = {
 }
 
 export default async function AdminDashboard() {
-  const supabase = await createClient()
-  
-  // Obtener usuario actual y su rol
-  const { data: { user } } = await supabase.auth.getUser()
+  const session = await getServerSession()
+  if (!session?.user) redirect('/login')
+
+  const supabase = createAdminClient()
+  const userId = session.user.id
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role:roles(name)')
-    .eq('id', user?.id)
+    .eq('id', userId)
     .single()
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,8 +93,6 @@ export default async function AdminDashboard() {
   const isDeveloper = roleName === 'developer'
   const isStakeholder = roleName === 'stakeholder'
   const isAdmin = roleName === 'admin'
-  const userId = user?.id
-
   // Para Tech Lead, Developer y Stakeholder, obtener IDs de proyectos donde es miembro
   let memberProjectIds: string[] = []
   if ((isTechLead || isDeveloper || isStakeholder) && userId) {

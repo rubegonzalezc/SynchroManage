@@ -1,12 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
 
 // POST - Crear comentario
 export async function POST(request: Request) {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

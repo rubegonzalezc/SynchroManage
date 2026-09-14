@@ -1,6 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+function getRouteAdmin() {
+  return createAdminClient()
+}
 
 // DELETE - Eliminar comentario (admin o autor del comentario)
 export async function DELETE(
@@ -9,8 +14,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -34,7 +38,7 @@ export async function DELETE(
     }
 
     // Verificar si es admin o autor del comentario
-    const { data: profile } = await supabaseServer
+    const { data: profile } = await getRouteAdmin()
       .from('profiles')
       .select('role:roles(name)')
       .eq('id', user.id)

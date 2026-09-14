@@ -1,42 +1,49 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useSession } from '@/lib/auth/client'
 import { Profile, RoleName, Permission, PERMISSIONS } from '@/lib/types/roles'
 
 export function useRole() {
+  const { data: session, isPending } = useSession()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [roleName, setRoleName] = useState<RoleName | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
     async function fetchProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
+      if (isPending) return
+
+      if (!session?.user) {
+        setProfile(null)
+        setRoleName(null)
         setLoading(false)
         return
       }
 
-      const { data } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          role:roles(*)
-        `)
-        .eq('id', user.id)
-        .single()
+      try {
+        const response = await fetch('/api/dashboard/me')
+        if (!response.ok) {
+          setLoading(false)
+          return
+        }
 
-      if (data) {
-        setProfile(data as Profile)
-        setRoleName(data.role?.name as RoleName)
+        const data = await response.json()
+        const user = data.user
+        if (user) {
+          setProfile(user as Profile)
+          const role = user.role as { name?: string } | null
+          setRoleName((role?.name as RoleName) ?? null)
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     fetchProfile()
-  }, [supabase])
+  }, [session?.user?.id, isPending])
 
   const hasPermission = (permission: Permission): boolean => {
     if (!roleName) return false
@@ -51,7 +58,7 @@ export function useRole() {
   return {
     profile,
     roleName,
-    loading,
+    loading: loading || isPending,
     hasPermission,
     isAdmin,
     isPM,

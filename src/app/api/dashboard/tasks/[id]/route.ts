@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
 import {
   validateTaskDependencies,
@@ -18,6 +18,7 @@ import {
   fetchBlockingBugsForTask,
   formatBlockedByOpenBugsMessage,
 } from '@/lib/utils/task-open-bugs'
+import { sendTransactionalEmail } from '@/lib/email/send'
 
 // Helper para registrar actividad desde el servidor
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,8 +52,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -133,8 +133,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -610,18 +609,16 @@ export async function PUT(
           const recipients = deduplicateRecipients(rawRecipients, user.id)
 
           for (const recipient of recipients) {
-            await supabaseAdmin.functions.invoke('send-email', {
-              body: {
-                to: recipient.email,
-                subject: `Nueva tarea asignada: ${task.title}`,
-                type: 'task_assigned',
-                data: {
-                  recipientName: recipient.fullName,
-                  taskName: task.title,
-                  projectName: projectName,
-                  priority: task.priority,
-                  taskUrl: `${process.env.NEXT_PUBLIC_APP_URL}/projects?task=${task.id}`,
-                },
+            await sendTransactionalEmail({
+              to: recipient.email,
+              subject: `Nueva tarea asignada: ${task.title}`,
+              type: 'task_assigned',
+              data: {
+                recipientName: recipient.fullName,
+                taskName: task.title,
+                projectName: projectName,
+                priority: task.priority,
+                taskUrl: `${process.env.NEXT_PUBLIC_APP_URL}/projects?task=${task.id}`,
               },
             })
           }
@@ -670,8 +667,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
 import {
   validateTaskDependencies,
@@ -15,6 +15,7 @@ import {
   assertTaskNotBlockedByOpenBugs,
   formatBlockedByOpenBugsMessage,
 } from '@/lib/utils/task-open-bugs'
+import { sendTransactionalEmail } from '@/lib/email/send'
 
 // Helper para registrar actividad desde el servidor
 async function logActivityServer(
@@ -44,8 +45,7 @@ async function logActivityServer(
 // POST - Crear tarea
 export async function POST(request: Request) {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -288,18 +288,16 @@ export async function POST(request: Request) {
 
           // Send email to each unique recipient
           for (const recipient of recipients) {
-            await supabaseAdmin.functions.invoke('send-email', {
-              body: {
-                to: recipient.email,
-                subject: `Nueva tarea asignada: ${task.title}`,
-                type: 'task_assigned',
-                data: {
-                  recipientName: recipient.fullName,
-                  taskName: task.title,
-                  projectName: projectName,
-                  priority: task.priority,
-                  taskUrl: `${process.env.NEXT_PUBLIC_APP_URL}/projects?task=${task.id}`,
-                },
+            await sendTransactionalEmail({
+              to: recipient.email,
+              subject: `Nueva tarea asignada: ${task.title}`,
+              type: 'task_assigned',
+              data: {
+                recipientName: recipient.fullName,
+                taskName: task.title,
+                projectName: projectName,
+                priority: task.priority,
+                taskUrl: `${process.env.NEXT_PUBLIC_APP_URL}/projects?task=${task.id}`,
               },
             })
           }
@@ -344,8 +342,7 @@ export async function POST(request: Request) {
 // PATCH - Actualizar posición/status de tareas (para drag & drop)
 export async function PATCH(request: Request) {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

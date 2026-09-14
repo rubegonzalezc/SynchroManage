@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { unstable_cache } from 'next/cache'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
 import {
   attachTaskDependencies,
   fetchDependenciesByTaskIds,
@@ -82,8 +82,7 @@ async function fetchMyTasks(userId: string) {
 // GET - Obtener tareas asignadas al usuario actual con datos de sprint y proyecto
 export async function GET() {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

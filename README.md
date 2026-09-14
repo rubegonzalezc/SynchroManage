@@ -9,7 +9,9 @@ Gestor de proyectos informáticos construido con Next.js y Supabase.
 - **TypeScript** - Tipado estático
 - **Tailwind CSS 4** - Estilos utilitarios
 - **shadcn/ui** - Componentes de UI
-- **Supabase** - Backend as a Service (Auth, Database, RLS, Realtime, Edge Functions)
+- **Supabase** - Backend as a Service (Database, RLS, Realtime, Edge Functions)
+- **Better Auth** - Autenticación (sesiones, email/contraseña)
+- **Resend** - Envío de correos de verificación y reset de contraseña
 - **dnd-kit** - Drag and drop para tablero Kanban
 - **Lucide React** - Iconos
 - **date-fns** - Manejo de fechas con locale español
@@ -18,7 +20,7 @@ Gestor de proyectos informáticos construido con Next.js y Supabase.
 
 ### Autenticación y Usuarios
 
-- Autenticación con Supabase Auth
+- Autenticación con Better Auth (email/contraseña, verificación por correo)
 - Sistema de invitación de usuarios por email
 - Redirección automática según rol
 - 5 roles con permisos diferenciados
@@ -562,11 +564,23 @@ Bucket `uploads` para archivos:
 ### Variables de Entorno
 
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
 NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key
 SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Better Auth (CC-23082026)
+BETTER_AUTH_SECRET=genera_un_secreto_de_al_menos_32_caracteres
+BETTER_AUTH_URL=http://localhost:3000
+DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+
+# Resend (correos de verificación y reset)
+RESEND_API_KEY=tu_api_key_de_resend
+RESEND_FROM_EMAIL=no-reply@synchrodev.cl
 ```
+
+`DATABASE_URL` se obtiene en Supabase Dashboard → Project Settings → Database → Connection string (modo **Transaction pooler**).
 
 ### Instalación
 

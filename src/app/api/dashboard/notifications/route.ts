@@ -1,17 +1,21 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+function getRouteAdmin() {
+  return createAdminClient()
+}
 
 export async function GET() {
   try {
-    const supabase = await createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const { data: notifications, error } = await supabase
+    const { data: notifications, error } = await getRouteAdmin()
       .from('notifications')
       .select(`
         *,
@@ -39,8 +43,7 @@ export async function GET() {
 // Marcar notificaciones como leídas
 export async function PATCH(request: Request) {
   try {
-    const supabase = await createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -49,13 +52,13 @@ export async function PATCH(request: Request) {
     const { notificationIds, markAll } = await request.json()
 
     if (markAll) {
-      await supabase
+      await getRouteAdmin()
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
         .eq('read', false)
     } else if (notificationIds?.length) {
-      await supabase
+      await getRouteAdmin()
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
@@ -72,8 +75,7 @@ export async function PATCH(request: Request) {
 // Crear notificación (usado internamente) - usa service_role para bypass RLS
 export async function POST(request: Request) {
   try {
-    const supabase = await createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -125,8 +127,7 @@ export async function POST(request: Request) {
 // Eliminar notificaciones (limpiar historial)
 export async function DELETE(request: Request) {
   try {
-    const supabase = await createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -135,7 +136,7 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url)
     const onlyRead = searchParams.get('onlyRead') === 'true'
 
-    let query = supabase
+    let query = getRouteAdmin()
       .from('notifications')
       .delete()
       .eq('user_id', user.id)

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
 
 // Días que debe estar un bug en "resolved" antes de cerrarse automáticamente
 const AUTO_CLOSE_DAYS = 7
@@ -17,8 +17,7 @@ function getAdmin() {
 // Accesible para admin, pm y tech_lead
 export async function POST() {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

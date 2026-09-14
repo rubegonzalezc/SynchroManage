@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getApiUser } from '@/lib/auth/server'
 
 // GET - Obtener comentarios del proyecto
 export async function GET(
@@ -12,8 +12,7 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const stakeholderOnly = searchParams.get('stakeholder') === 'true'
     
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

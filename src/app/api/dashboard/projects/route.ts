@@ -1,8 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidateTag, unstable_cache } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { deduplicateRecipients } from '@/lib/utils/email-recipients'
+import { getApiUser } from '@/lib/auth/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { sendTransactionalEmail } from '@/lib/email/send'
+
+function getRouteAdmin() {
+  return createAdminClient()
+}
 
 // Función para crear notificación
 async function createNotification(
@@ -32,15 +38,14 @@ async function createNotification(
 // GET - Listar proyectos
 export async function GET(request: Request) {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Obtener rol del usuario
-    const { data: profile } = await supabaseServer
+    const { data: profile } = await getRouteAdmin()
       .from('profiles')
       .select('role:roles(name)')
       .eq('id', user.id)
@@ -155,15 +160,14 @@ async function getCachedProjectsList(userId: string, roleName: string, typeFilte
 // POST - Crear proyecto
 export async function POST(request: Request) {
   try {
-    const supabaseServer = await createServerClient()
-    const { data: { user } } = await supabaseServer.auth.getUser()
+    const user = await getApiUser()
 
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Verificar permisos (admin o PM)
-    const { data: profile } = await supabaseServer
+    const { data: profile } = await getRouteAdmin()
       .from('profiles')
       .select('role:roles(name)')
       .eq('id', user.id)
@@ -349,17 +353,15 @@ export async function POST(request: Request) {
 
         // Send email to each unique recipient
         for (const recipient of recipients) {
-          await supabaseAdmin.functions.invoke('send-email', {
-            body: {
-              to: recipient.email,
-              subject: `Asignación a proyecto: ${body.name}`,
-              type: 'project_assigned',
-              data: {
-                recipientName: recipient.fullName,
-                projectName: body.name,
-                roles: recipient.roles,
-                projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/projects/${project.id}`,
-              },
+          await sendTransactionalEmail({
+            to: recipient.email,
+            subject: `Asignación a proyecto: ${body.name}`,
+            type: 'project_assigned',
+            data: {
+              recipientName: recipient.fullName,
+              projectName: body.name,
+              roles: recipient.roles,
+              projectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/projects/${project.id}`,
             },
           })
         }
