@@ -5,9 +5,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Calendar, Loader2, CheckCircle, AlertCircle, Camera, Upload } from 'lucide-react'
+import { Calendar, Loader2, CheckCircle, AlertCircle, Camera, Upload, Github, Link2, Unlink } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { authClient } from '@/lib/auth/client'
+
+const GITHUB_INTEGRATION_ENABLED = process.env.NEXT_PUBLIC_GITHUB_LOGIN_ENABLED === 'true'
+
+const GITHUB_OAUTH_ERRORS: Record<string, string> = {
+  signup_disabled: 'No se pudo vincular GitHub. Tu cuenta debe estar invitada previamente.',
+  account_not_linked: 'No se pudo vincular GitHub. Usa el mismo correo con el que fuiste invitado.',
+  email_does_not_match: 'El correo de GitHub no coincide con tu cuenta.',
+  email_not_found: 'GitHub no proporcionó un correo. Configura un email en tu perfil de GitHub.',
+}
 import { GlassPanel } from '@/components/ui/glass-panel'
 
 interface Profile {
@@ -17,6 +26,8 @@ interface Profile {
   avatar_url: string | null
   role: { name: string } | null
   created_at: string
+  github_connected?: boolean
+  github_username?: string | null
 }
 
 const roleLabels: Record<string, string> = {
@@ -56,7 +67,24 @@ export default function ProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
 
+  const [githubLoading, setGithubLoading] = useState(false)
+  const [githubError, setGithubError] = useState<string | null>(null)
+  const [githubSuccess, setGithubSuccess] = useState<string | null>(null)
+
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const error = params.get('error')
+    const errorDescription = params.get('error_description')
+
+    if (error) {
+      setGithubError(
+        GITHUB_OAUTH_ERRORS[error] ||
+          errorDescription ||
+          'No se pudo completar la vinculación con GitHub'
+      )
+      window.history.replaceState({}, '', '/profile')
+    }
+
     fetchProfile()
   }, [])
 
@@ -152,6 +180,65 @@ export default function ProfilePage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
+    }
+  }
+
+  const handleConnectGithub = async () => {
+    setGithubLoading(true)
+    setGithubError(null)
+    setGithubSuccess(null)
+
+    await authClient.linkSocial({
+      provider: 'github',
+      callbackURL: '/profile',
+      errorCallbackURL: '/profile',
+    })
+
+    setGithubLoading(false)
+  }
+
+  const handleDisconnectGithub = async () => {
+    setGithubLoading(true)
+    setGithubError(null)
+    setGithubSuccess(null)
+
+    try {
+      const { data: accounts, error: listError } = await authClient.listAccounts()
+
+      if (listError) {
+        throw new Error(listError.message || 'No se pudieron listar las cuentas vinculadas')
+      }
+
+      const githubAccount = accounts?.find((account) => account.providerId === 'github')
+
+      if (!githubAccount) {
+        throw new Error('No hay una cuenta de GitHub vinculada')
+      }
+
+      const { error: unlinkError } = await authClient.unlinkAccount({
+        accountId: githubAccount.id,
+      })
+
+      if (unlinkError) {
+        const message =
+          unlinkError.message?.includes('last account') ||
+          unlinkError.message?.includes('última')
+            ? 'No puedes desconectar GitHub si es tu único método de acceso'
+            : unlinkError.message || 'No se pudo desconectar GitHub'
+        throw new Error(message)
+      }
+
+      setProfile((current) =>
+        current
+          ? { ...current, github_connected: false, github_username: null }
+          : current
+      )
+      setGithubSuccess('GitHub desconectado correctamente')
+      setTimeout(() => setGithubSuccess(null), 3000)
+    } catch (err) {
+      setGithubError(err instanceof Error ? err.message : 'Error al desconectar GitHub')
+    } finally {
+      setGithubLoading(false)
     }
   }
 
@@ -377,6 +464,76 @@ export default function ProfilePage() {
             </div>
           </div>
         </GlassPanel>
+
+        {GITHUB_INTEGRATION_ENABLED && (
+          <GlassPanel className="md:col-span-3">
+            <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Integración GitHub</h3>
+            <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">
+              Conecta tu cuenta de GitHub para crear ramas desde las tareas (próximamente en CC-22082026).
+            </p>
+
+            {githubError && (
+              <div className="flex items-center gap-2 text-[13px] text-red-600 dark:text-red-400 mb-4">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" /> {githubError}
+              </div>
+            )}
+            {githubSuccess && (
+              <div className="flex items-center gap-2 text-[13px] text-green-600 dark:text-green-400 mb-4">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" /> {githubSuccess}
+              </div>
+            )}
+
+            {profile.github_connected ? (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/[0.04] dark:bg-white/[0.06]">
+                    <Github className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-medium text-foreground">
+                      Conectado como @{profile.github_username || 'usuario'}
+                    </p>
+                    <p className="text-[12px] text-muted-foreground">
+                      Listo para operaciones Git desde SynchroManage
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleDisconnectGithub}
+                  disabled={githubLoading}
+                >
+                  {githubLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Desconectando...</>
+                  ) : (
+                    <><Unlink className="w-4 h-4" /> Desconectar</>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                    <Github className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-medium text-foreground">GitHub no conectado</p>
+                    <p className="text-[12px] text-muted-foreground">
+                      Necesitarás vincular GitHub para usar «Crear rama» en tareas
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={handleConnectGithub} disabled={githubLoading}>
+                  {githubLoading ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Conectando...</>
+                  ) : (
+                    <><Link2 className="w-4 h-4" /> Conectar con GitHub</>
+                  )}
+                </Button>
+              </div>
+            )}
+          </GlassPanel>
+        )}
 
         <GlassPanel className="md:col-span-3">
           <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Seguridad</h3>

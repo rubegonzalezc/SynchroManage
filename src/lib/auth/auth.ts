@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { nextCookies } from 'better-auth/next-js'
 import { getAuthDatabasePool } from './db'
 import { sendAuthResetPasswordEmail, sendAuthVerificationEmail } from './emails'
+import { getGithubProviderConfig } from './github-oauth'
 
 async function markEmailVerified(userId: string) {
   const pool = getAuthDatabasePool()
@@ -12,6 +13,8 @@ async function markEmailVerified(userId: string) {
 }
 
 const baseURL = process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+const githubProvider = getGithubProviderConfig()
 
 export const auth = betterAuth({
   baseURL,
@@ -54,7 +57,14 @@ export const auth = betterAuth({
       createdAt: 'createdAt',
       updatedAt: 'updatedAt',
     },
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ['github'],
+      // Permite vincular GitHub a usuarios invitados que aún no verificaron email
+      requireLocalEmailVerified: false,
+    },
   },
+  socialProviders: githubProvider ? { github: githubProvider } : {},
   verification: {
     modelName: 'auth_verification',
     fields: {

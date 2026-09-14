@@ -225,8 +225,10 @@ CC-22082026 usará el `access_token` de la cuenta GitHub vinculada para `POST /t
 
 ## Checklist de cierre CC-23082026
 
-- [ ] Cero referencias a `supabase.auth` en `src/`
-- [ ] Login, invite, reset, delete user funcionan
-- [ ] 4 usuarios migrados y verificados
-- [ ] GitHub conectable desde perfil (OAuth)
-- [ ] CC-22082026 desbloqueado para Sprint 1
+- [x] Cero referencias activas a `supabase.auth` en `src/` (solo Realtime vía cliente Supabase)
+- [x] Login, invite, reset, delete user funcionan
+- [x] Script migración 4 usuarios (`npm run migrate:auth-users`)
+- [x] GitHub conectable desde login y perfil (OAuth)
+- [x] `GET /api/dashboard/me` expone `github_connected` y `github_username`
+- [ ] Cutover producción ejecutado (ver [cutover-produccion.md](./cutover-produccion.md))
+- [ ] CC-22082026 desbloqueado para Sprint 1 (tras cutover prod)

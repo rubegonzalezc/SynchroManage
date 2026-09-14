@@ -578,9 +578,31 @@ DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supaba
 # Resend (correos de verificación y reset)
 RESEND_API_KEY=tu_api_key_de_resend
 RESEND_FROM_EMAIL=no-reply@synchrodev.cl
+
+# GitHub OAuth (inicio de sesión + integración futura con repos)
+GITHUB_CLIENT_ID=tu_client_id_de_github
+GITHUB_CLIENT_SECRET=tu_client_secret_de_github
+NEXT_PUBLIC_GITHUB_LOGIN_ENABLED=true
 ```
 
 `DATABASE_URL` se obtiene en Supabase Dashboard → Project Settings → Database → Connection string (modo **Transaction pooler**).
+
+### GitHub OAuth
+
+1. En [GitHub → Settings → Developer settings → OAuth Apps](https://github.com/settings/developers), crea una **OAuth App**.
+2. **Authorization callback URL**:
+   - Desarrollo: `http://localhost:3000/api/auth/callback/github`
+   - Producción: `https://tu-dominio.com/api/auth/callback/github`
+3. Copia **Client ID** y genera un **Client Secret** en las variables de entorno.
+4. Activa el botón en login con `NEXT_PUBLIC_GITHUB_LOGIN_ENABLED=true`.
+
+Solo usuarios **previamente invitados** (con perfil en la app) pueden iniciar sesión con GitHub. El correo de la cuenta de GitHub debe coincidir con el de la invitación.
+
+Usuarios ya logueados pueden vincular o desvincular GitHub desde **Mi perfil → Integración GitHub**.
+
+### Cutover a producción
+
+Guía paso a paso: [docs/cc-23082026/cutover-produccion.md](docs/cc-23082026/cutover-produccion.md)
 
 ### Instalación
 

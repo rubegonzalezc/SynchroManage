@@ -20,7 +20,7 @@ Las optimizaciones se dividieron en dos rondas y atacan cada uno de estos proble
 
 ### 1. Caché de rol en el Middleware
 
-**Archivo:** `src/lib/supabase/middleware.ts`
+**Archivo:** `src/lib/auth/middleware.ts`
 
 **Problema:** El middleware de Next.js se ejecuta en CADA request (navegación, prefetch, etc.). Antes hacía una query a Supabase para obtener el rol del usuario en cada request de rutas protegidas.
 

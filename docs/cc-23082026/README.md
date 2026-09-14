@@ -5,7 +5,7 @@
 **Fecha de apertura:** 23/08/2026  
 **Versión objetivo del producto:** `0.2.5`  
 **Equipo:** Rubén González, José, Sebastián  
-**Estado:** Planificado
+**Estado:** Implementado — pendiente cutover producción
 
 ## Épica
 

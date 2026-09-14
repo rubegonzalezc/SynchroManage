@@ -94,11 +94,13 @@ El endpoint `POST /tasks/{id}/git-branch` (futuro) leerá el token desde `accoun
 **Checklist cutover:**
 
 1. [ ] Backup DB
-2. [ ] Ejecutar script migración
+2. [x] Ejecutar script migración (`npm run migrate:auth-users`)
 3. [ ] Deploy app con Better Auth
-4. [ ] Smoke test: login, invite, reset, dashboard
-5. [ ] Eliminar trigger `on_auth_user_created`
+4. [ ] Smoke test: login, invite, reset, dashboard, GitHub perfil
+5. [x] Eliminar trigger `on_auth_user_created` (migración `010_drop_supabase_auth_trigger.sql`)
 6. [ ] Monitor errores 24 h
+
+Ver [cutover-produccion.md](./cutover-produccion.md).
 
 ---
 

@@ -12,4 +12,7 @@ export const {
   useSession,
   requestPasswordReset,
   resetPassword,
+  linkSocial,
+  unlinkAccount,
+  listAccounts,
 } = authClient

@@ -9,13 +9,25 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle, Clock, RefreshCw, Sun, Moon, Monitor } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle, Clock, RefreshCw, Sun, Moon, Monitor, Github } from 'lucide-react'
+
+const GITHUB_LOGIN_ENABLED = process.env.NEXT_PUBLIC_GITHUB_LOGIN_ENABLED === 'true'
+
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  signup_disabled: 'No tienes acceso. Debes ser invitado por un administrador.',
+  account_not_linked: 'No se pudo vincular tu cuenta de GitHub. Usa el mismo correo con el que fuiste invitado.',
+  email_does_not_match: 'El correo de GitHub no coincide con tu cuenta invitada.',
+  email_not_found: 'GitHub no proporcionó un correo. Configura un email público en tu perfil de GitHub.',
+  email_not_verified: 'Tu correo de GitHub no está verificado.',
+  unable_to_link_account: 'No se pudo vincular la cuenta de GitHub.',
+}
 import { useTheme } from '@/components/theme-provider'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [githubLoading, setGithubLoading] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -29,11 +41,21 @@ export default function LoginPage() {
     const handleInviteToken = async () => {
       const params = new URLSearchParams(window.location.search)
       const error = params.get('error')
+      const errorDescription = params.get('error_description')
 
       if (error === 'INVALID_TOKEN' || error === 'EXPIRED_TOKEN') {
         setLinkExpired(true)
         setCheckingSession(false)
         return
+      }
+
+      if (error) {
+        const message =
+          OAUTH_ERROR_MESSAGES[error] ||
+          errorDescription ||
+          'No se pudo iniciar sesión con GitHub'
+        setError(message)
+        window.history.replaceState({}, '', '/login')
       }
 
       const session = await authClient.getSession()
@@ -92,6 +114,19 @@ export default function LoginPage() {
     }
 
     await redirectByRoleFromApi()
+  }
+
+  const handleGithubLogin = async () => {
+    setGithubLoading(true)
+    setError(null)
+
+    await authClient.signIn.social({
+      provider: 'github',
+      callbackURL: '/dashboard',
+      errorCallbackURL: '/login',
+    })
+
+    setGithubLoading(false)
   }
 
   // Mostrar loading mientras verifica sesión
@@ -306,7 +341,7 @@ export default function LoginPage() {
 
                 <Button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || githubLoading}
                   className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all duration-200 hover:shadow-md"
                 >
                   {loading ? (
@@ -321,6 +356,39 @@ export default function LoginPage() {
                     </>
                   )}
                 </Button>
+
+                {GITHUB_LOGIN_ENABLED && (
+                  <>
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">o continúa con</span>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={loading || githubLoading}
+                      onClick={handleGithubLogin}
+                      className="w-full h-11 font-medium"
+                    >
+                      {githubLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Conectando con GitHub...
+                        </>
+                      ) : (
+                        <>
+                          <Github className="w-4 h-4 mr-2" />
+                          Continuar con GitHub
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
               </div>
             </form>
 

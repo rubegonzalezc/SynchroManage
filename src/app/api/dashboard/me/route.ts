@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { revalidateTag, unstable_cache } from 'next/cache'
 import { NextResponse } from 'next/server'
+import { getGithubConnectionForUser } from '@/lib/auth/github-account'
 import { getApiUser } from '@/lib/auth/server'
 
 function getSupabaseAdmin() {
@@ -35,14 +36,18 @@ export async function GET() {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const profile = await getCachedProfile(user.id)
+    const [profile, github] = await Promise.all([
+      getCachedProfile(user.id),
+      getGithubConnectionForUser(user.id),
+    ])
 
     return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
-        ...profile
-      }
+        ...profile,
+        ...github,
+      },
     })
   } catch (error) {
     console.error('Error fetching current user:', error)
@@ -83,11 +88,14 @@ export async function PATCH(request: Request) {
 
     revalidateTag(`user-${user.id}`, 'max')
 
+    const github = await getGithubConnectionForUser(user.id)
+
     return NextResponse.json({
       user: {
         ...data,
         id: user.id,
         email: user.email,
+        ...github,
       },
     })
   } catch (error) {
