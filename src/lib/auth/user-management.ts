@@ -152,28 +152,17 @@ export async function inviteUserWithBetterAuth(
 
     await client.query('BEGIN')
 
-
-
+    // auth_user primero: profiles.id tiene FK hacia auth_user
     await client.query(
-
-      `INSERT INTO profiles (id, email, full_name, role_id, company_id, created_at, updated_at)
-
-       VALUES ($1, $2, $3, $4, $5, $6, $6)`,
-
-      [userId, email, params.fullName, params.primaryRoleId, params.companyId || null, now]
-
+      `INSERT INTO auth_user (id, name, email, "emailVerified", image, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, FALSE, NULL, $4, $4)`,
+      [userId, params.fullName, email, now]
     )
 
-
-
     await client.query(
-
-      `INSERT INTO auth_user (id, name, email, "emailVerified", image, "createdAt", "updatedAt")
-
-       VALUES ($1, $2, $3, FALSE, NULL, $4, $4)`,
-
-      [userId, params.fullName, email, now]
-
+      `INSERT INTO profiles (id, email, full_name, role_id, company_id, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $6)`,
+      [userId, email, params.fullName, params.primaryRoleId, params.companyId || null, now]
     )
 
 
@@ -307,37 +296,46 @@ export async function getAuthUserStatus(userId: string): Promise<{
 
 
 export async function deleteUserWithBetterAuth(userId: string): Promise<void> {
-
   const pool = getAuthDatabasePool()
-
   const client = await pool.connect()
 
-
-
   try {
-
     await client.query('BEGIN')
 
-    await client.query('DELETE FROM user_roles WHERE user_id = $1', [userId])
+    // Sprints sin ON DELETE: evitar bloqueo al borrar el perfil
+    await client.query('UPDATE sprints SET created_by = NULL WHERE created_by = $1', [userId])
 
-    await client.query('DELETE FROM profiles WHERE id = $1', [userId])
+    // Tokens de invitación / reset pendientes
+    await client.query('DELETE FROM auth_verification WHERE value = $1', [userId])
 
-    await client.query('DELETE FROM auth_user WHERE id = $1', [userId])
+    const { rowCount: profileCount } = await client.query(
+      'DELETE FROM profiles WHERE id = $1',
+      [userId]
+    )
+
+    const { rowCount: authCount } = await client.query(
+      'DELETE FROM auth_user WHERE id = $1',
+      [userId]
+    )
+
+    if (!profileCount && !authCount) {
+      throw new Error('Usuario no encontrado')
+    }
+
+    // Limpiar fila legacy en Supabase Auth si aún existe
+    try {
+      await client.query('DELETE FROM auth.users WHERE id = $1::uuid', [userId])
+    } catch {
+      // Ignorar si auth.users ya no se usa o no hay permisos
+    }
 
     await client.query('COMMIT')
-
   } catch (error) {
-
     await client.query('ROLLBACK')
-
     throw error
-
   } finally {
-
     client.release()
-
   }
-
 }
 
 
