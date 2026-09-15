@@ -10,6 +10,7 @@ import { OpenBugsList } from '@/components/dashboard/OpenBugsList'
 import { DashboardSection } from '@/components/dashboard/DashboardSection'
 import { GlassPanel } from '@/components/ui/glass-panel'
 import { ReportExportButton } from '@/components/dashboard/reports/ReportExportButton'
+import { useRole } from '@/lib/hooks/useRole'
 
 interface UserStat {
   user: { id: string; full_name: string; avatar_url: string | null; role: string }
@@ -98,6 +99,9 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
 }
 
 export default function ReportsPage() {
+  const { roleName } = useRole()
+  const isPM = roleName === 'pm'
+
   const [stats, setStats] = useState<UserStat[]>([])
   const [unassigned, setUnassigned] = useState<UnassignedTask[]>([])
   const [openBugs, setOpenBugs] = useState<OpenBug[]>([])
@@ -167,7 +171,11 @@ export default function ReportsPage() {
       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
         <div className="flex-1">
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Reporte</h1>
-          <p className="text-[15px] text-muted-foreground mt-1">Estadísticas de tareas, bugs y carga por usuario</p>
+          <p className="text-[15px] text-muted-foreground mt-1">
+            {isPM
+              ? 'Estadísticas de tus proyectos y equipo asignado'
+              : 'Estadísticas de tareas, bugs y carga por usuario'}
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           <div className="flex items-center gap-2 flex-wrap">
@@ -243,7 +251,10 @@ export default function ReportsPage() {
         </div>
       )}
 
-      <DashboardSection title="Detalle por usuario" description="Carga de trabajo y progreso">
+      <DashboardSection
+        title="Detalle por usuario"
+        description={isPM ? 'Equipo de tus proyectos' : 'Carga de trabajo y progreso'}
+      >
         {loading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4].map(i => (

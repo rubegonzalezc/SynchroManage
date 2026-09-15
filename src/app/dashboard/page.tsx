@@ -95,6 +95,8 @@ export default async function AdminDashboard() {
   const isStakeholder = roleName === 'stakeholder'
   const isAdmin = roleName === 'admin'
   const isScopedMember = isTechLead || isDeveloper || isStakeholder
+  const usesProjectScope = isPM || isScopedMember
+  const isScopedDashboard = isPM || isDeveloper
 
   const projectScope = await resolveVisibleProjectScope(supabase, userId, roleName)
   const memberProjectIds =
@@ -108,6 +110,23 @@ export default async function AdminDashboard() {
       .select('task_id')
       .eq('user_id', userId)
     developerTaskIds = assigneeRows?.map((row) => row.task_id) || []
+  }
+
+  const fetchScopedActivity = () => {
+    const parts = [`user_id.eq.${userId}`]
+    if (hasMemberProjects) {
+      parts.push(`details->>project_id.in.(${memberProjectIds.join(',')})`)
+      parts.push(`and(entity_type.eq.project,entity_id.in.(${memberProjectIds.join(',')}))`)
+    }
+    if (isDeveloper && developerTaskIds.length > 0) {
+      parts.push(`and(entity_type.eq.task,entity_id.in.(${developerTaskIds.join(',')}))`)
+    }
+    return supabase
+      .from('activity_log')
+      .select('*, user:profiles(id, full_name, avatar_url)')
+      .or(parts.join(','))
+      .order('created_at', { ascending: false })
+      .limit(8)
   }
 
   const emptyCount = { count: 0 }
@@ -141,41 +160,33 @@ export default async function AdminDashboard() {
       ? supabase.from('profiles').select('*', { count: 'exact', head: true })
       : { count: 0 },
     // Proyectos activos
-    isPM
-      ? supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'in_progress').eq('pm_id', userId)
-      : isScopedMember
-        ? hasMemberProjects
-          ? supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'in_progress').in('id', memberProjectIds)
-          : emptyCount
-        : supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'),
+    usesProjectScope
+      ? hasMemberProjects
+        ? supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'in_progress').in('id', memberProjectIds)
+        : emptyCount
+      : supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'),
     // Total proyectos
-    isPM
-      ? supabase.from('projects').select('*', { count: 'exact', head: true }).eq('pm_id', userId)
-      : isScopedMember
-        ? hasMemberProjects
-          ? supabase.from('projects').select('*', { count: 'exact', head: true }).in('id', memberProjectIds)
-          : emptyCount
-        : supabase.from('projects').select('*', { count: 'exact', head: true }),
-    // Tareas completadas (stakeholder / tech_lead por proyecto; developer usa contadores personales)
+    usesProjectScope
+      ? hasMemberProjects
+        ? supabase.from('projects').select('*', { count: 'exact', head: true }).in('id', memberProjectIds)
+        : emptyCount
+      : supabase.from('projects').select('*', { count: 'exact', head: true }),
+    // Tareas completadas (developer: contadores personales; resto por proyectos visibles)
     isDeveloper
       ? emptyCount
-      : isPM
-        ? supabase.from('tasks').select('*, project:projects!inner(pm_id)', { count: 'exact', head: true }).eq('status', 'done').eq('project.pm_id', userId)
-        : isScopedMember && hasMemberProjects
-          ? supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'done').in('project_id', memberProjectIds)
-          : isScopedMember
-            ? emptyCount
-            : supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'done'),
+      : usesProjectScope && hasMemberProjects
+        ? supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'done').in('project_id', memberProjectIds)
+        : usesProjectScope
+          ? emptyCount
+          : supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'done'),
     // Total tareas
     isDeveloper
       ? emptyCount
-      : isPM
-        ? supabase.from('tasks').select('*, project:projects!inner(pm_id)', { count: 'exact', head: true }).eq('project.pm_id', userId)
-        : isScopedMember && hasMemberProjects
-          ? supabase.from('tasks').select('*', { count: 'exact', head: true }).in('project_id', memberProjectIds)
-          : isScopedMember
-            ? emptyCount
-            : supabase.from('tasks').select('*', { count: 'exact', head: true }),
+      : usesProjectScope && hasMemberProjects
+        ? supabase.from('tasks').select('*', { count: 'exact', head: true }).in('project_id', memberProjectIds)
+        : usesProjectScope
+          ? emptyCount
+          : supabase.from('tasks').select('*', { count: 'exact', head: true }),
     // Tareas en revisión (para Tech Lead)
     isTechLead && memberProjectIds.length > 0
       ? supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'review').in('project_id', memberProjectIds)
@@ -197,24 +208,18 @@ export default async function AdminDashboard() {
       ? supabase.from('profiles').select('role:roles(name)')
       : { data: [] },
     // Proyectos recientes
-    isPM
-      ? supabase.from('projects')
-          .select('id, name, status, company:companies(name)')
-          .eq('pm_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(5)
-      : isScopedMember
-        ? hasMemberProjects
-          ? supabase.from('projects')
-              .select('id, name, status, company:companies(name)')
-              .in('id', memberProjectIds)
-              .order('created_at', { ascending: false })
-              .limit(5)
-          : emptyData
-        : supabase.from('projects')
+    usesProjectScope
+      ? hasMemberProjects
+        ? supabase.from('projects')
             .select('id, name, status, company:companies(name)')
+            .in('id', memberProjectIds)
             .order('created_at', { ascending: false })
-            .limit(5),
+            .limit(5)
+        : emptyData
+      : supabase.from('projects')
+          .select('id, name, status, company:companies(name)')
+          .order('created_at', { ascending: false })
+          .limit(5),
     // Tareas urgentes o asignadas (stakeholder no ve tareas)
     isStakeholder
       ? { data: [] }
@@ -228,14 +233,16 @@ export default async function AdminDashboard() {
             .limit(5)
       : isDeveloper
         ? emptyData
-        : isPM
+        : isPM && hasMemberProjects
           ? supabase.from('tasks')
-              .select('id, title, task_number, priority, due_date, status, project:projects!inner(id, name, pm_id)')
+              .select('id, title, task_number, priority, due_date, status, project:projects(id, name)')
               .or('priority.eq.urgent,priority.eq.high')
               .neq('status', 'done')
-              .eq('project.pm_id', userId)
+              .in('project_id', memberProjectIds)
               .order('due_date', { ascending: true })
               .limit(5)
+          : isPM
+            ? emptyData
           : isTechLead && hasMemberProjects
             ? supabase.from('tasks')
                 .select('id, title, task_number, priority, due_date, status, project:projects(id, name)')
@@ -253,53 +260,36 @@ export default async function AdminDashboard() {
                   .order('due_date', { ascending: true })
                   .limit(5),
     // Actividad reciente
-    isDeveloper
-      ? (async () => {
-          const parts = [`user_id.eq.${userId}`]
-          if (hasMemberProjects) {
-            parts.push(`details->>project_id.in.(${memberProjectIds.join(',')})`)
-            parts.push(`and(entity_type.eq.project,entity_id.in.(${memberProjectIds.join(',')}))`)
-          }
-          if (developerTaskIds.length > 0) {
-            parts.push(`and(entity_type.eq.task,entity_id.in.(${developerTaskIds.join(',')}))`)
-          }
-          return supabase
-            .from('activity_log')
-            .select('*, user:profiles(id, full_name, avatar_url)')
-            .or(parts.join(','))
-            .order('created_at', { ascending: false })
-            .limit(8)
-        })()
+    isScopedDashboard
+      ? fetchScopedActivity()
       : supabase.from('activity_log')
           .select('*, user:profiles(id, full_name, avatar_url)')
           .order('created_at', { ascending: false })
           .limit(8),
     // Proyectos por estado (para gráfica) — solo status
-    isDeveloper
+    usesProjectScope
       ? hasMemberProjects
         ? supabase.from('projects').select('status').in('id', memberProjectIds)
         : emptyData
-      : isScopedMember && hasMemberProjects
-        ? supabase.from('projects').select('status').in('id', memberProjectIds)
-        : isScopedMember
-          ? emptyData
-          : supabase.from('projects').select('status'),
+      : supabase.from('projects').select('status'),
     // Tareas por estado (para gráfica) — solo status
     isDeveloper
       ? developerTaskIds.length > 0
         ? supabase.from('tasks').select('status').in('id', developerTaskIds)
         : emptyData
-      : isPM
-        ? supabase.from('tasks').select('status, project:projects!inner(pm_id)').eq('project.pm_id', userId)
-        : isScopedMember && hasMemberProjects
-          ? supabase.from('tasks').select('status').in('project_id', memberProjectIds)
-          : isScopedMember
-            ? emptyData
-            : supabase.from('tasks').select('status'),
-    // Bugs por estado — oculto para developer
+      : usesProjectScope && hasMemberProjects
+        ? supabase.from('tasks').select('status').in('project_id', memberProjectIds)
+        : usesProjectScope
+          ? emptyData
+          : supabase.from('tasks').select('status'),
+    // Bugs por estado — solo proyectos del PM; oculto para developer
     isDeveloper
       ? emptyData
-      : supabase.from('bugs').select('status'),
+      : isPM && hasMemberProjects
+        ? supabase.from('bugs').select('status').in('project_id', memberProjectIds)
+        : isPM
+          ? emptyData
+          : supabase.from('bugs').select('status'),
     // Reuniones próximas (para UpcomingMeetings — evita fetch client-side)
     !isStakeholder
       ? (async () => {
@@ -325,17 +315,32 @@ export default async function AdminDashboard() {
           return q
         })()
       : Promise.resolve({ data: [] }),
-    // Reports (unassigned tasks + open bugs) — solo para admin/pm, evita 2 fetches client-side
+    // Reports (unassigned tasks + open bugs) — admin global; PM solo sus proyectos
     (isAdmin || isPM)
       ? (async () => {
+          if (isPM && !hasMemberProjects) {
+            return { unassigned: [], openBugs: [] }
+          }
+
+          let unassignedQuery = supabase
+            .from('tasks')
+            .select('id, task_number, title, status, priority, category, due_date, project:projects(id, name, type)')
+            .is('assignee_id', null)
+
+          let openBugsQuery = supabase
+            .from('bugs')
+            .select('id, title, severity, status, created_at, project:projects(id, name), task:tasks(id, task_number, title), assignee:profiles!bugs_assignee_id_fkey(id, full_name, avatar_url)')
+            .in('status', ['open', 'in_progress'])
+            .order('created_at', { ascending: false })
+
+          if (isPM) {
+            unassignedQuery = unassignedQuery.in('project_id', memberProjectIds)
+            openBugsQuery = openBugsQuery.in('project_id', memberProjectIds)
+          }
+
           const [unassignedResult, openBugsResult, taskAssigneeIdsResult] = await Promise.all([
-            supabase.from('tasks')
-              .select('id, task_number, title, status, priority, category, due_date, project:projects(id, name, type)')
-              .is('assignee_id', null),
-            supabase.from('bugs')
-              .select('id, title, severity, status, created_at, project:projects(id, name), task:tasks(id, task_number, title), assignee:profiles!bugs_assignee_id_fkey(id, full_name, avatar_url)')
-              .in('status', ['open', 'in_progress'])
-              .order('created_at', { ascending: false }),
+            unassignedQuery,
+            openBugsQuery,
             supabase.from('task_assignees').select('task_id'),
           ])
           const taskIdsWithAssignees = new Set((taskAssigneeIdsResult.data || []).map((t: { task_id: string }) => t.task_id))
@@ -532,8 +537,10 @@ export default async function AdminDashboard() {
         <p className="text-[15px] text-muted-foreground mt-1">
           {isAdmin
             ? 'Vista general de usuarios, proyectos, tareas y bugs'
-            : isDeveloper
-              ? 'Tus tareas, proyectos asignados y actividad relacionada'
+            : isScopedDashboard
+              ? isPM
+                ? 'Tus proyectos, tareas del equipo y actividad relacionada'
+                : 'Tus tareas, proyectos asignados y actividad relacionada'
               : 'Resumen de tu operación y actividad reciente'}
         </p>
       </div>
@@ -555,7 +562,13 @@ export default async function AdminDashboard() {
         {!isStakeholder && (
           <DashboardSection
             title="Actividad"
-            description={isDeveloper ? 'Acciones en tus proyectos y tareas' : 'Últimas acciones en el sistema'}
+            description={
+              isScopedDashboard
+                ? isPM
+                  ? 'Acciones en tus proyectos'
+                  : 'Acciones en tus proyectos y tareas'
+                : 'Últimas acciones en el sistema'
+            }
           >
             {!recentActivity || recentActivity.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">No hay actividad reciente</p>
@@ -597,7 +610,9 @@ export default async function AdminDashboard() {
 
         <DashboardSection
           title="Proyectos"
-          description={isDeveloper ? 'Proyectos donde participas' : 'Últimos proyectos creados'}
+          description={
+            usesProjectScope ? 'Tus proyectos asignados' : 'Últimos proyectos creados'
+          }
           action={
             <Link href="/projects" className="text-[13px] font-semibold text-primary hover:opacity-80 transition-opacity">
               Ver todos
@@ -633,7 +648,13 @@ export default async function AdminDashboard() {
         {!isStakeholder && (
           <DashboardSection
             title={isDeveloper ? 'Mis Tareas' : 'Prioritarias'}
-            description={isDeveloper ? 'Tareas asignadas a ti' : 'Urgentes o de alta prioridad'}
+            description={
+              isDeveloper
+                ? 'Tareas asignadas a ti'
+                : isPM
+                  ? 'Urgentes en tus proyectos'
+                  : 'Urgentes o de alta prioridad'
+            }
           >
             {!urgentTasks || urgentTasks.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">No hay tareas urgentes pendientes</p>
@@ -677,10 +698,16 @@ export default async function AdminDashboard() {
       </div>
 
       {!isStakeholder && (
-        <div className={`grid gap-3 ${isAdmin ? 'md:grid-cols-4' : isDeveloper ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+        <div className={`grid gap-3 ${isAdmin ? 'md:grid-cols-4' : isDeveloper ? 'md:grid-cols-2' : isPM ? 'md:grid-cols-3' : 'md:grid-cols-3'}`}>
           <DashboardSection
             title={isDeveloper ? 'Mi Progreso' : 'Tareas'}
-            description={isDeveloper ? 'Tus tareas por estado' : 'Distribución por estado'}
+            description={
+              isDeveloper
+                ? 'Tus tareas por estado'
+                : isPM
+                  ? 'Tareas de tus proyectos por estado'
+                  : 'Distribución por estado'
+            }
           >
             <TaskStatusChart
               done={tasksDone}
@@ -693,7 +720,9 @@ export default async function AdminDashboard() {
 
           <DashboardSection
             title="Proyectos"
-            description={isDeveloper ? 'Tus proyectos por estado' : 'Por estado'}
+            description={
+              usesProjectScope ? 'Tus proyectos por estado' : 'Por estado'
+            }
           >
             <ProjectStatusChart data={projectStatusData} />
           </DashboardSection>
@@ -701,7 +730,15 @@ export default async function AdminDashboard() {
           {!isDeveloper && (
             <DashboardSection
               title="Bugs"
-              description={bugsTotal > 0 ? `${bugsOpen + bugsInProgress} activos de ${bugsTotal}` : 'Sin bugs registrados'}
+              description={
+                isPM
+                  ? bugsTotal > 0
+                    ? `${bugsOpen + bugsInProgress} activos en tus proyectos`
+                    : 'Sin bugs en tus proyectos'
+                  : bugsTotal > 0
+                    ? `${bugsOpen + bugsInProgress} activos de ${bugsTotal}`
+                    : 'Sin bugs registrados'
+              }
             >
               <BugStatusChart
                 open={bugsOpen}

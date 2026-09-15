@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { getApiUser } from '@/lib/auth/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveVisibleProjectScope } from '@/lib/utils/project-visibility'
 
 function getRouteAdmin() {
   return createAdminClient()
@@ -11,6 +12,8 @@ interface TaskRow {
   id: string
   status: string
   is_carry_over: boolean
+  project_id?: string
+  created_at?: string
 }
 
 function getRoleName(role: unknown): string {
@@ -38,6 +41,39 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
+    const isPM = roleName === 'pm'
+    const projectScope = await resolveVisibleProjectScope(
+      getRouteAdmin(),
+      user.id,
+      roleName
+    )
+    const scopedProjectIds =
+      projectScope.mode === 'ids' ? projectScope.projectIds : null
+
+    if (isPM && scopedProjectIds?.length === 0) {
+      return NextResponse.json({
+        stats: [],
+        unassigned: [],
+        totalTasks: 0,
+        globalTotals: {
+          done: 0,
+          in_progress: 0,
+          review: 0,
+          pending: 0,
+          backlog: 0,
+          carry_over: 0,
+        },
+        bugTotals: {
+          open: 0,
+          in_progress: 0,
+          resolved: 0,
+          closed: 0,
+          total: 0,
+        },
+        openBugs: [],
+      })
+    }
+
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -57,22 +93,65 @@ export async function GET(req: NextRequest) {
       return query
     }
 
-    // Obtener todos los perfiles
-    const { data: allProfiles } = await supabaseAdmin
-      .from('profiles')
-      .select('id, full_name, avatar_url, role:roles(name)')
+    // Perfiles: admin ve todos; PM solo usuarios de sus proyectos
+    let allProfiles: {
+      id: string
+      full_name: string | null
+      avatar_url: string | null
+      role: unknown
+    }[] = []
 
-    if (!allProfiles || allProfiles.length === 0) {
+    if (isPM && scopedProjectIds) {
+      const scopedUserIds = new Set<string>([user.id])
+
+      const { data: members } = await supabaseAdmin
+        .from('project_members')
+        .select('user_id')
+        .in('project_id', scopedProjectIds)
+
+      for (const row of members ?? []) {
+        scopedUserIds.add(row.user_id)
+      }
+
+      const { data: pmProjects } = await supabaseAdmin
+        .from('projects')
+        .select('pm_id, tech_lead_id')
+        .in('id', scopedProjectIds)
+
+      for (const project of pmProjects ?? []) {
+        if (project.pm_id) scopedUserIds.add(project.pm_id)
+        if (project.tech_lead_id) scopedUserIds.add(project.tech_lead_id)
+      }
+
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, full_name, avatar_url, role:roles(name)')
+        .in('id', Array.from(scopedUserIds))
+
+      allProfiles = profiles ?? []
+    } else {
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, full_name, avatar_url, role:roles(name)')
+
+      allProfiles = profiles ?? []
+    }
+
+    if (allProfiles.length === 0) {
       return NextResponse.json({ stats: [] })
     }
 
-    const userIds = allProfiles.map(p => p.id)
+    const userIds = allProfiles.map((p) => p.id)
 
     // Fuente 1: task_assignees (asignaciones modernas)
     let taQuery = supabaseAdmin
       .from('task_assignees')
-      .select('user_id, task:tasks(id, status, is_carry_over, created_at)')
+      .select('user_id, task:tasks!inner(id, status, is_carry_over, created_at, project_id)')
       .in('user_id', userIds)
+
+    if (scopedProjectIds) {
+      taQuery = taQuery.in('task.project_id', scopedProjectIds)
+    }
 
     if (dateFrom || dateTo) {
       // Filter via tasks join — we filter after fetching
@@ -86,15 +165,22 @@ export async function GET(req: NextRequest) {
       .select('id, status, is_carry_over, assignee_id, created_at')
       .in('assignee_id', userIds)
 
+    if (scopedProjectIds) {
+      legacyQuery = legacyQuery.in('project_id', scopedProjectIds)
+    }
+
     if (dateFrom) legacyQuery = legacyQuery.gte('created_at', `${dateFrom}T00:00:00.000Z`)
     if (dateTo) legacyQuery = legacyQuery.lte('created_at', `${dateTo}T23:59:59.999Z`)
 
     const { data: legacyTasks } = await legacyQuery
 
-    // Filter task_assignees by date if needed
-    const filteredTaskAssignees = (taskAssignees || []).filter(ta => {
-      const task = ta.task as unknown as (TaskRow & { created_at?: string }) | null
+    // Filter task_assignees by proyecto y fecha
+    const filteredTaskAssignees = (taskAssignees || []).filter((ta) => {
+      const task = ta.task as unknown as TaskRow | null
       if (!task) return false
+      if (scopedProjectIds && task.project_id && !scopedProjectIds.includes(task.project_id)) {
+        return false
+      }
       if (dateFrom && task.created_at && task.created_at < `${dateFrom}T00:00:00.000Z`) return false
       if (dateTo && task.created_at && task.created_at > `${dateTo}T23:59:59.999Z`) return false
       return true
@@ -113,6 +199,10 @@ export async function GET(req: NextRequest) {
       .select('id, task_number, title, status, priority, category, due_date, created_at, project:projects(id, name, type)')
       .is('assignee_id', null)
 
+    if (scopedProjectIds) {
+      unassignedQuery = unassignedQuery.in('project_id', scopedProjectIds)
+    }
+
     if (dateFrom) unassignedQuery = unassignedQuery.gte('created_at', `${dateFrom}T00:00:00.000Z`)
     if (dateTo) unassignedQuery = unassignedQuery.lte('created_at', `${dateTo}T23:59:59.999Z`)
 
@@ -127,6 +217,7 @@ export async function GET(req: NextRequest) {
 
     // Total de tareas únicas
     let totalQuery = supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true })
+    if (scopedProjectIds) totalQuery = totalQuery.in('project_id', scopedProjectIds)
     if (dateFrom) totalQuery = totalQuery.gte('created_at', `${dateFrom}T00:00:00.000Z`)
     if (dateTo) totalQuery = totalQuery.lte('created_at', `${dateTo}T23:59:59.999Z`)
     const { count: totalTasksCount } = await totalQuery
@@ -134,18 +225,21 @@ export async function GET(req: NextRequest) {
     // Totales globales por status
     const buildTaskCount = (status: string) => {
       let q = supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('status', status)
+      if (scopedProjectIds) q = q.in('project_id', scopedProjectIds)
       if (dateFrom) q = q.gte('created_at', `${dateFrom}T00:00:00.000Z`)
       if (dateTo) q = q.lte('created_at', `${dateTo}T23:59:59.999Z`)
       return q
     }
     const buildCarryOverCount = () => {
       let q = supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('is_carry_over', true)
+      if (scopedProjectIds) q = q.in('project_id', scopedProjectIds)
       if (dateFrom) q = q.gte('created_at', `${dateFrom}T00:00:00.000Z`)
       if (dateTo) q = q.lte('created_at', `${dateTo}T23:59:59.999Z`)
       return q
     }
     const buildBugCount = (status: string) => {
       let q = supabaseAdmin.from('bugs').select('*', { count: 'exact', head: true }).eq('status', status)
+      if (scopedProjectIds) q = q.in('project_id', scopedProjectIds)
       if (dateFrom) q = q.gte('created_at', `${dateFrom}T00:00:00.000Z`)
       if (dateTo) q = q.lte('created_at', `${dateTo}T23:59:59.999Z`)
       return q
@@ -156,6 +250,7 @@ export async function GET(req: NextRequest) {
         .select('id, title, severity, status, created_at, project:projects(id, name), task:tasks(id, task_number, title), assignee:profiles!bugs_assignee_id_fkey(id, full_name, avatar_url)')
         .in('status', ['open', 'in_progress'])
         .order('created_at', { ascending: false })
+      if (scopedProjectIds) q = q.in('project_id', scopedProjectIds)
       if (dateFrom) q = q.gte('created_at', `${dateFrom}T00:00:00.000Z`)
       if (dateTo) q = q.lte('created_at', `${dateTo}T23:59:59.999Z`)
       return q
@@ -221,6 +316,11 @@ export async function GET(req: NextRequest) {
       .from('bugs')
       .select('assignee_id, status, created_at')
       .in('assignee_id', userIds)
+
+    if (scopedProjectIds) {
+      bugsAssigneeQuery = bugsAssigneeQuery.in('project_id', scopedProjectIds)
+    }
+
     if (dateFrom) bugsAssigneeQuery = bugsAssigneeQuery.gte('created_at', `${dateFrom}T00:00:00.000Z`)
     if (dateTo) bugsAssigneeQuery = bugsAssigneeQuery.lte('created_at', `${dateTo}T23:59:59.999Z`)
 
