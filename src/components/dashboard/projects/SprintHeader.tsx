@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Target, Play, CheckCircle2, Loader2, BarChart2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Calendar, Target, Play, CheckCircle2, Loader2, BarChart2, ChevronDown, ChevronUp, Download } from 'lucide-react'
 import { CompleteSprintDialog } from './CompleteSprintDialog'
 import { SprintAnalytics } from './SprintAnalytics'
 import type { Sprint } from './CreateSprintDialog'
@@ -29,6 +29,8 @@ export function SprintHeader({ sprint, projectId, nextSprint, canManage, onSprin
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false)
   const [pendingBugsCount, setPendingBugsCount] = useState(0)
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
 
   const tasks = sprint.tasks || []
   const doneTasks = tasks.filter(t => t.status === 'done').length
@@ -102,8 +104,42 @@ export function SprintHeader({ sprint, projectId, nextSprint, canManage, onSprin
             </div>
           </div>
 
-          {canManage && sprint.status !== 'completed' && (
-            <div className="flex items-center gap-2 shrink-0">
+          {canManage && (
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  setDownloading(true)
+                  setDownloadError(null)
+                  try {
+                    const response = await fetch(`/api/dashboard/projects/${projectId}/sprints/${sprint.id}/plan`)
+                    if (!response.ok) {
+                      const body = await response.json().catch(() => null)
+                      throw new Error(body?.error || 'No se pudo descargar el plan')
+                    }
+                    const blob = await response.blob()
+                    const header = response.headers.get('Content-Disposition') || ''
+                    const match = header.match(/filename="([^"]+)"/)
+                    const filename = match?.[1] || 'sprint.json'
+                    const url = URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    link.href = url
+                    link.download = filename
+                    link.click()
+                    URL.revokeObjectURL(url)
+                  } catch (error) {
+                    setDownloadError(error instanceof Error ? error.message : 'No se pudo descargar el plan')
+                  } finally {
+                    setDownloading(false)
+                  }
+                }}
+                disabled={downloading}
+              >
+                {downloading
+                  ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Descargando...</>
+                  : <><Download className="w-3.5 h-3.5 mr-1.5" /> Descargar plan</>}
+              </Button>
               {sprint.status === 'planning' && (
                 <Button
                   size="sm"
@@ -129,8 +165,8 @@ export function SprintHeader({ sprint, projectId, nextSprint, canManage, onSprin
           )}
         </div>
 
-        {startError && (
-          <p className="text-xs text-red-600 dark:text-red-400">{startError}</p>
+        {(startError || downloadError) && (
+          <p className="text-xs text-red-600 dark:text-red-400">{startError || downloadError}</p>
         )}
 
         {/* Barra de progreso */}
