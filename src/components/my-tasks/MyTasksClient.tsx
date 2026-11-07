@@ -10,6 +10,7 @@ import { MyTasksProjectSelector } from './MyTasksProjectSelector'
 import { ProjectSprintBanner } from './ProjectSprintBanner'
 import { ProjectOrderDialog } from './ProjectOrderDialog'
 import { Button } from '@/components/ui/button'
+import { RegistroTitle } from '@/components/dashboard/catalog/RegistroTitle'
 import { Plus, CalendarDays, ListTodo, Settings2 } from 'lucide-react'
 
 const STORAGE_KEY = 'synchro-project-order'
@@ -178,44 +179,36 @@ export function MyTasksClient() {
 
   return (
     <div className="flex flex-col gap-4 md:gap-5 md:h-[calc(100svh-8rem)]">
-      <div className="flex items-start justify-between gap-3 flex-shrink-0">
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Mis Tareas</h1>
-          <p className="text-[15px] text-muted-foreground mt-1">Tus tareas asignadas y reuniones agendadas</p>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex md:hidden rounded-full p-0.5 bg-black/[0.04] dark:bg-white/[0.06]">
-            <button
-              type="button"
-              onClick={() => setMobileView('list')}
-              className={`p-2 rounded-full transition-colors ${
-                mobileView === 'list'
-                  ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
-                  : 'text-muted-foreground'
-              }`}
-              aria-label="Ver lista"
-            >
-              <ListTodo className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileView('calendar')}
-              className={`p-2 rounded-full transition-colors ${
-                mobileView === 'calendar'
-                  ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
-                  : 'text-muted-foreground'
-              }`}
-              aria-label="Ver calendario"
-            >
-              <CalendarDays className="w-4 h-4" />
-            </button>
+      <RegistroTitle
+        title="Mis tareas"
+        subtitle="Tus tareas asignadas y las reuniones agendadas."
+        action={
+          <div className="flex items-center gap-2">
+            <div className="flex border border-foreground/20 md:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileView('list')}
+                className={`p-2 ${mobileView === 'list' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}
+                aria-label="Ver lista"
+              >
+                <ListTodo className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileView('calendar')}
+                className={`p-2 ${mobileView === 'calendar' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}
+                aria-label="Ver calendario"
+              >
+                <CalendarDays className="w-4 h-4" />
+              </button>
+            </div>
+            <Button onClick={() => { setSelectedDate(null); setCreateMeetingOpen(true) }} className="h-10 rounded-none px-3 md:px-4">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Agendar reunión</span>
+            </Button>
           </div>
-          <Button onClick={() => { setSelectedDate(null); setCreateMeetingOpen(true) }} className="h-10 px-3 md:px-4">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Agendar reunión</span>
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {projectsWithTasks.length > 0 && (
         <div className="flex items-start gap-2 flex-shrink-0">

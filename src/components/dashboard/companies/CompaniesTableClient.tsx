@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CreateCompanyDialog } from './CreateCompanyDialog'
 import { EditCompanyDialog } from './EditCompanyDialog'
 import { DeleteCompanyDialog } from './DeleteCompanyDialog'
+import { RegistroTitle } from '@/components/dashboard/catalog/RegistroTitle'
 import { GlassPanel } from '@/components/ui/glass-panel'
 
 interface Company {
@@ -93,13 +94,11 @@ export function CompaniesTableClient() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Empresas</h1>
-          <p className="text-[15px] text-muted-foreground mt-1">Gestiona las empresas del sistema</p>
-        </div>
-        <CreateCompanyDialog onCompanyCreated={fetchCompanies} />
-      </div>
+      <RegistroTitle
+        title="Empresas"
+        subtitle="Las empresas que agrupan los proyectos."
+        action={<CreateCompanyDialog onCompanyCreated={fetchCompanies} />}
+      />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
         <GlassPanel padding={2.25}>

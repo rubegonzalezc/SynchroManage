@@ -13,6 +13,7 @@ import { DeleteUserDialog } from './DeleteUserDialog'
 import { CreateUserDialog } from './CreateUserDialog'
 import { Search, ChevronLeft, ChevronRight, X, RefreshCw, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { RegistroTitle } from '@/components/dashboard/catalog/RegistroTitle'
 import { GlassPanel } from '@/components/ui/glass-panel'
 import { cn } from '@/lib/utils'
 
@@ -223,7 +224,7 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
   if (error && users.length === 0 && !loading) {
     return (
       <div className="space-y-5">
-        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Usuarios</h1>
+        <RegistroTitle title="Usuarios" />
         <GlassPanel>
           <p className="text-[14px] text-red-600 dark:text-red-400">{error}</p>
         </GlassPanel>
@@ -233,13 +234,11 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Usuarios</h1>
-          <p className="text-[15px] text-muted-foreground mt-1">Gestiona los usuarios del sistema</p>
-        </div>
-        <CreateUserDialog roles={roles} onSuccess={refreshUsers} />
-      </div>
+      <RegistroTitle
+        title="Usuarios"
+        subtitle="Quién entra al sistema y con qué rol."
+        action={<CreateUserDialog roles={roles} onSuccess={refreshUsers} />}
+      />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
         <GlassPanel padding={2.25}>

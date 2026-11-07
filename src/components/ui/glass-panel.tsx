@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react'
 import { Box, type SxProps, type Theme } from '@mui/material'
-import { tokens } from '@/theme/designTokens'
 
 /**
  * Panel de cristal. Se apoya en las variables CSS del design system, por lo que
@@ -24,16 +23,11 @@ export function GlassPanel({
       className={className}
       sx={[
         {
-          borderRadius: '24px',
+          borderRadius: 0,
           p: padding,
-          bgcolor: 'var(--glass-bg-soft)',
-          backdropFilter: 'blur(28px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-          border: '1px solid var(--glass-border)',
-          boxShadow: 'var(--shadow-soft), var(--glass-inner-top)',
-          backgroundImage:
-            'linear-gradient(180deg, var(--glass-highlight-soft) 0%, transparent 36%)',
-          transition: `transform 400ms ${tokens.ease}, box-shadow 400ms ${tokens.ease}`,
+          bgcolor: 'transparent',
+          border: '1px solid color-mix(in srgb, var(--foreground) 16%, transparent)',
+          boxShadow: 'none',
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
       ]}

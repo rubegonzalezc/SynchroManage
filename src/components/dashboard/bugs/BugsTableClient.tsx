@@ -9,6 +9,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { RegistroTitle } from '@/components/dashboard/catalog/RegistroTitle'
 import { GlassPanel } from '@/components/ui/glass-panel'
 import { BugDetailDialog } from '@/components/dashboard/projects/BugDetailDialog'
 import { useUsers } from '@/hooks/useUsers'
@@ -296,7 +297,7 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
   if (error && bugs.length === 0 && !loading) {
     return (
       <div className="space-y-5">
-        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Triage de bugs</h1>
+        <RegistroTitle title="Triage de bugs" />
         <GlassPanel>
           <p className="text-[14px] text-red-600 dark:text-red-400">{error}</p>
         </GlassPanel>
@@ -306,18 +307,16 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Triage de bugs</h1>
-          <p className="text-[15px] text-muted-foreground mt-1">
-            Prioriza incidencias cross-proyecto sin entrar proyecto por proyecto
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setRefreshKey(k => k + 1)} disabled={loading}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Actualizar
-        </Button>
-      </div>
+      <RegistroTitle
+        title="Triage de bugs"
+        subtitle="Prioriza incidencias de todos los proyectos."
+        action={
+          <Button variant="outline" size="sm" className="rounded-none" onClick={() => setRefreshKey(k => k + 1)} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        }
+      />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
         <GlassPanel padding={2.25}>

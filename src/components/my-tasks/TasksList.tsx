@@ -256,7 +256,7 @@ function MobileMyTasks({
                 key={task.id}
                 type="button"
                 onClick={() => onOpen(task.id)}
-                className="mobile-task-card w-full text-left rounded-2xl border border-border bg-card px-3 py-3 flex gap-3"
+                className="mobile-task-card w-full border-b border-foreground/10 py-3 text-left flex gap-3"
               >
                 <span className={`mt-1 w-1 self-stretch rounded-full ${priorityDot[task.priority] || 'bg-slate-400'}`} />
                 <span className="min-w-0 flex-1">

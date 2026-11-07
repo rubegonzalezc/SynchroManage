@@ -125,7 +125,7 @@ export default function SettingsPage() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Configuración</h1>
+          <h1 className="text-[34px] leading-none tracking-tight sm:text-[42px]" style={{ fontFamily: 'Georgia, "Iowan Old Style", Palatino, serif' }}>Configuración</h1>
           <p className="text-[15px] text-muted-foreground mt-1">Administra la configuración del sistema</p>
         </div>
         <Button onClick={saveSettings} disabled={saving}>
