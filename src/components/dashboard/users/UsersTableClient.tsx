@@ -13,6 +13,7 @@ import { DeleteUserDialog } from './DeleteUserDialog'
 import { CreateUserDialog } from './CreateUserDialog'
 import { Search, ChevronLeft, ChevronRight, X, RefreshCw, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { RegistroTitle } from '@/components/dashboard/catalog/RegistroTitle'
 import { GlassPanel } from '@/components/ui/glass-panel'
 import { cn } from '@/lib/utils'
 
@@ -214,16 +215,16 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
   const pendingCount = users.filter(u => !u.email_confirmed).length
 
   const pillClass = (selected: boolean) =>
-    `px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${
+    `px-3 py-1.5 rounded-lg text-[13px] font-medium whitespace-nowrap border transition-colors ${
       selected
-        ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
-        : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground'
+        ? 'bg-primary text-primary-foreground border-primary'
+        : 'bg-card text-muted-foreground border-border hover:text-foreground'
     }`
 
   if (error && users.length === 0 && !loading) {
     return (
       <div className="space-y-5">
-        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Usuarios</h1>
+        <RegistroTitle title="Usuarios" />
         <GlassPanel>
           <p className="text-[14px] text-red-600 dark:text-red-400">{error}</p>
         </GlassPanel>
@@ -233,36 +234,34 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Usuarios</h1>
-          <p className="text-[15px] text-muted-foreground mt-1">Gestiona los usuarios del sistema</p>
-        </div>
-        <CreateUserDialog roles={roles} onSuccess={refreshUsers} />
-      </div>
+      <RegistroTitle
+        title="Usuarios"
+        subtitle="Quién entra al sistema y con qué rol."
+        action={<CreateUserDialog roles={roles} onSuccess={refreshUsers} />}
+      />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
-        <GlassPanel padding={2.25}>
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Total</p>
+        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 dark:border-sky-800 dark:bg-sky-950/40">
+          <p className="text-[12px] font-medium text-muted-foreground">Total</p>
           {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#0A84FF' }}>{users.length}</p>
+            <p className="mt-2 text-[28px] font-semibold leading-none text-sky-700 dark:text-sky-200">{users.length}</p>
           )}
-        </GlassPanel>
-        <GlassPanel padding={2.25}>
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Confirmados</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 dark:border-emerald-800 dark:bg-emerald-950/40">
+          <p className="text-[12px] font-medium text-muted-foreground">Confirmados</p>
           {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#30D158' }}>{confirmedCount}</p>
+            <p className="mt-2 text-[28px] font-semibold leading-none text-emerald-700 dark:text-emerald-200">{confirmedCount}</p>
           )}
-        </GlassPanel>
-        <GlassPanel padding={2.25} className="col-span-2 lg:col-span-1">
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Pendientes</p>
+        </div>
+        <div className="col-span-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 dark:border-amber-800 dark:bg-amber-950/40 lg:col-span-1">
+          <p className="text-[12px] font-medium text-muted-foreground">Pendientes</p>
           {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#FF9F0A' }}>{pendingCount}</p>
+            <p className="mt-2 text-[28px] font-semibold leading-none text-amber-700 dark:text-amber-200">{pendingCount}</p>
           )}
-        </GlassPanel>
+        </div>
       </div>
 
-      <GlassPanel padding={1} sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
           <Input
@@ -309,7 +308,7 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
             <X className="w-4 h-4" /> Limpiar
           </Button>
         )}
-      </GlassPanel>
+      </div>
 
       {resendSuccess && (
         <GlassPanel padding={2}>
@@ -322,96 +321,98 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
         </GlassPanel>
       )}
 
-      <GlassPanel padding={2.25}>
-        {loading ? (
-          <div className="space-y-1">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-3 rounded-2xl px-3 py-3">
-                <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-44" />
-                </div>
-                <Skeleton className="h-5 w-20 rounded-full" />
-              </div>
-            ))}
-          </div>
-        ) : paginatedUsers.length === 0 ? (
-          <p className="text-[14px] text-muted-foreground text-center py-12">
-            {hasActiveFilters ? 'No se encontraron usuarios' : 'No hay usuarios registrados'}
-          </p>
-        ) : (
-          <div className="space-y-0.5">
-            {paginatedUsers.map((user) => {
-              const userRoles = user.roles && user.roles.length > 0
-                ? user.roles
-                : user.role?.name ? [user.role.name] : []
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-36 rounded-2xl" />
+          ))}
+        </div>
+      ) : paginatedUsers.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-border px-4 py-12 text-center text-[14px] text-muted-foreground">
+          {hasActiveFilters ? 'No se encontraron usuarios' : 'No hay usuarios registrados'}
+        </p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {paginatedUsers.map((user) => {
+            const userRoles = user.roles && user.roles.length > 0
+              ? user.roles
+              : user.role?.name ? [user.role.name] : []
+            const wash = userRoles.includes('admin')
+              ? 'bg-rose-50 dark:bg-rose-950/25'
+              : userRoles.includes('pm')
+                ? 'bg-sky-50 dark:bg-sky-950/25'
+                : userRoles.includes('tech_lead')
+                  ? 'bg-violet-50 dark:bg-violet-950/25'
+                  : userRoles.includes('developer')
+                    ? 'bg-emerald-50 dark:bg-emerald-950/25'
+                    : 'bg-card'
 
-              return (
-                <div
-                  key={user.id}
-                  id={`user-row-${user.id}`}
-                  className={cn(
-                    'flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors',
-                    focusUserId === user.id && 'ring-2 ring-primary/40 bg-primary/5'
-                  )}
-                >
-                  <Avatar className="w-9 h-9 flex-shrink-0">
+            return (
+              <article
+                key={user.id}
+                id={`user-row-${user.id}`}
+                className={cn(
+                  'flex flex-col rounded-2xl border border-border p-4',
+                  wash,
+                  focusUserId === user.id && 'ring-2 ring-primary/40'
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-10 w-10 shrink-0">
                     <AvatarImage src={user.avatar_url || undefined} />
                     <AvatarFallback className="text-[11px]">
                       {getInitials(user.full_name, user.email)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-medium text-foreground truncate">{user.full_name || 'Sin nombre'}</p>
-                    <p className="text-[12px] text-muted-foreground truncate mt-0.5">
-                      {[user.email, user.company?.name].filter(Boolean).join(' · ')}
-                    </p>
+                    <p className="truncate text-[15px] font-semibold">{user.full_name || 'Sin nombre'}</p>
+                    <p className="truncate text-[12px] text-muted-foreground">{user.email}</p>
                   </div>
-                  <div className="hidden sm:flex flex-wrap gap-1 flex-shrink-0">
-                    {userRoles.length > 0 ? userRoles.map((roleName) => (
-                      <span key={roleName} className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${roleBadgeColors[roleName] || 'bg-muted text-muted-foreground'}`}>
-                        {roleLabels[roleName] || roleName}
-                      </span>
-                    )) : (
-                      <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-muted text-muted-foreground">Sin rol</span>
-                    )}
-                  </div>
-                  <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 flex-shrink-0 ${
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                     user.email_confirmed
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
                   }`}>
                     {user.email_confirmed ? 'Confirmado' : 'Pendiente'}
                   </span>
-                  <span className="hidden md:block text-[12px] text-muted-foreground flex-shrink-0 w-[100px] text-right">
-                    {formatDate(user.created_at)}
-                  </span>
-                  <div className="flex items-center gap-0.5 flex-shrink-0">
-                    {!user.email_confirmed && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full"
-                        onClick={() => handleResendInvite(user.id)}
-                        disabled={resendingUserId === user.id}
-                        title="Reenviar invitación"
-                      >
-                        {resendingUserId === user.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-4 h-4" />
-                        )}
-                      </Button>
-                    )}
-                    <EditUserDialog user={user} roles={roles} onSuccess={refreshUsers} />
-                    <DeleteUserDialog user={user} onSuccess={refreshUsers} />
-                  </div>
                 </div>
-              )
-            })}
-          </div>
-        )}
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {userRoles.length > 0 ? userRoles.map((roleName) => (
+                    <span key={roleName} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${roleBadgeColors[roleName] || 'bg-muted text-muted-foreground'}`}>
+                      {roleLabels[roleName] || roleName}
+                    </span>
+                  )) : (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Sin rol</span>
+                  )}
+                </div>
+                <p className="mt-2 text-[12px] text-muted-foreground">
+                  {user.company?.name || 'Sin empresa'} · {formatDate(user.created_at)}
+                </p>
+                <div className="mt-3 flex items-center justify-end gap-0.5">
+                  {!user.email_confirmed && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => handleResendInvite(user.id)}
+                      disabled={resendingUserId === user.id}
+                      title="Reenviar invitación"
+                    >
+                      {resendingUserId === user.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                  )}
+                  <EditUserDialog user={user} roles={roles} onSuccess={refreshUsers} />
+                  <DeleteUserDialog user={user} onSuccess={refreshUsers} />
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
 
         {!loading && filteredUsers.length > 0 && (
           <div className="flex items-center justify-between gap-3 pt-4 mt-2">
@@ -443,7 +444,6 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
             </div>
           </div>
         )}
-      </GlassPanel>
     </div>
   )
 }

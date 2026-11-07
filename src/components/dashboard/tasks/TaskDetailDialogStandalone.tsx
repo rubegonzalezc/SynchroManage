@@ -20,21 +20,21 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MentionInput, renderMentions, extractMentionedUserIds } from '@/components/ui/mention-input'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Loader2, Trash2, Send, RefreshCw, ExternalLink, GitBranch, Copy, Check } from 'lucide-react'
+import { Loader2, Trash2, Send, RefreshCw, ExternalLink, GitBranch, Copy, Check, Pencil, ArrowLeft, Calendar, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { useDynamicIslandToast } from '@/components/ui/dynamic-island-toast'
 import { readApiError } from '@/lib/utils/api-error'
-import { TASK_CATEGORIES } from '@/lib/constants/categories'
+import { TASK_CATEGORIES, categoryIcons, categoryLabels } from '@/lib/constants/categories'
 import { getBranchName } from '@/lib/utils/branch-name'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
 import { MultiSelectTask, type TaskOption } from '@/components/ui/multi-select-task'
 import { SprintTaskReferenceBadge } from '@/components/ui/sprint-task-reference-badge'
 import { formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
-import { resolveDependencyTasks, formatDependencyLabel, getPendingDependencies } from '@/lib/utils/task-dependency'
-import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import { resolveDependencyTasks, formatDependencyLabel, getPendingDependencies, isAdvancedTaskStatus } from '@/lib/utils/task-dependency'
+import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems, TASK_STATUS_OPTIONS } from '@/components/dashboard/tasks/task-status-select'
 import type { BlockingBugRef } from '@/lib/utils/task-open-bugs'
 import { TaskActivityHistory } from '@/components/dashboard/tasks/TaskActivityHistory'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
@@ -90,6 +90,9 @@ interface TaskDetail {
     sprint_order?: number | null
   }[]
   assignee: { id: string; full_name: string; avatar_url: string | null } | null
+  assignees?: { id: string; full_name: string; avatar_url: string | null }[]
+  sprint?: { id: string; name: string; status: string } | null
+  branch_name?: string | null
   project: { id: string; name: string } | null
   comments: Comment[]
   blocking_bugs?: BlockingBugRef[]
@@ -121,9 +124,12 @@ const roleLabels: Record<string, string> = {
 
 export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskUpdated }: TaskDetailDialogStandaloneProps) {
   const { showError } = useDynamicIslandToast()
+  const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [task, setTask] = useState<TaskDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [statusSaving, setStatusSaving] = useState(false)
+  const [statusError, setStatusError] = useState<string | null>(null)
   const [branchCopied, setBranchCopied] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [sendingComment, setSendingComment] = useState(false)
@@ -248,6 +254,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
 
   useEffect(() => {
     if (open && taskId) {
+      setMode('view')
       setLoading(true)
       fetchTask()
       fetchUsers()
@@ -319,6 +326,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
       fetchTask()
       onTaskUpdated?.()
       setActivityRefreshKey((key) => key + 1)
+      setMode('view')
     } catch (error) {
       console.error('Error saving task:', error)
       const errorMessage = 'No se pudo guardar la tarea'
@@ -326,6 +334,54 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
       showError(errorMessage)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const resetFormFromTask = () => {
+    if (!task) return
+    setFormData({
+      title: task.title,
+      description: task.description || '',
+      status: task.status,
+      priority: task.priority,
+      category: task.category || 'task',
+      assignee_id: task.assignee?.id || '',
+      reviewer_id: task.reviewer?.id || task.reviewer_id || '',
+      due_date: task.due_date || '',
+      sprint_id: task.sprint_id || '',
+      depends_on_task_ids: task.depends_on_task_ids
+        ?? task.dependencies?.map((dep) => dep.id)
+        ?? (task.depends_on_task_id ? [task.depends_on_task_id] : []),
+    })
+  }
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!task || newStatus === task.status) return
+    setStatusSaving(true)
+    setStatusError(null)
+    try {
+      const response = await fetch(`/api/dashboard/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, status: newStatus }),
+      })
+      if (!response.ok) {
+        const errorMessage = await readApiError(response, 'No se pudo cambiar el estado')
+        setStatusError(errorMessage)
+        showError(errorMessage)
+        return
+      }
+      setFormData((prev) => ({ ...prev, status: newStatus }))
+      setTask((prev) => (prev ? { ...prev, status: newStatus } : null))
+      onTaskUpdated?.()
+      setActivityRefreshKey((key) => key + 1)
+    } catch (error) {
+      console.error('Error updating status:', error)
+      const errorMessage = 'No se pudo cambiar el estado'
+      setStatusError(errorMessage)
+      showError(errorMessage)
+    } finally {
+      setStatusSaving(false)
     }
   }
 
@@ -426,24 +482,56 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
     sprints: projectSprints,
   })
 
+  const priorityLabels: Record<string, string> = {
+    low: 'Baja',
+    medium: 'Media',
+    high: 'Alta',
+    urgent: 'Urgente',
+  }
+  const assignees = task?.assignees?.length
+    ? task.assignees
+    : task?.assignee
+      ? [task.assignee]
+      : []
+  const sprintName = task?.sprint?.name
+    || projectSprints.find((sprint) => sprint.id === task?.sprint_id)?.name
+  const dueLabel = task?.due_date
+    ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
+    : null
+  const overdue = Boolean(task?.due_date && task.status !== 'done' && new Date(task.due_date + 'T00:00:00') < new Date())
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 flex-wrap">
-              {task && (
-                <>
-                  {task.task_number != null && (
-                    <span className="text-muted-foreground font-mono">#{task.task_number}</span>
-                  )}
-                  {sprintReferenceLabel && (
-                    <SprintTaskReferenceBadge label={sprintReferenceLabel} />
-                  )}
-                  <span>{task.title}</span>
-                </>
-              )}
+          <DialogHeader className="flex flex-row items-start justify-between gap-3 pr-8">
+            <DialogTitle className="flex-1 min-w-0">
+              {mode === 'edit'
+                ? (task?.task_number != null ? `Editar tarea #${task.task_number}` : 'Editar tarea')
+                : 'Vista de la tarea'}
             </DialogTitle>
+            {task && !loading && (
+              mode === 'view' ? (
+                <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 shrink-0" onClick={() => setMode('edit')}>
+                  <Pencil className="w-3.5 h-3.5" />
+                  Editar
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  aria-label="Volver a la vista"
+                  onClick={() => {
+                    resetFormFromTask()
+                    setMode('view')
+                  }}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              )
+            )}
           </DialogHeader>
 
           {loading ? (
@@ -452,64 +540,140 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
             </div>
           ) : task ? (
             <div className="space-y-6">
-              {/* Project Link + Branch */}
-              <div className="flex flex-col gap-2">
-                {task.project && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Proyecto:</span>
-                    <Link
-                      href={`/projects/${task.project.id}`}
-                      className="text-foreground hover:underline flex items-center gap-1"
-                    >
-                      {task.project.name}
-                      <ExternalLink className="w-3 h-3" />
-                    </Link>
-                  </div>
-                )}
-
-                {/* Rama de creación */}
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground text-sm">Rama:</span>
-                  <div className="flex items-center gap-1.5 bg-muted rounded-md px-2.5 py-1 flex-1 min-w-0">
-                    <GitBranch className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="font-mono text-xs text-foreground truncate">
-                      {getBranchName(task)}
-                    </span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(getBranchName(task))
-                        setBranchCopied(true)
-                        setTimeout(() => setBranchCopied(false), 1500)
-                      }}
-                      className="ml-auto flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors p-0.5"
-                      title="Copiar nombre de rama"
-                    >
-                      {branchCopied
-                        ? <Check className="w-3.5 h-3.5 text-green-500" />
-                        : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {dependencyTasks.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Dependencias</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {dependencyTasks.map((dep) => (
-                      <Badge
-                        key={dep.id}
-                        variant={dep.status === 'done' ? 'secondary' : 'outline'}
-                        className="font-normal"
-                      >
-                        {formatDependencyLabel(dep)}
+              {mode === 'view' ? (
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold tracking-tight leading-snug">{task.title}</h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {task.task_number != null && (
+                        <Badge variant="secondary" className="font-mono font-normal">#{task.task_number}</Badge>
+                      )}
+                      {sprintReferenceLabel && <SprintTaskReferenceBadge label={sprintReferenceLabel} />}
+                      <Badge variant="secondary" className="font-normal">
+                        {categoryIcons[task.category || 'task']} {categoryLabels[task.category || 'task'] || 'Tarea'}
                       </Badge>
-                    ))}
+                      <Badge variant="outline" className="font-normal">{priorityLabels[task.priority] || task.priority}</Badge>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 rounded-2xl border border-sky-200 bg-sky-50/80 p-4 dark:border-sky-800 dark:bg-sky-950/30">
+                    <p className="text-[13px] font-medium text-muted-foreground">Estado</p>
+                    <DependencyBlockedWarning dependencyTasks={dependencyTasks} />
+                    <OpenBugsBlockedWarning
+                      blockingBugs={blockingBugs}
+                      projectId={task.project?.id ?? ''}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {TASK_STATUS_OPTIONS.map((option) => {
+                        const pending = getPendingDependencies(dependencyTasks)
+                        const blocked = (pending.length > 0 && isAdvancedTaskStatus(option.value))
+                          || (option.value === 'done' && blockingBugs.length > 0)
+                        const selected = task.status === option.value
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            disabled={statusSaving || blocked}
+                            onClick={() => handleStatusChange(option.value)}
+                            className={`rounded-full px-3 py-1 text-[12px] font-semibold ${
+                              selected
+                                ? 'bg-primary text-primary-foreground'
+                                : 'border border-border bg-card text-muted-foreground'
+                            } ${blocked ? 'cursor-not-allowed opacity-40' : ''}`}
+                          >
+                            {option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {statusSaving && <p className="text-xs text-muted-foreground">Actualizando estado...</p>}
+                    {statusError && <p className="text-sm text-destructive">{statusError}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    {task.project && (
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Proyecto</p>
+                        <Link href={`/projects/${task.project.id}`} className="inline-flex items-center gap-1 hover:underline">
+                          {task.project.name}
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    )}
+                    {dueLabel && (
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Fecha límite</p>
+                        <p className={`flex items-center gap-1.5 ${overdue ? 'font-medium text-red-600 dark:text-red-400' : ''}`}>
+                          <Calendar className="w-3.5 h-3.5" />
+                          {dueLabel}{overdue ? ' · Vencida' : ''}
+                        </p>
+                      </div>
+                    )}
+                    {sprintName && (
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Sprint</p>
+                        <p>{sprintName}</p>
+                      </div>
+                    )}
+                    {assignees.length > 0 && (
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Asignados</p>
+                        <p>{assignees.map((person) => person.full_name).join(', ')}</p>
+                      </div>
+                    )}
+                    {task.reviewer && (
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Revisor</p>
+                        <p className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-muted-foreground" />
+                          {task.reviewer.full_name}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {dependencyTasks.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[13px] font-medium text-muted-foreground">Dependencias</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {dependencyTasks.map((dep) => (
+                          <Badge key={dep.id} variant={dep.status === 'done' ? 'secondary' : 'outline'} className="font-normal">
+                            {formatDependencyLabel(dep)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {task.description && (
+                    <div className="space-y-1.5 rounded-2xl border border-border bg-muted/40 p-4">
+                      <p className="text-[13px] font-medium text-muted-foreground">Descripción</p>
+                      <div className="text-sm text-muted-foreground leading-relaxed">
+                        <FormattedText>{task.description}</FormattedText>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground text-sm">Rama</span>
+                    <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-1.5 flex-1 min-w-0">
+                      <GitBranch className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                      <span className="font-mono text-xs truncate">{getBranchName(task)}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(getBranchName(task))
+                          setBranchCopied(true)
+                          setTimeout(() => setBranchCopied(false), 1500)
+                        }}
+                        className="ml-auto text-muted-foreground hover:text-foreground"
+                        title="Copiar nombre de rama"
+                      >
+                        {branchCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {/* Form */}
+              ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Título</Label>
@@ -657,7 +821,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Guardando...</> : 'Guardar Cambios'}
                 </Button>
               </div>
-
+              )}
 
               {/* Attachments */}
               <div className="border-t border-border pt-4">

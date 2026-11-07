@@ -7,7 +7,7 @@ import {
   DialogContentText,
   IconButton,
   Box,
-  Grow,
+  Fade,
   useMediaQuery,
 } from '@mui/material'
 import CloseRounded from '@mui/icons-material/CloseRounded'
@@ -114,8 +114,8 @@ function DialogContent({
       fullWidth
       maxWidth={dialogMaxWidth(className)}
       scroll="paper"
-      slots={{ transition: Grow }}
-      transitionDuration={phone ? { enter: 160, exit: 120 } : { enter: 320, exit: 220 }}
+      slots={{ transition: Fade }}
+      transitionDuration={phone ? { enter: 180, exit: 140 } : { enter: 200, exit: 150 }}
       slotProps={{
         paper: {
           sx: {
