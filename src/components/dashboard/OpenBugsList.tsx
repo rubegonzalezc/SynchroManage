@@ -53,14 +53,12 @@ export function OpenBugsList({ bugs }: OpenBugsListProps) {
               <Link
                 key={bug.id}
                 href={href}
-                className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-2xl px-2 py-2.5 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+                className="flex min-w-0 flex-col gap-2 rounded-2xl px-2 py-3 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
               >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="text-[14px] font-medium text-foreground truncate">{bug.title}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                <p className="text-[14px] font-medium leading-snug break-words text-foreground">{bug.title}</p>
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   {bug.project && (
-                    <span className="text-[12px] text-muted-foreground truncate max-w-[120px]">{bug.project.name}</span>
+                    <span className="text-[12px] text-muted-foreground break-words">{bug.project.name}</span>
                   )}
                   {bug.task && (
                     <span className="text-[12px] text-muted-foreground">#{bug.task.task_number}</span>

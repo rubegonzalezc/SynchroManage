@@ -118,7 +118,7 @@ export function DashboardHome({
   }
 
   return (
-    <div className="w-full overflow-x-hidden">
+    <div className="w-full min-w-0">
       <RegistroTitle
         eyebrow={dateLabel}
         title={greeting}
@@ -159,9 +159,9 @@ export function DashboardHome({
         </div>
       )}
 
-      <div className={`mt-8 grid gap-8 ${tasks ? 'xl:grid-cols-5' : ''}`}>
+      <div className={`mt-8 grid min-w-0 gap-8 ${tasks ? 'xl:grid-cols-5' : ''}`}>
         {tasks && (
-          <section className="rounded-2xl border border-border bg-card p-4 sm:p-5 xl:col-span-3">
+          <section className="min-w-0 rounded-2xl border border-border bg-card p-4 sm:p-5 xl:col-span-3">
             <LedgerHead title={tasksTitle} description={tasksDescription} href={tasksHref} hrefLabel="Ver todas" />
             {tasks.length === 0 ? (
               <p className="py-8 text-[14px] text-muted-foreground">No hay tareas urgentes pendientes</p>
@@ -190,7 +190,7 @@ export function DashboardHome({
           </section>
         )}
 
-        <section className={`rounded-2xl border border-border bg-card p-4 sm:p-5 ${tasks ? 'xl:col-span-2' : ''}`}>
+        <section className={`min-w-0 rounded-2xl border border-border bg-card p-4 sm:p-5 ${tasks ? 'xl:col-span-2' : ''}`}>
           <LedgerHead title="Proyectos" description={projectsDescription} href="/projects" hrefLabel="Ver todos" />
           {projects.length === 0 ? (
             <p className="py-8 text-[14px] text-muted-foreground">No hay proyectos registrados</p>
@@ -215,9 +215,9 @@ export function DashboardHome({
       <div className="mt-8">{meetings}</div>
 
       {(activity || aside) && (
-        <div className={`mt-8 grid gap-8 ${aside ? 'lg:grid-cols-2' : ''}`}>
+        <div className="mt-8 grid min-w-0 gap-8">
           {activity && (
-            <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+            <section className="min-w-0 rounded-2xl border border-border bg-card p-4 sm:p-5">
               <h2 className="text-[16px] font-semibold tracking-tight">Actividad</h2>
               <p className="mt-0.5 mb-3 text-[13px] text-muted-foreground">{activityDescription}</p>
               {activity.length === 0 ? (
@@ -225,13 +225,13 @@ export function DashboardHome({
               ) : (
                 <ol>
                   {activity.map((item) => (
-                    <li key={item.id} className="flex gap-3 border-b border-foreground/10 py-3">
+                    <li key={item.id} className="flex gap-3 border-b border-foreground/10 py-3 last:border-b-0">
                       <Avatar className="mt-0.5 h-8 w-8 shrink-0">
                         <AvatarImage src={item.avatarUrl || undefined} />
                         <AvatarFallback className="text-[10px]">{item.initials}</AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0">
-                        <p className="text-[14px] leading-snug">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] leading-snug break-words">
                           <span className="font-medium">{item.name}</span>{' '}
                           <span className={item.actionClass}>{item.action}</span>{' '}
                           {item.entity}
@@ -245,7 +245,7 @@ export function DashboardHome({
               )}
             </section>
           )}
-          {aside && <div className="flex flex-col gap-8">{aside}</div>}
+          {aside && <div className="grid min-w-0 gap-8">{aside}</div>}
         </div>
       )}
 
