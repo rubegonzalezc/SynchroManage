@@ -5,14 +5,11 @@ import { redirect } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import Link from 'next/link'
 import { UpcomingMeetings } from '@/components/dashboard/UpcomingMeetings'
-import { TaskStatusChart } from '@/components/dashboard/TaskStatusChart'
-import { ProjectStatusChart } from '@/components/dashboard/ProjectStatusChart'
-import { BugStatusChart } from '@/components/dashboard/BugStatusChart'
-import { UsersRoleChart } from '@/components/dashboard/UsersRoleChart'
+import { DashboardSection } from '@/components/dashboard/DashboardSection'
+import { DashboardCharts } from '@/components/dashboard/DashboardCharts'
 import { UnassignedTasks } from '@/components/dashboard/UnassignedTasks'
 import { OpenBugsList } from '@/components/dashboard/OpenBugsList'
 import { DashboardStatTile } from '@/components/dashboard/DashboardStatTile'
-import { DashboardSection } from '@/components/dashboard/DashboardSection'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administradores',
@@ -698,69 +695,25 @@ export default async function AdminDashboard() {
       </div>
 
       {!isStakeholder && (
-        <div className={`grid gap-3 ${isAdmin ? 'md:grid-cols-4' : isDeveloper ? 'md:grid-cols-2' : isPM ? 'md:grid-cols-3' : 'md:grid-cols-3'}`}>
-          <DashboardSection
-            title={isDeveloper ? 'Mi Progreso' : 'Tareas'}
-            description={
-              isDeveloper
-                ? 'Tus tareas por estado'
-                : isPM
-                  ? 'Tareas de tus proyectos por estado'
-                  : 'Distribución por estado'
-            }
-          >
-            <TaskStatusChart
-              done={tasksDone}
-              inProgress={tasksInProgressChart}
-              review={tasksReviewChart}
-              pending={tasksTodoChart}
-              backlog={tasksBacklogChart}
-            />
-          </DashboardSection>
-
-          <DashboardSection
-            title="Proyectos"
-            description={
-              usesProjectScope ? 'Tus proyectos por estado' : 'Por estado'
-            }
-          >
-            <ProjectStatusChart data={projectStatusData} />
-          </DashboardSection>
-
-          {!isDeveloper && (
-            <DashboardSection
-              title="Bugs"
-              description={
-                isPM
-                  ? bugsTotal > 0
-                    ? `${bugsOpen + bugsInProgress} activos en tus proyectos`
-                    : 'Sin bugs en tus proyectos'
-                  : bugsTotal > 0
-                    ? `${bugsOpen + bugsInProgress} activos de ${bugsTotal}`
-                    : 'Sin bugs registrados'
-              }
-            >
-              <BugStatusChart
-                open={bugsOpen}
-                inProgress={bugsInProgress}
-                resolved={bugsResolved}
-                closed={bugsClosed}
-              />
-            </DashboardSection>
-          )}
-
-          {isAdmin && (
-            <DashboardSection title="Usuarios" description="Distribución de roles">
-              <UsersRoleChart
-                data={Object.entries(roleCounts).map(([role, count]) => ({
-                  role,
-                  label: roleLabels[role] || role,
-                  count,
-                }))}
-              />
-            </DashboardSection>
-          )}
-        </div>
+        <DashboardCharts
+          variant={isAdmin ? 'admin' : isDeveloper ? 'developer' : isPM ? 'pm' : 'other'}
+          tasksDone={tasksDone}
+          tasksInProgress={tasksInProgressChart}
+          tasksReview={tasksReviewChart}
+          tasksTodo={tasksTodoChart}
+          tasksBacklog={tasksBacklogChart}
+          projectStatusData={projectStatusData}
+          bugsOpen={bugsOpen}
+          bugsInProgress={bugsInProgress}
+          bugsResolved={bugsResolved}
+          bugsClosed={bugsClosed}
+          bugsTotal={bugsTotal}
+          roleCounts={Object.entries(roleCounts).map(([role, count]) => ({
+            role,
+            label: roleLabels[role] || role,
+            count,
+          }))}
+        />
       )}
 
       {!isStakeholder && (

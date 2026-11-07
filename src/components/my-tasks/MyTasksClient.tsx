@@ -177,7 +177,7 @@ export function MyTasksClient() {
   })), [filteredTasks])
 
   return (
-    <div className="flex flex-col gap-5 h-[calc(100svh-8rem)]">
+    <div className="flex flex-col gap-4 md:gap-5 md:h-[calc(100svh-8rem)]">
       <div className="flex items-start justify-between gap-3 flex-shrink-0">
         <div>
           <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Mis Tareas</h1>
@@ -210,9 +210,9 @@ export function MyTasksClient() {
               <CalendarDays className="w-4 h-4" />
             </button>
           </div>
-          <Button onClick={() => { setSelectedDate(null); setCreateMeetingOpen(true) }}>
+          <Button onClick={() => { setSelectedDate(null); setCreateMeetingOpen(true) }} className="h-10 px-3 md:px-4">
             <Plus className="w-4 h-4" />
-            Agendar reunión
+            <span className="hidden sm:inline">Agendar reunión</span>
           </Button>
         </div>
       </div>
@@ -252,7 +252,7 @@ export function MyTasksClient() {
 
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Tasks list */}
-        <div className={`flex-1 min-w-0 h-full ${mobileView === 'calendar' ? 'hidden md:flex md:flex-col' : 'flex flex-col'}`}>
+        <div className={`flex-1 min-w-0 md:h-full ${mobileView === 'calendar' ? 'hidden md:flex md:flex-col' : 'flex flex-col'}`}>
           <TasksList
             tasks={filteredTasks}
             loading={tasksLoading}
@@ -262,7 +262,7 @@ export function MyTasksClient() {
         </div>
 
         {/* Calendar */}
-        <div className={`w-full md:w-[380px] lg:w-[420px] flex-shrink-0 h-full ${mobileView === 'list' ? 'hidden md:block' : 'flex flex-col'}`}>
+        <div className="hidden md:flex w-[380px] lg:w-[420px] flex-shrink-0 h-full flex-col">
           <TasksCalendar
             tasks={calendarTasks}
             meetings={meetings}
@@ -273,6 +273,19 @@ export function MyTasksClient() {
             }}
           />
         </div>
+        {mobileView === 'calendar' && (
+          <div className="md:hidden min-h-[70vh]">
+            <TasksCalendar
+              tasks={calendarTasks}
+              meetings={meetings}
+              onMeetingClick={(id) => setSelectedMeetingId(id)}
+              onDateClick={(date) => {
+                setSelectedDate(date)
+                setCreateMeetingOpen(true)
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Dialogs */}

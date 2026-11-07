@@ -32,6 +32,8 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useUsers } from '@/hooks/useUsers'
 import { useProject } from '@/hooks/useProject'
 import { FormattedText } from '@/components/ui/formatted-text'
+import { useLayoutMode } from '@/hooks/use-layout-mode'
+import { MobileTaskStack } from './MobileTaskStack'
 
 // Lazy load de componentes pesados — solo se cargan cuando se necesitan
 const KanbanBoard = lazy(() => import('./KanbanBoard').then(m => ({ default: m.KanbanBoard })))
@@ -149,6 +151,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
 
   // View mode and filters
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban')
+  const layoutMode = useLayoutMode()
   const [taskSearch, setTaskSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -684,8 +687,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
       {/* View Toggle + Filters + Board/List */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          {/* View toggle */}
-          <div className="flex items-center gap-1 rounded-full p-1 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-white/70 dark:border-white/10 shadow-[0_8px_24px_rgba(15,23,42,0.05)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+          <div className="hidden md:flex items-center gap-1 rounded-full p-1 bg-white/60 dark:bg-white/5 border border-white/70 dark:border-white/10">
             <Button
               variant={viewMode === 'kanban' ? 'default' : 'ghost'}
               size="sm"
@@ -727,7 +729,20 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           </div>
         </div>
 
-        {viewMode === 'kanban' ? (
+        {layoutMode === 'unknown' ? (
+          <KanbanSkeleton />
+        ) : layoutMode === 'phone' ? (
+          <MobileTaskStack
+            tasks={filteredTasks}
+            projectId={project.id}
+            projectName={project.name}
+            members={projectMembers}
+            allUsers={allUsers}
+            currentUserId={currentUserId}
+            onTasksChange={mutateProject}
+            highlightId={highlightId}
+          />
+        ) : viewMode === 'kanban' ? (
           <Suspense fallback={<KanbanSkeleton />}>
             <KanbanBoard
               tasks={filteredTasks}

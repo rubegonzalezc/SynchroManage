@@ -195,6 +195,64 @@ button {
   transition-timing-function: var(--ease-liquid);
 }
 
+.mobile-task-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 76px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --glass-bg: #ffffff;
+    --glass-bg-soft: #ffffff;
+    --glass-bg-strong: #ffffff;
+    --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --shadow-glass: none;
+  }
+
+  .dark {
+    --glass-bg: #0f172a;
+    --glass-bg-soft: #111827;
+    --glass-bg-strong: #0f172a;
+    --shadow-soft: none;
+    --shadow-glass: none;
+  }
+
+  body {
+    background-attachment: scroll;
+  }
+
+  /* El desenfoque del cristal es lo que más traba el scroll en un teléfono. */
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .liquid-glass,
+  .liquid-glass::before,
+  .hover-lift,
+  .hover-lift:hover,
+  .hover-lift:active {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .page-enter > * > *,
+  .page-enter > * > .grid > *,
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-scale-in {
+    animation: none !important;
+  }
+
+  a,
+  button,
+  .transition-colors {
+    transition-duration: 120ms !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

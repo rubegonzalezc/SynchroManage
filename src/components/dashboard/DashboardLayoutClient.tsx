@@ -5,6 +5,7 @@ import { SWRConfig } from 'swr'
 import { Box } from '@mui/material'
 import { AppSidebar } from '@/components/layout/Sidebar'
 import { AppHeader, SIDEBAR_WIDTH } from '@/components/layout/Header'
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { SearchCommandProvider } from '@/components/dashboard/SearchCommandProvider'
 
@@ -50,11 +51,12 @@ export function DashboardLayoutClient({ user, children }: DashboardLayoutClientP
               minWidth: 0,
               px: { xs: 2, md: 4 },
               py: { xs: 1, md: 3 },
-              pb: 4,
+              pb: { xs: 'calc(88px + env(safe-area-inset-bottom))', md: 4 },
             }}
           >
             <AppHeader onMenuClick={() => setMobileOpen(true)} />
             <PageTransition>{children}</PageTransition>
+            <MobileBottomNav role={user.role} onMore={() => setMobileOpen(true)} />
           </Box>
         </Box>
       </SearchCommandProvider>
