@@ -23,10 +23,10 @@ export function GlassPanel({
       className={className}
       sx={[
         {
-          borderRadius: 0,
+          borderRadius: '16px',
           p: padding,
-          bgcolor: 'transparent',
-          border: '1px solid color-mix(in srgb, var(--foreground) 16%, transparent)',
+          bgcolor: 'var(--card)',
+          border: '1px solid var(--border)',
           boxShadow: 'none',
         },
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),

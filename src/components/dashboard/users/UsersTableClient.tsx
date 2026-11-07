@@ -215,10 +215,10 @@ export function UsersTableClient({ roles }: UsersTableClientProps) {
   const pendingCount = users.filter(u => !u.email_confirmed).length
 
   const pillClass = (selected: boolean) =>
-    `px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${
+    `px-3 py-1.5 rounded-lg text-[13px] font-medium whitespace-nowrap border transition-colors ${
       selected
-        ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
-        : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground'
+        ? 'bg-primary text-primary-foreground border-primary'
+        : 'bg-card text-muted-foreground border-border hover:text-foreground'
     }`
 
   if (error && users.length === 0 && !loading) {

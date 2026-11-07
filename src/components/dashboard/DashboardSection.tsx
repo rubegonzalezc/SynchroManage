@@ -12,11 +12,11 @@ export function DashboardSection({
   children: ReactNode
 }) {
   return (
-    <section>
-      <div className="mb-3 flex items-end justify-between gap-3 border-b border-foreground/20 pb-2">
+    <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
-          {description && <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>}
+          <h2 className="text-[16px] font-semibold tracking-tight text-foreground">{title}</h2>
+          {description && <p className="mt-0.5 text-[13px] text-muted-foreground">{description}</p>}
         </div>
         {action}
       </div>

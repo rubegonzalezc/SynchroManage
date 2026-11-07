@@ -8,13 +8,12 @@ import { darkTokens, tokens } from './designTokens'
  * haya hidratado. Por eso ya no necesita leer el modo del tema.
  */
 export const glassSurfaceSx = {
-  background: 'var(--glass-bg)',
-  backdropFilter: 'blur(24px) saturate(180%)',
-  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-  border: '1px solid var(--glass-border)',
-  boxShadow: 'var(--shadow-soft)',
-  backgroundImage: 'linear-gradient(180deg, var(--glass-highlight) 0%, transparent 42%)',
-  transition: `transform 400ms ${tokens.ease}, box-shadow 400ms ${tokens.ease}`,
+  background: 'var(--card)',
+  backgroundImage: 'none',
+  backdropFilter: 'none',
+  WebkitBackdropFilter: 'none',
+  border: '1px solid var(--border)',
+  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
 } as const
 
 export function glassSx() {

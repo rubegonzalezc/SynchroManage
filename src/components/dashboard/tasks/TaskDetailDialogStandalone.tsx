@@ -556,8 +556,8 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Estado</p>
+                  <div className="space-y-2 rounded-2xl border border-border bg-muted/40 p-4">
+                    <p className="text-[13px] font-medium text-muted-foreground">Estado</p>
                     <DependencyBlockedWarning dependencyTasks={dependencyTasks} />
                     <OpenBugsBlockedWarning
                       blockingBugs={blockingBugs}
@@ -573,10 +573,10 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                     {statusError && <p className="text-sm text-destructive">{statusError}</p>}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     {task.project && (
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Proyecto</p>
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Proyecto</p>
                         <Link href={`/projects/${task.project.id}`} className="inline-flex items-center gap-1 hover:underline">
                           {task.project.name}
                           <ExternalLink className="w-3 h-3" />
@@ -584,8 +584,8 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                       </div>
                     )}
                     {dueLabel && (
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Fecha límite</p>
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Fecha límite</p>
                         <p className={`flex items-center gap-1.5 ${overdue ? 'font-medium text-red-600 dark:text-red-400' : ''}`}>
                           <Calendar className="w-3.5 h-3.5" />
                           {dueLabel}{overdue ? ' · Vencida' : ''}
@@ -593,20 +593,20 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                       </div>
                     )}
                     {sprintName && (
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sprint</p>
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Sprint</p>
                         <p>{sprintName}</p>
                       </div>
                     )}
                     {assignees.length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Asignados</p>
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Asignados</p>
                         <p>{assignees.map((person) => person.full_name).join(', ')}</p>
                       </div>
                     )}
                     {task.reviewer && (
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Revisor</p>
+                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                        <p className="text-[13px] font-medium text-muted-foreground">Revisor</p>
                         <p className="flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5 text-muted-foreground" />
                           {task.reviewer.full_name}
@@ -617,7 +617,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
 
                   {dependencyTasks.length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Dependencias</p>
+                      <p className="text-[13px] font-medium text-muted-foreground">Dependencias</p>
                       <div className="flex flex-wrap gap-1.5">
                         {dependencyTasks.map((dep) => (
                           <Badge key={dep.id} variant={dep.status === 'done' ? 'secondary' : 'outline'} className="font-normal">
@@ -629,8 +629,8 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   )}
 
                   {task.description && (
-                    <div className="space-y-1.5">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Descripción</p>
+                    <div className="space-y-1.5 rounded-2xl border border-border bg-muted/40 p-4">
+                      <p className="text-[13px] font-medium text-muted-foreground">Descripción</p>
                       <div className="text-sm text-muted-foreground leading-relaxed">
                         <FormattedText>{task.description}</FormattedText>
                       </div>
@@ -639,7 +639,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
 
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground text-sm">Rama</span>
-                    <div className="flex items-center gap-1.5 bg-muted rounded-md px-2.5 py-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-1.5 flex-1 min-w-0">
                       <GitBranch className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                       <span className="font-mono text-xs truncate">{getBranchName(task)}</span>
                       <button

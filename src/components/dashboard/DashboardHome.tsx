@@ -70,12 +70,12 @@ const priorityLabel: Record<string, string> = {
 
 function LedgerHead({ title, description, href, hrefLabel }: { title: string; description: string; href: string; hrefLabel: string }) {
   return (
-    <div className="mb-1 flex items-end justify-between gap-3 border-b border-foreground/20 pb-2">
+    <div className="mb-3 flex items-end justify-between gap-3">
       <div>
-        <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
-        <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
+        <h2 className="text-[16px] font-semibold tracking-tight">{title}</h2>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">{description}</p>
       </div>
-      <Link href={href} className="text-[12px] uppercase tracking-[0.12em] underline-offset-4 hover:underline">
+      <Link href={href} className="text-[13px] font-medium text-primary">
         {hrefLabel}
       </Link>
     </div>
@@ -113,32 +113,31 @@ export function DashboardHome({
         action={
           <Link
             href={primaryHref}
-            className="inline-flex h-10 items-center justify-center bg-foreground px-4 text-[12px] font-medium uppercase tracking-[0.14em] text-background"
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
           >
             {primaryLabel}
           </Link>
         }
       />
 
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-        <div className="border border-foreground/15 px-3 py-3">
-          <p className="text-[26px] font-semibold tabular-nums leading-none">{percent}%</p>
-          <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-            Avance · {progress.done} de {progress.total}
-          </p>
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="rounded-2xl border border-border bg-card px-4 py-4">
+          <p className="text-[13px] text-muted-foreground">Avance</p>
+          <p className="mt-2 text-[28px] font-semibold tabular-nums leading-none">{percent}%</p>
+          <p className="mt-2 text-[12px] text-muted-foreground">{progress.done} de {progress.total}</p>
         </div>
         {stats.map((stat) => (
-          <Link key={stat.title} href={stat.href} className="border border-foreground/15 px-3 py-3 hover:bg-foreground/[0.04]">
-            <p className="text-[26px] font-semibold tabular-nums leading-none">{stat.value}</p>
-            <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{stat.title}</p>
-            {stat.description && <p className="mt-1 truncate text-[12px] text-muted-foreground">{stat.description}</p>}
+          <Link key={stat.title} href={stat.href} className="rounded-2xl border border-border bg-card px-4 py-4 transition-colors hover:border-primary/40">
+            <p className="text-[13px] text-muted-foreground">{stat.title}</p>
+            <p className="mt-2 text-[28px] font-semibold tabular-nums leading-none">{stat.value}</p>
+            {stat.description && <p className="mt-2 truncate text-[12px] text-muted-foreground">{stat.description}</p>}
           </Link>
         ))}
       </div>
 
       <div className={`mt-8 grid gap-8 ${tasks ? 'xl:grid-cols-5' : ''}`}>
         {tasks && (
-          <section className="xl:col-span-3">
+          <section className="rounded-2xl border border-border bg-card p-4 sm:p-5 xl:col-span-3">
             <LedgerHead title={tasksTitle} description={tasksDescription} href={tasksHref} hrefLabel="Ver todas" />
             {tasks.length === 0 ? (
               <p className="py-8 text-[14px] text-muted-foreground">No hay tareas urgentes pendientes</p>
@@ -167,7 +166,7 @@ export function DashboardHome({
           </section>
         )}
 
-        <section className={tasks ? 'xl:col-span-2' : ''}>
+        <section className={`rounded-2xl border border-border bg-card p-4 sm:p-5 ${tasks ? 'xl:col-span-2' : ''}`}>
           <LedgerHead title="Proyectos" description={projectsDescription} href="/projects" hrefLabel="Ver todos" />
           {projects.length === 0 ? (
             <p className="py-8 text-[14px] text-muted-foreground">No hay proyectos registrados</p>
@@ -194,20 +193,18 @@ export function DashboardHome({
       {(activity || aside) && (
         <div className={`mt-8 grid gap-8 ${aside ? 'lg:grid-cols-2' : ''}`}>
           {activity && (
-            <section>
-              <h2 className="border-b border-foreground/20 pb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                Actividad
-              </h2>
-              <p className="mt-2 mb-3 text-[13px] text-muted-foreground">{activityDescription}</p>
+            <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+              <h2 className="text-[16px] font-semibold tracking-tight">Actividad</h2>
+              <p className="mt-0.5 mb-3 text-[13px] text-muted-foreground">{activityDescription}</p>
               {activity.length === 0 ? (
                 <p className="py-6 text-[14px] text-muted-foreground">No hay actividad reciente</p>
               ) : (
                 <ol>
                   {activity.map((item) => (
                     <li key={item.id} className="flex gap-3 border-b border-foreground/10 py-3">
-                      <Avatar className="mt-0.5 h-8 w-8 shrink-0 rounded-none">
+                      <Avatar className="mt-0.5 h-8 w-8 shrink-0">
                         <AvatarImage src={item.avatarUrl || undefined} />
-                        <AvatarFallback className="rounded-none text-[10px]">{item.initials}</AvatarFallback>
+                        <AvatarFallback className="text-[10px]">{item.initials}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
                         <p className="text-[14px] leading-snug">

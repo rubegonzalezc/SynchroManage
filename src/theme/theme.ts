@@ -21,7 +21,7 @@ export function createAppTheme(mode: ThemeMode) {
       h3: { fontWeight: 600, letterSpacing: '-0.02em' },
       button: { textTransform: 'none', fontWeight: 600 },
     },
-    shape: { borderRadius: 20 },
+    shape: { borderRadius: 12 },
     transitions: {
       easing: {
         easeInOut: tokens.ease,
@@ -47,7 +47,7 @@ export function createAppTheme(mode: ThemeMode) {
         styleOverrides: {
           root: {
             ...glassSurfaceSx,
-            borderRadius: 24,
+            borderRadius: 14,
           },
         },
       },
@@ -55,7 +55,7 @@ export function createAppTheme(mode: ThemeMode) {
         styleOverrides: {
           root: {
             ...glassSurfaceSx,
-            borderRadius: 24,
+            borderRadius: 14,
             overflow: 'hidden',
           },
         },
@@ -64,14 +64,12 @@ export function createAppTheme(mode: ThemeMode) {
         defaultProps: { disableElevation: true },
         styleOverrides: {
           root: {
-            borderRadius: 999,
-            paddingInline: 18,
-            transition: `transform 300ms ${tokens.ease}, background-color 300ms ${tokens.ease}`,
-            '&:hover': { transform: 'translateY(-1px)' },
-            '&:active': { transform: 'scale(0.992)' },
+            borderRadius: 10,
+            paddingInline: 16,
+            boxShadow: 'none',
           },
           containedPrimary: {
-            boxShadow: '0 8px 20px rgba(37, 99, 235, 0.22)',
+            boxShadow: 'none',
           },
         },
       },
@@ -106,7 +104,7 @@ export function createAppTheme(mode: ThemeMode) {
         styleOverrides: {
           paper: {
             ...glassSurfaceSx,
-            borderRadius: 28,
+            borderRadius: 16,
           },
         },
       },
