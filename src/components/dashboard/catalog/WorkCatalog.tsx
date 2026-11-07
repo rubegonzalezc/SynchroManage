@@ -17,11 +17,19 @@ export const catalogStatusLabels: Record<string, string> = {
 }
 
 const statusInk: Record<string, string> = {
-  planning: 'bg-zinc-400',
-  in_progress: 'bg-sky-600',
+  planning: 'bg-violet-500',
+  in_progress: 'bg-sky-500',
   paused: 'bg-amber-500',
-  completed: 'bg-emerald-600',
-  cancelled: 'bg-rose-600',
+  completed: 'bg-emerald-500',
+  cancelled: 'bg-rose-500',
+}
+
+const statusWash: Record<string, string> = {
+  planning: 'bg-violet-50/80 dark:bg-violet-950/30',
+  in_progress: 'bg-sky-50/80 dark:bg-sky-950/30',
+  paused: 'bg-amber-50/80 dark:bg-amber-950/25',
+  completed: 'bg-emerald-50/80 dark:bg-emerald-950/25',
+  cancelled: 'bg-rose-50/80 dark:bg-rose-950/25',
 }
 
 const filters = [
@@ -173,7 +181,7 @@ export function WorkCatalog({
                   onOpen(item.id)
                 }
               }}
-              className="cursor-pointer rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
+              className={`cursor-pointer overflow-hidden rounded-2xl border border-border p-4 transition-colors hover:border-primary/40 ${statusWash[item.status] || 'bg-card'}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <span className="inline-flex items-center gap-2 text-[12px] font-medium text-muted-foreground">

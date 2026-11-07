@@ -39,7 +39,9 @@
   --sidebar-glow-accent: transparent;
   --sidebar-sheen: transparent;
 
-  --body-glow: none;
+  --body-glow:
+    radial-gradient(880px 420px at 100% -10%, rgba(37, 99, 235, 0.12), transparent 58%),
+    radial-gradient(640px 360px at -6% 8%, rgba(16, 185, 129, 0.10), transparent 52%);
 }
 
 .dark {
@@ -75,19 +77,21 @@
   --sidebar-glow-accent: transparent;
   --sidebar-sheen: transparent;
 
-  --body-glow: none;
+  --body-glow:
+    radial-gradient(880px 420px at 100% -12%, rgba(110, 168, 254, 0.16), transparent 58%),
+    radial-gradient(640px 360px at -8% 16%, rgba(52, 211, 153, 0.10), transparent 52%);
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 body {
   font-family: var(--font-sans), "Plus Jakarta Sans", system-ui, sans-serif;
   background-color: var(--background);
   background-image: var(--body-glow);
-  background-attachment: fixed;
-  transition: background-color 400ms var(--ease-liquid), color 400ms var(--ease-liquid);
+  background-attachment: scroll;
+  transition: background-color 180ms var(--ease-liquid);
 }
 
 .liquid-ease {
@@ -162,30 +166,20 @@ body {
 .stagger-7 { animation-delay: 280ms; }
 .stagger-8 { animation-delay: 320ms; }
 
-/* Entrada de cada pantalla: las secciones suben en cascada */
-.page-enter > * > * {
-  animation: fade-up 620ms var(--ease-liquid) both;
+/* Una sola entrada por pantalla. Animar cada bloque en cascada se sentía a tirones. */
+.page-enter {
+  animation: fade-up 220ms var(--ease-liquid) both;
 }
-
-.page-enter > * > *:nth-child(1) { animation-delay: 0ms; }
-.page-enter > * > *:nth-child(2) { animation-delay: 55ms; }
-.page-enter > * > *:nth-child(3) { animation-delay: 110ms; }
-.page-enter > * > *:nth-child(4) { animation-delay: 165ms; }
-.page-enter > * > *:nth-child(5) { animation-delay: 220ms; }
-.page-enter > * > *:nth-child(6) { animation-delay: 275ms; }
-.page-enter > * > *:nth-child(7) { animation-delay: 330ms; }
-.page-enter > * > *:nth-child(8) { animation-delay: 385ms; }
 
 a,
 button {
-  transition: color 280ms var(--ease-liquid), background-color 280ms var(--ease-liquid),
-    border-color 280ms var(--ease-liquid), box-shadow 280ms var(--ease-liquid),
-    transform 280ms var(--ease-liquid), opacity 280ms var(--ease-liquid);
+  transition: color 160ms var(--ease-liquid), background-color 160ms var(--ease-liquid),
+    border-color 160ms var(--ease-liquid);
 }
 
 .transition-colors {
-  transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, transform, box-shadow, opacity;
-  transition-duration: 280ms;
+  transition-property: color, background-color, border-color;
+  transition-duration: 160ms;
   transition-timing-function: var(--ease-liquid);
 }
 
@@ -215,6 +209,10 @@ button {
     background-attachment: scroll;
   }
 
+  .page-enter {
+    animation-duration: 180ms;
+  }
+
   /* El desenfoque del cristal es lo que más traba el scroll en un teléfono. */
   *,
   *::before,
@@ -223,8 +221,6 @@ button {
     -webkit-backdrop-filter: none !important;
   }
 
-  .liquid-glass,
-  .liquid-glass::before,
   .hover-lift,
   .hover-lift:hover,
   .hover-lift:active {
@@ -232,18 +228,14 @@ button {
     transform: none !important;
   }
 
-  .page-enter > * > *,
-  .page-enter > * > .grid > *,
-  .animate-fade-up,
-  .animate-fade-in,
-  .animate-scale-in {
-    animation: none !important;
+  .mobile-task-card,
+  .pressable {
+    transition: transform 160ms var(--ease-liquid), background-color 160ms var(--ease-liquid);
   }
 
-  a,
-  button,
-  .transition-colors {
-    transition-duration: 120ms !important;
+  .mobile-task-card:active,
+  .pressable:active {
+    transform: scale(0.985);
   }
 }
 
@@ -252,12 +244,13 @@ button {
     scroll-behavior: auto;
   }
 
-  .page-enter > * > *,
-  .page-enter > * > .grid > *,
+  .page-enter,
   .animate-fade-up,
   .animate-fade-in,
   .animate-scale-in,
-  .hover-lift {
+  .hover-lift,
+  .mobile-task-card,
+  .pressable {
     animation: none !important;
     transition: none !important;
   }

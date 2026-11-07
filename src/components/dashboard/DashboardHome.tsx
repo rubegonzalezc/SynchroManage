@@ -61,6 +61,7 @@ interface DashboardHomeProps {
   meetings: ReactNode
   aside: ReactNode
   charts: ReactNode
+  shortcuts?: { href: string; title: string; description: string; tint: string }[]
 }
 
 const priorityLabel: Record<string, string> = {
@@ -101,8 +102,20 @@ export function DashboardHome({
   meetings,
   aside,
   charts,
+  shortcuts,
 }: DashboardHomeProps) {
   const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0
+  const statTints = [
+    'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/40',
+    'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40',
+    'border-violet-200 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/40',
+    'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/40',
+    'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40',
+  ]
+  const priorityTone: Record<string, string> = {
+    urgent: 'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-200',
+    high: 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200',
+  }
 
   return (
     <div className="w-full overflow-x-hidden">
@@ -121,19 +134,30 @@ export function DashboardHome({
       />
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <div className="rounded-2xl border border-border bg-card px-4 py-4">
+        <div className={`rounded-2xl border px-4 py-4 ${statTints[0]}`}>
           <p className="text-[13px] text-muted-foreground">Avance</p>
-          <p className="mt-2 text-[28px] font-semibold tabular-nums leading-none">{percent}%</p>
+          <p className="mt-2 text-[28px] font-semibold tabular-nums leading-none text-sky-700 dark:text-sky-200">{percent}%</p>
           <p className="mt-2 text-[12px] text-muted-foreground">{progress.done} de {progress.total}</p>
         </div>
-        {stats.map((stat) => (
-          <Link key={stat.title} href={stat.href} className="rounded-2xl border border-border bg-card px-4 py-4 transition-colors hover:border-primary/40">
+        {stats.map((stat, index) => (
+          <Link key={stat.title} href={stat.href} className={`rounded-2xl border px-4 py-4 transition-colors hover:brightness-[0.98] dark:hover:brightness-110 ${statTints[(index + 1) % statTints.length]}`}>
             <p className="text-[13px] text-muted-foreground">{stat.title}</p>
             <p className="mt-2 text-[28px] font-semibold tabular-nums leading-none">{stat.value}</p>
             {stat.description && <p className="mt-2 truncate text-[12px] text-muted-foreground">{stat.description}</p>}
           </Link>
         ))}
       </div>
+
+      {shortcuts && shortcuts.length > 0 && (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {shortcuts.map((item) => (
+            <Link key={item.href} href={item.href} className={`pressable rounded-2xl border px-4 py-4 ${item.tint}`}>
+              <p className="text-[16px] font-semibold tracking-tight">{item.title}</p>
+              <p className="mt-1 text-[13px] text-muted-foreground">{item.description}</p>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className={`mt-8 grid gap-8 ${tasks ? 'xl:grid-cols-5' : ''}`}>
         {tasks && (
@@ -155,7 +179,7 @@ export function DashboardHome({
                           {task.overdue ? ' · Vencida' : ''}
                         </span>
                       </span>
-                      <span className="text-[11px] uppercase tracking-[0.12em]">
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${priorityTone[task.priority] || 'bg-muted text-muted-foreground'}`}>
                         {priorityLabel[task.priority] || task.priority}
                       </span>
                     </Link>
@@ -179,7 +203,7 @@ export function DashboardHome({
                       <span className="block text-[16px] font-medium leading-snug">{project.name}</span>
                       <span className="mt-1 block text-[13px] text-muted-foreground">{project.company}</span>
                     </span>
-                    <span className="text-[11px] uppercase tracking-[0.12em]">{project.statusLabel}</span>
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">{project.statusLabel}</span>
                   </Link>
                 </li>
               ))}

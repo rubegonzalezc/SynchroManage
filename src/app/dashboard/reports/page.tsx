@@ -8,7 +8,6 @@ import { Calendar, X } from 'lucide-react'
 import { UnassignedTasks } from '@/components/dashboard/UnassignedTasks'
 import { OpenBugsList } from '@/components/dashboard/OpenBugsList'
 import { DashboardSection } from '@/components/dashboard/DashboardSection'
-import { GlassPanel } from '@/components/ui/glass-panel'
 import { ReportExportButton } from '@/components/dashboard/reports/ReportExportButton'
 import { useRole } from '@/lib/hooks/useRole'
 
@@ -66,12 +65,12 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
-function StatNumber({ value, label, accent }: { value: number; label: string; accent: string }) {
+function StatNumber({ value, label, tint }: { value: number; label: string; tint: string }) {
   return (
-    <GlassPanel padding={2.25}>
-      <p className="text-[12px] font-medium text-muted-foreground tracking-tight">{label}</p>
-      <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: accent }}>{value}</p>
-    </GlassPanel>
+    <div className={`rounded-2xl border px-4 py-4 ${tint}`}>
+      <p className="text-[12px] font-medium text-muted-foreground">{label}</p>
+      <p className="mt-2 text-[28px] font-semibold leading-none">{value}</p>
+    </div>
   )
 }
 
@@ -150,20 +149,20 @@ export default function ReportsPage() {
   }
 
   const taskStats = [
-    { label: 'Completadas', value: globalTotals.done, accent: '#30D158' },
-    { label: 'En progreso', value: globalTotals.in_progress, accent: '#0A84FF' },
-    { label: 'En revisión', value: globalTotals.review, accent: '#BF5AF2' },
-    { label: 'Por hacer', value: globalTotals.pending, accent: '#8E8E93' },
-    { label: 'Backlog', value: globalTotals.backlog, accent: '#636366' },
-    { label: 'Carry over', value: globalTotals.carry_over, accent: '#FF9F0A' },
-    { label: 'Sin asignar', value: unassigned.length, accent: '#FF453A' },
+    { label: 'Completadas', value: globalTotals.done, tint: 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40' },
+    { label: 'En progreso', value: globalTotals.in_progress, tint: 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/40' },
+    { label: 'En revisión', value: globalTotals.review, tint: 'border-violet-200 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/40' },
+    { label: 'Por hacer', value: globalTotals.pending, tint: 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40' },
+    { label: 'Backlog', value: globalTotals.backlog, tint: 'border-slate-200 bg-card dark:border-slate-700' },
+    { label: 'Carry over', value: globalTotals.carry_over, tint: 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40' },
+    { label: 'Sin asignar', value: unassigned.length, tint: 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/40' },
   ]
 
   const bugStats = [
-    { label: 'Bugs abiertos', value: bugTotals.open, accent: '#FF453A' },
-    { label: 'En progreso', value: bugTotals.in_progress, accent: '#0A84FF' },
-    { label: 'Resueltos', value: bugTotals.resolved, accent: '#30D158' },
-    { label: 'Total bugs', value: bugTotals.total, accent: '#8E8E93' },
+    { label: 'Bugs abiertos', value: bugTotals.open, tint: 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/40' },
+    { label: 'En progreso', value: bugTotals.in_progress, tint: 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/40' },
+    { label: 'Resueltos', value: bugTotals.resolved, tint: 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40' },
+    { label: 'Total bugs', value: bugTotals.total, tint: 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40' },
   ]
 
   return (
@@ -220,16 +219,16 @@ export default function ReportsPage() {
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {Array.from({ length: 7 }).map((_, i) => (
-            <GlassPanel key={i} padding={2.25}>
-              <Skeleton className="h-3 w-16 mb-2" />
+            <div key={i} className="rounded-2xl border border-border bg-card px-4 py-4">
+              <Skeleton className="mb-2 h-3 w-16" />
               <Skeleton className="h-7 w-10" />
-            </GlassPanel>
+            </div>
           ))}
         </div>
       ) : !error && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {taskStats.map((s) => (
-            <StatNumber key={s.label} value={s.value} label={s.label} accent={s.accent} />
+            <StatNumber key={s.label} value={s.value} label={s.label} tint={s.tint} />
           ))}
         </div>
       )}
@@ -237,16 +236,16 @@ export default function ReportsPage() {
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <GlassPanel key={i} padding={2.25}>
-              <Skeleton className="h-3 w-16 mb-2" />
+            <div key={i} className="rounded-2xl border border-border bg-card px-4 py-4">
+              <Skeleton className="mb-2 h-3 w-16" />
               <Skeleton className="h-7 w-10" />
-            </GlassPanel>
+            </div>
           ))}
         </div>
       ) : !error && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {bugStats.map((s) => (
-            <StatNumber key={s.label} value={s.value} label={s.label} accent={s.accent} />
+            <StatNumber key={s.label} value={s.value} label={s.label} tint={s.tint} />
           ))}
         </div>
       )}
@@ -269,9 +268,9 @@ export default function ReportsPage() {
         ) : stats.length === 0 ? (
           <p className="text-[14px] text-muted-foreground text-center py-8">No hay datos disponibles</p>
         ) : (
-          <div className="space-y-1">
+          <div className="grid gap-3">
             {stats.map(s => (
-              <div key={s.user.id} className="flex flex-col lg:flex-row lg:items-center gap-3 rounded-2xl px-2 py-3">
+              <div key={s.user.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-muted/30 px-3 py-3 lg:flex-row lg:items-center">
                 <div className="flex items-center gap-3 min-w-[180px]">
                   <Avatar className="w-9 h-9">
                     <AvatarImage src={s.user.avatar_url || undefined} />
@@ -316,9 +315,9 @@ export default function ReportsPage() {
             ))}
           </div>
         ) : !error && stats.some(s => s.bugs_total > 0) ? (
-          <div className="space-y-1">
+          <div className="grid gap-3 sm:grid-cols-2">
             {stats.filter(s => s.bugs_total > 0).map(s => (
-              <div key={s.user.id} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl px-2 py-3">
+              <div key={s.user.id} className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 px-3 py-3 dark:border-rose-900 dark:bg-rose-950/20 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-3 min-w-[180px]">
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={s.user.avatar_url || undefined} />

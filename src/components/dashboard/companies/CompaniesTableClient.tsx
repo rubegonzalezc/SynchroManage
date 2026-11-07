@@ -101,27 +101,27 @@ export function CompaniesTableClient() {
       />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
-        <GlassPanel padding={2.25}>
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Total</p>
-          {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#0A84FF' }}>{companies.length}</p>
+        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 dark:border-sky-800 dark:bg-sky-950/40">
+          <p className="text-[12px] font-medium text-muted-foreground">Total</p>
+          {loading ? <Skeleton className="mt-2 h-7 w-10" /> : (
+            <p className="mt-2 text-[28px] font-semibold leading-none text-sky-700 dark:text-sky-200">{companies.length}</p>
           )}
-        </GlassPanel>
-        <GlassPanel padding={2.25}>
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Activas</p>
-          {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#30D158' }}>{activeCount}</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 dark:border-emerald-800 dark:bg-emerald-950/40">
+          <p className="text-[12px] font-medium text-muted-foreground">Activas</p>
+          {loading ? <Skeleton className="mt-2 h-7 w-10" /> : (
+            <p className="mt-2 text-[28px] font-semibold leading-none text-emerald-700 dark:text-emerald-200">{activeCount}</p>
           )}
-        </GlassPanel>
-        <GlassPanel padding={2.25} className="col-span-2 lg:col-span-1">
-          <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Inactivas</p>
-          {loading ? <Skeleton className="h-7 w-10 mt-2" /> : (
-            <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: '#8E8E93' }}>{inactiveCount}</p>
+        </div>
+        <div className="col-span-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-900/40 lg:col-span-1">
+          <p className="text-[12px] font-medium text-muted-foreground">Inactivas</p>
+          {loading ? <Skeleton className="mt-2 h-7 w-10" /> : (
+            <p className="mt-2 text-[28px] font-semibold leading-none text-slate-600 dark:text-slate-200">{inactiveCount}</p>
           )}
-        </GlassPanel>
+        </div>
       </div>
 
-      <GlassPanel padding={1} sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
           <Input
@@ -157,58 +157,60 @@ export function CompaniesTableClient() {
             <X className="w-4 h-4" /> Limpiar
           </Button>
         )}
-      </GlassPanel>
+      </div>
 
       {error ? (
         <GlassPanel>
           <p className="text-[14px] text-red-600 dark:text-red-400">{error}</p>
         </GlassPanel>
       ) : (
-        <GlassPanel padding={2.25}>
-          {loading ? (
-            <div className="space-y-1">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-center gap-3 rounded-2xl px-3 py-3">
-                  <Skeleton className="h-4 flex-1" />
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                </div>
-              ))}
-            </div>
-          ) : paginatedCompanies.length === 0 ? (
-            <p className="text-[14px] text-muted-foreground text-center py-12">
-              {hasActiveFilters ? 'No se encontraron empresas' : 'No hay empresas registradas'}
-            </p>
-          ) : (
-            <div className="space-y-0.5">
-              {paginatedCompanies.map((company) => (
-                <div
-                  key={company.id}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-                >
-                  <div className="w-9 h-9 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-                    <Building2 className="w-4 h-4 text-muted-foreground" />
+        <>
+        {loading ? (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-36 rounded-2xl" />
+            ))}
+          </div>
+        ) : paginatedCompanies.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-border px-4 py-12 text-center text-[14px] text-muted-foreground">
+            {hasActiveFilters ? 'No se encontraron empresas' : 'No hay empresas registradas'}
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {paginatedCompanies.map((company) => (
+              <article
+                key={company.id}
+                className={`flex flex-col rounded-2xl border p-4 ${
+                  company.is_active
+                    ? 'border-emerald-200 bg-emerald-50/80 dark:border-emerald-800 dark:bg-emerald-950/25'
+                    : 'border-border bg-card'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/80 dark:bg-white/10">
+                    <Building2 className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-medium text-foreground truncate">{company.name}</p>
-                    <p className="text-[12px] text-muted-foreground truncate mt-0.5">
-                      {[company.rut, company.email, company.phone].filter(Boolean).join(' · ') || 'Sin datos de contacto'}
-                    </p>
-                  </div>
-                  <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 flex-shrink-0 ${
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                     company.is_active
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                   }`}>
                     {company.is_active ? 'Activa' : 'Inactiva'}
                   </span>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <EditCompanyDialog company={company} onCompanyUpdated={fetchCompanies} />
-                    <DeleteCompanyDialog company={company} onCompanyDeleted={fetchCompanies} />
-                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <h2 className="mt-3 text-[16px] font-semibold tracking-tight">{company.name}</h2>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  {[company.rut, company.email, company.phone].filter(Boolean).join(' · ') || 'Sin datos de contacto'}
+                </p>
+                {company.address && <p className="mt-1 text-[12px] text-muted-foreground">{company.address}</p>}
+                <div className="mt-3 flex items-center justify-end gap-1">
+                  <EditCompanyDialog company={company} onCompanyUpdated={fetchCompanies} />
+                  <DeleteCompanyDialog company={company} onCompanyDeleted={fetchCompanies} />
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
 
           {!loading && filteredCompanies.length > 0 && (
             <div className="flex items-center justify-between gap-3 pt-4 mt-2">
@@ -240,7 +242,7 @@ export function CompaniesTableClient() {
               </div>
             </div>
           )}
-        </GlassPanel>
+        </>
       )}
     </div>
   )

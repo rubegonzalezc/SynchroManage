@@ -33,8 +33,8 @@ import { MultiSelectTask, type TaskOption } from '@/components/ui/multi-select-t
 import { SprintTaskReferenceBadge } from '@/components/ui/sprint-task-reference-badge'
 import { formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
-import { resolveDependencyTasks, formatDependencyLabel, getPendingDependencies } from '@/lib/utils/task-dependency'
-import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import { resolveDependencyTasks, formatDependencyLabel, getPendingDependencies, isAdvancedTaskStatus } from '@/lib/utils/task-dependency'
+import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems, TASK_STATUS_OPTIONS } from '@/components/dashboard/tasks/task-status-select'
 import type { BlockingBugRef } from '@/lib/utils/task-open-bugs'
 import { TaskActivityHistory } from '@/components/dashboard/tasks/TaskActivityHistory'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
@@ -508,7 +508,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
             <DialogTitle className="flex-1 min-w-0">
               {mode === 'edit'
                 ? (task?.task_number != null ? `Editar tarea #${task.task_number}` : 'Editar tarea')
-                : (task?.task_number != null ? `Tarea #${task.task_number}` : 'Detalle de tarea')}
+                : 'Vista de la tarea'}
             </DialogTitle>
             {task && !loading && (
               mode === 'view' ? (
@@ -556,19 +556,36 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                     </div>
                   </div>
 
-                  <div className="space-y-2 rounded-2xl border border-border bg-muted/40 p-4">
+                  <div className="space-y-2 rounded-2xl border border-sky-200 bg-sky-50/80 p-4 dark:border-sky-800 dark:bg-sky-950/30">
                     <p className="text-[13px] font-medium text-muted-foreground">Estado</p>
                     <DependencyBlockedWarning dependencyTasks={dependencyTasks} />
                     <OpenBugsBlockedWarning
                       blockingBugs={blockingBugs}
                       projectId={task.project?.id ?? ''}
                     />
-                    <Select value={task.status} onValueChange={handleStatusChange} disabled={statusSaving}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {renderTaskStatusSelectItems(dependencyTasks, blockingBugs)}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-wrap gap-2">
+                      {TASK_STATUS_OPTIONS.map((option) => {
+                        const pending = getPendingDependencies(dependencyTasks)
+                        const blocked = (pending.length > 0 && isAdvancedTaskStatus(option.value))
+                          || (option.value === 'done' && blockingBugs.length > 0)
+                        const selected = task.status === option.value
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            disabled={statusSaving || blocked}
+                            onClick={() => handleStatusChange(option.value)}
+                            className={`rounded-full px-3 py-1 text-[12px] font-semibold ${
+                              selected
+                                ? 'bg-primary text-primary-foreground'
+                                : 'border border-border bg-card text-muted-foreground'
+                            } ${blocked ? 'cursor-not-allowed opacity-40' : ''}`}
+                          >
+                            {option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
                     {statusSaving && <p className="text-xs text-muted-foreground">Actualizando estado...</p>}
                     {statusError && <p className="text-sm text-destructive">{statusError}</p>}
                   </div>

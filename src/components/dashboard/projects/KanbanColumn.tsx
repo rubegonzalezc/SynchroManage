@@ -63,16 +63,15 @@ export const KanbanColumn = memo(function KanbanColumn({
             ? (isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.05)')
             : highlighted
               ? (isDark ? 'rgba(37, 99, 235, 0.16)' : 'rgba(37, 99, 235, 0.08)')
-              : (isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.58)'),
-        backdropFilter: 'blur(28px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+              : 'var(--card)',
         border: forbiddenActive
           ? '1px solid rgba(239, 68, 68, 0.55)'
           : isDropForbidden
             ? '1px dashed rgba(239, 68, 68, 0.38)'
             : highlighted
               ? '1px solid rgba(37, 99, 235, 0.4)'
-              : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.7)'),
+              : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(15, 23, 42, 0.08)'),
+        borderTop: `3px solid ${color}`,
         boxShadow: forbiddenActive
           ? '0 16px 40px rgba(239, 68, 68, 0.18), inset 0 1px 0 rgba(255,255,255,0.12)'
           : highlighted
@@ -84,7 +83,7 @@ export const KanbanColumn = memo(function KanbanColumn({
         backgroundImage: isDark
           ? 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 36%)'
           : 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, transparent 36%)',
-        transition: `border-color 280ms ${tokens.ease}, box-shadow 280ms ${tokens.ease}, background-color 280ms ${tokens.ease}`,
+        transition: `border-color 160ms ${tokens.ease}, background-color 160ms ${tokens.ease}`,
       }}
     >
       <Box

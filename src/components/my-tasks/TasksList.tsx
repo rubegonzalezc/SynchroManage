@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -57,6 +57,7 @@ interface TasksListProps {
   loading: boolean
   onTaskUpdated: () => void
   showProject?: boolean
+  focusTask?: { id: string; nonce: number } | null
 }
 
 const statusLabels: Record<string, string> = {
@@ -73,6 +74,14 @@ const statusColors: Record<string, string> = {
   in_progress: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   review: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   done: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+}
+
+const statusWash: Record<string, string> = {
+  backlog: 'bg-slate-50 dark:bg-slate-900/40',
+  todo: 'bg-blue-50 dark:bg-blue-950/30',
+  in_progress: 'bg-amber-50 dark:bg-amber-950/25',
+  review: 'bg-violet-50 dark:bg-violet-950/30',
+  done: 'bg-emerald-50 dark:bg-emerald-950/25',
 }
 
 const priorityLabels: Record<string, string> = {
@@ -256,7 +265,7 @@ function MobileMyTasks({
                 key={task.id}
                 type="button"
                 onClick={() => onOpen(task.id)}
-                className="mobile-task-card flex w-full gap-3 rounded-2xl border border-border bg-card px-3 py-3 text-left"
+                className={`mobile-task-card pressable flex w-full gap-3 rounded-2xl border border-border px-3 py-3 text-left ${statusWash[task.status] || 'bg-card'}`}
               >
                 <span className={`mt-1 w-1 self-stretch rounded-full ${priorityDot[task.priority] || 'bg-slate-400'}`} />
                 <span className="min-w-0 flex-1">
@@ -278,12 +287,16 @@ function MobileMyTasks({
   )
 }
 
-export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }: TasksListProps) {
+export function TasksList({ tasks, loading, onTaskUpdated, showProject = true, focusTask = null }: TasksListProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set())
   const [priorityFilter, setPriorityFilter] = useState<Set<string>>(new Set())
   const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set())
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (focusTask) setSelectedTaskId(focusTask.id)
+  }, [focusTask])
 
   const isOverdue = (dueDate: string | null, status: string) => {
     if (!dueDate || status === 'done') return false
@@ -655,6 +668,7 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
 
       {selectedTaskId && (
         <TaskDetailDialogStandalone
+          key={selectedTaskId}
           taskId={selectedTaskId}
           open={!!selectedTaskId}
           onOpenChange={(open: boolean) => !open && setSelectedTaskId(null)}
