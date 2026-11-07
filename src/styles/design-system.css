@@ -86,6 +86,12 @@ html {
   scroll-behavior: auto;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 body {
   font-family: var(--font-sans), "Plus Jakarta Sans", system-ui, sans-serif;
   background-color: var(--background);
