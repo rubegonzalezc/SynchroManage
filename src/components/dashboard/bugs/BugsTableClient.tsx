@@ -216,10 +216,10 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
   }, [bugs])
 
   const pillClass = (selected: boolean) =>
-    `px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${
+    `px-3 py-1.5 rounded-lg text-[13px] font-medium whitespace-nowrap border transition-colors ${
       selected
-        ? 'bg-primary text-primary-foreground shadow-[0_6px_16px_rgba(37,99,235,0.28)]'
-        : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/8 hover:text-foreground'
+        ? 'bg-primary text-primary-foreground border-primary'
+        : 'bg-card text-muted-foreground border-border hover:text-foreground'
     }`
 
   const quickUpdateBug = async (
@@ -311,7 +311,7 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
         title="Triage de bugs"
         subtitle="Prioriza incidencias de todos los proyectos."
         action={
-          <Button variant="outline" size="sm" className="rounded-none" onClick={() => setRefreshKey(k => k + 1)} disabled={loading}>
+          <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setRefreshKey(k => k + 1)} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
@@ -437,132 +437,108 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
         </div>
       </GlassPanel>
 
-      <GlassPanel padding={0} className="overflow-hidden">
-        {loading ? (
-          <div className="divide-y divide-border">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-4 p-4">
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-20 rounded-full" />
-                <Skeleton className="h-4 flex-1" />
-                <Skeleton className="h-4 w-24" />
-              </div>
-            ))}
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-36 rounded-2xl" />
+          ))}
+        </div>
+      ) : filteredBugs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/30">
+            <Bug className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           </div>
-        ) : filteredBugs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-3">
-              <Bug className="w-6 h-6 text-green-600 dark:text-green-400" />
-            </div>
-            <p className="text-muted-foreground">No hay bugs que coincidan con los filtros</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  <th className="px-4 py-3">Severidad</th>
-                  <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3">Título</th>
-                  <th className="px-4 py-3 hidden md:table-cell">Proyecto</th>
-                  <th className="px-4 py-3 hidden lg:table-cell">Tarea</th>
-                  <th className="px-4 py-3 hidden sm:table-cell">Asignado</th>
-                  <th className="px-4 py-3 hidden lg:table-cell">Fecha</th>
-                  <th className="px-4 py-3 w-10" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredBugs.map((bug) => {
-                  const sta = BUG_STATUS_CONFIG[bug.status as keyof typeof BUG_STATUS_CONFIG] ?? BUG_STATUS_CONFIG.open
-                  const isUpdating = updatingBugId === bug.id
+          <p className="text-muted-foreground">No hay bugs que coincidan con los filtros</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {filteredBugs.map((bug) => {
+            const sev = BUG_SEVERITY_CONFIG[bug.severity as keyof typeof BUG_SEVERITY_CONFIG] ?? BUG_SEVERITY_CONFIG.medium
+            const sta = BUG_STATUS_CONFIG[bug.status as keyof typeof BUG_STATUS_CONFIG] ?? BUG_STATUS_CONFIG.open
+            const isUpdating = updatingBugId === bug.id
+            const taskLabel = bug.task
+              ? `${bug.task.task_number != null ? `#${bug.task.task_number} ` : ''}${bug.task.title}`
+              : null
 
-                  return (
-                    <tr
-                      key={bug.id}
-                      className="hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => openBugDetail(bug)}
-                    >
-                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        <Select
-                          value={bug.severity}
-                          disabled={isUpdating}
-                          onValueChange={(value) => quickUpdateBug(bug.id, { severity: value })}
-                        >
-                          <SelectTrigger className="h-8 w-[118px] border-0 bg-transparent shadow-none px-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {BUG_SEVERITY_ORDER.map((value) => (
-                              <SelectItem key={value} value={value}>
-                                {BUG_SEVERITY_CONFIG[value].label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${sta.color}`}>
-                          {sta.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-medium text-foreground max-w-[280px]">
-                        <div className="flex items-center gap-2">
-                          {isUpdating && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />}
-                          <span className="line-clamp-2">{bug.title}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
-                        {bug.project?.name || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
-                        {bug.task
-                          ? `${bug.task.task_number != null ? `#${bug.task.task_number} ` : ''}${bug.task.title}`
-                          : '—'}
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
-                        <Select
-                          value={bug.assignee?.id ?? 'unassigned'}
-                          disabled={isUpdating}
-                          onValueChange={(value) => quickUpdateBug(
-                            bug.id,
-                            { assignee_id: value === 'unassigned' ? null : value }
-                          )}
-                        >
-                          <SelectTrigger className="h-8 min-w-[150px] max-w-[200px] border-0 bg-transparent shadow-none px-1">
-                            <SelectValue placeholder="Sin asignar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="unassigned">Sin asignar</SelectItem>
-                            {assigneeOptions.map((assignee) => (
-                              <SelectItem key={assignee.id} value={assignee.id}>
-                                {assignee.full_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell whitespace-nowrap">
-                        {formatDate(bug.created_at)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/projects/${bug.project_id}?tab=bugs&bug=${bug.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                          title="Ir al proyecto"
-                          aria-label="Ir al proyecto"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </GlassPanel>
+            return (
+              <article
+                key={bug.id}
+                role="link"
+                tabIndex={0}
+                onClick={() => openBugDetail(bug)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    openBugDetail(bug)
+                  }
+                }}
+                className="cursor-pointer rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-2 text-[12px] font-medium text-muted-foreground">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: sev.accent }} />
+                    {sev.label}
+                    {isUpdating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  </span>
+                  <span className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold ${sta.color}`}>{sta.label}</span>
+                </div>
+                <h2 className="mt-3 line-clamp-2 text-[16px] font-semibold tracking-tight">{bug.title}</h2>
+                <p className="mt-1 line-clamp-1 text-[13px] text-muted-foreground">
+                  {bug.project?.name || 'Sin proyecto'}
+                  {taskLabel ? ` · ${taskLabel}` : ''}
+                </p>
+                <p className="mt-1 text-[12px] text-muted-foreground">{formatDate(bug.created_at)}</p>
+                <div
+                  className="mt-3 flex items-center gap-2"
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <Select
+                    value={bug.severity}
+                    disabled={isUpdating}
+                    onValueChange={(value) => quickUpdateBug(bug.id, { severity: value })}
+                  >
+                    <SelectTrigger className="h-8 flex-1 rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BUG_SEVERITY_ORDER.map((value) => (
+                        <SelectItem key={value} value={value}>{BUG_SEVERITY_CONFIG[value].label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={bug.assignee?.id ?? 'unassigned'}
+                    disabled={isUpdating}
+                    onValueChange={(value) => quickUpdateBug(
+                      bug.id,
+                      { assignee_id: value === 'unassigned' ? null : value }
+                    )}
+                  >
+                    <SelectTrigger className="h-8 flex-1 rounded-xl">
+                      <SelectValue placeholder="Sin asignar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Sin asignar</SelectItem>
+                      {assigneeOptions.map((assignee) => (
+                        <SelectItem key={assignee.id} value={assignee.id}>{assignee.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Link
+                    href={`/projects/${bug.project_id}?tab=bugs&bug=${bug.id}`}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+                    title="Ir al proyecto"
+                    aria-label="Ir al proyecto"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
 
       {selectedBug && (
         <>

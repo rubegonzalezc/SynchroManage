@@ -38,11 +38,14 @@ export function MobileBottomNav({ role, onMore }: MobileBottomNavProps) {
 
   return (
     <nav
-      className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="md:hidden fixed inset-x-0 bottom-0 z-40 px-3"
+      style={{ paddingBottom: 'max(10px, env(safe-area-inset-bottom))' }}
       aria-label="Navegación principal"
     >
-      <div className="grid h-16" style={{ gridTemplateColumns: `repeat(${tabs.length + 1}, minmax(0, 1fr))` }}>
+      <div
+        className="grid h-16 rounded-2xl border border-border bg-card shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
+        style={{ gridTemplateColumns: `repeat(${tabs.length + 1}, minmax(0, 1fr))` }}
+      >
         {tabs.map((item) => {
           const Icon = icons[item.href as keyof typeof icons] ?? Home
           const active = isNavActive(pathname, item)
@@ -50,11 +53,11 @@ export function MobileBottomNav({ role, onMore }: MobileBottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center gap-0.5 text-[11px] uppercase tracking-[0.08em] ${
-                active ? 'text-foreground' : 'text-muted-foreground'
+              className={`mx-1 my-2 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium ${
+                active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
               }`}
             >
-              <Icon className="w-5 h-5" strokeWidth={active ? 2.4 : 1.8} />
+              <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 1.8} />
               <span>{shortTitle[item.href] ?? item.title}</span>
             </Link>
           )
@@ -62,9 +65,9 @@ export function MobileBottomNav({ role, onMore }: MobileBottomNavProps) {
         <button
           type="button"
           onClick={onMore}
-          className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted-foreground"
+          className="mx-1 my-2 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium text-muted-foreground"
         >
-          <MoreHorizontal className="w-5 h-5" />
+          <MoreHorizontal className="h-5 w-5" />
           <span>Más</span>
         </button>
       </div>

@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MentionInput, renderMentions, extractMentionedUserIds, extractMentionAll } from '@/components/ui/mention-input'
-import { Loader2, Trash2, Send, Bug } from 'lucide-react'
+import { ArrowLeft, Loader2, Pencil, Trash2, Send, Bug } from 'lucide-react'
 import { FileAttachments } from '@/components/ui/file-attachments'
 import { SingleSelectUser } from '@/components/ui/single-select-user'
 
@@ -122,6 +122,8 @@ export function BugDetailDialog({
   const [deleteBugOpen, setDeleteBugOpen] = useState(false)
   const [deleteCommentOpen, setDeleteCommentOpen] = useState(false)
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null)
+  const [mode, setMode] = useState<'view' | 'edit'>('view')
+  const [statusSaving, setStatusSaving] = useState(false)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -160,8 +162,45 @@ export function BugDetailDialog({
   }
 
   useEffect(() => {
-    if (open && bugId) fetchBug()
+    if (open && bugId) {
+      setMode('view')
+      fetchBug()
+    }
   }, [open, bugId])
+
+  const resetForm = (source = bug) => {
+    if (!source) return
+    setFormData({
+      title: source.title,
+      description: source.description || '',
+      steps_to_reproduce: source.steps_to_reproduce || '',
+      severity: source.severity,
+      status: source.status,
+      sprint_id: source.sprint_id || source.sprint?.id || '',
+      task_id: source.task_id || source.task?.id || '',
+      assignee_id: source.assignee?.id || null,
+    })
+  }
+
+  const handleStatusChange = async (status: string) => {
+    setStatusSaving(true)
+    setFormData((prev) => ({ ...prev, status }))
+    try {
+      const res = await fetch(`/api/dashboard/bugs/${bugId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (res.ok) {
+        setBug((prev) => (prev ? { ...prev, status } : prev))
+        onUpdate()
+      }
+    } catch (err) {
+      console.error('Error updating bug status:', err)
+    } finally {
+      setStatusSaving(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -176,7 +215,8 @@ export function BugDetailDialog({
         }),
       })
       onUpdate()
-      onOpenChange(false)
+      await fetchBug()
+      setMode('view')
     } catch (err) {
       console.error('Error saving bug:', err)
     } finally {
@@ -280,10 +320,33 @@ export function BugDetailDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bug className="w-5 h-5 text-red-500" /> Detalle del Bug
+          <DialogHeader className="flex flex-row items-start justify-between gap-3 pr-8">
+            <DialogTitle className="flex flex-1 items-center gap-2 min-w-0">
+              <Bug className="w-5 h-5 text-rose-500 shrink-0" />
+              {mode === 'edit' ? 'Editar bug' : 'Bug'}
             </DialogTitle>
+            {bug && !loading && (
+              mode === 'view' ? (
+                <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 shrink-0" onClick={() => setMode('edit')}>
+                  <Pencil className="w-3.5 h-3.5" />
+                  Editar
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  aria-label="Volver a la vista"
+                  onClick={() => {
+                    resetForm()
+                    setMode('view')
+                  }}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              )
+            )}
           </DialogHeader>
 
           {loading ? (
@@ -292,6 +355,72 @@ export function BugDetailDialog({
             </div>
           ) : bug ? (
             <div className="space-y-5">
+              {mode === 'view' ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold tracking-tight leading-snug">{bug.title}</h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`text-[12px] font-medium rounded-lg px-2 py-0.5 ${severityConfig[bug.severity]?.color || ''}`}>
+                        {severityConfig[bug.severity]?.label || bug.severity}
+                      </span>
+                      <span className={`text-[12px] font-medium rounded-lg px-2 py-0.5 ${statusConfig[bug.status]?.color || ''}`}>
+                        {statusConfig[bug.status]?.label || bug.status}
+                      </span>
+                      {projectName && <span className="text-[13px] text-muted-foreground">{projectName}</span>}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2">
+                    <p className="text-[13px] font-medium text-muted-foreground">Estado</p>
+                    <Select value={bug.status} onValueChange={handleStatusChange} disabled={statusSaving}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(statusConfig).map(([val, cfg]) => (
+                          <SelectItem key={val} value={val}>{cfg.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {statusSaving && <p className="text-xs text-muted-foreground">Actualizando estado...</p>}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                      <p className="text-[13px] font-medium text-muted-foreground">Severidad</p>
+                      <p className="mt-1 text-sm">{severityConfig[bug.severity]?.label || bug.severity}</p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                      <p className="text-[13px] font-medium text-muted-foreground">Asignado</p>
+                      <p className="mt-1 text-sm">{bug.assignee?.full_name || 'Sin asignar'}</p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                      <p className="text-[13px] font-medium text-muted-foreground">Sprint</p>
+                      <p className="mt-1 text-sm">{bug.sprint?.name || 'Sin sprint'}</p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                      <p className="text-[13px] font-medium text-muted-foreground">Tarea</p>
+                      <p className="mt-1 text-sm">
+                        {bug.task
+                          ? `${bug.task.task_number != null ? `#${bug.task.task_number} ` : ''}${bug.task.title}`
+                          : 'Sin tarea'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {bug.description && (
+                    <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                      <p className="text-[13px] font-medium text-muted-foreground">Descripción</p>
+                      <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">{bug.description}</p>
+                    </div>
+                  )}
+                  {bug.steps_to_reproduce && (
+                    <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                      <p className="text-[13px] font-medium text-muted-foreground">Pasos para reproducir</p>
+                      <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap font-mono">{bug.steps_to_reproduce}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+              <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Título</Label>
                 <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
@@ -391,10 +520,12 @@ export function BugDetailDialog({
                   users={members}
                   selectedId={formData.assignee_id}
                   onSelectionChange={(id) => setFormData({ ...formData, assignee_id: id })}
-                  placeholder="Asignar desarrollador..."
-                  emptyLabel="Sin asignar"
+                placeholder="Asignar desarrollador..."
+                emptyLabel="Sin asignar"
                 />
               </div>
+              </div>
+              )}
 
               {/* Reporter */}
               {bug.reporter && (
@@ -477,13 +608,17 @@ export function BugDetailDialog({
                   {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
                   Eliminar
                 </Button>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                  <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90">
-                    {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Guardar
-                  </Button>
-                </div>
+                {mode === 'edit' ? (
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => { resetForm(); setMode('view') }}>Cancelar</Button>
+                    <Button onClick={handleSave} disabled={saving}>
+                      {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Guardar
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>Cerrar</Button>
+                )}
               </div>
             </div>
           ) : null}

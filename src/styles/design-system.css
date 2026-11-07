@@ -9,66 +9,73 @@
 :root {
   --ease-liquid: cubic-bezier(0.22, 1, 0.36, 1);
 
-  --shadow-soft: 0 8px 32px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-lift: 0 16px 40px rgba(15, 23, 42, 0.1), 0 2px 6px rgba(15, 23, 42, 0.05);
-  --shadow-glass: 0 8px 28px rgba(15, 23, 42, 0.06);
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-lift: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-glass: none;
 
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-bg-soft: rgba(255, 255, 255, 0.58);
-  --glass-bg-strong: rgba(255, 255, 255, 0.88);
-  --glass-border: rgba(255, 255, 255, 0.68);
-  --glass-highlight: rgba(255, 255, 255, 0.35);
-  --glass-highlight-soft: rgba(255, 255, 255, 0.55);
-  --glass-inner-top: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --glass-bg: var(--card, #ffffff);
+  --glass-bg-soft: var(--card, #ffffff);
+  --glass-bg-strong: var(--card, #ffffff);
+  --glass-border: var(--border, #e6e8ee);
+  --glass-highlight: transparent;
+  --glass-highlight-soft: transparent;
+  --glass-inner-top: none;
 
-  --field-bg: rgba(255, 255, 255, 0.7);
-  --table-row-bg: #ffffff;
-  --table-row-hover: #f8fbff;
-  --table-head-bg: rgba(238, 243, 250, 0.8);
+  --field-bg: var(--card, #ffffff);
+  --table-row-bg: transparent;
+  --table-row-hover: rgba(15, 23, 42, 0.04);
+  --table-head-bg: rgba(15, 23, 42, 0.03);
 
-  /* El sidebar es oscuro en ambos modos: es identidad de marca. */
-  --sidebar-surface: #0b1224;
-  --sidebar-surface-border: rgba(255, 255, 255, 0.14);
-  --sidebar-shadow: 0 24px 60px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  --sidebar-glow-primary: rgba(37, 99, 235, 0.42);
-  --sidebar-glow-accent: rgba(124, 58, 237, 0.22);
-  --sidebar-sheen: rgba(255, 255, 255, 0.08);
+  --sidebar-surface: #ffffff;
+  --sidebar-fg: #12141a;
+  --sidebar-muted: #5e6772;
+  --sidebar-hover: #f3f5f8;
+  --sidebar-active: #e8f0fe;
+  --sidebar-active-fg: #1d4ed8;
+  --sidebar-border: #e6e8ee;
+  --sidebar-surface-border: #e6e8ee;
+  --sidebar-shadow: none;
+  --sidebar-glow-primary: transparent;
+  --sidebar-glow-accent: transparent;
+  --sidebar-sheen: transparent;
 
-  --body-glow:
-    radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.08), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(96, 165, 250, 0.07), transparent 45%);
+  --body-glow: none;
 }
 
 .dark {
   /* Sobre un fondo casi negro una sombra negra casi no se ve: el borde
      luminoso es el que define el canto y la sombra solo separa del fondo. */
-  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.24);
-  --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.3);
-  --shadow-glass: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-glass: none;
 
-  --glass-bg: rgba(15, 23, 42, 0.72);
-  --glass-bg-soft: rgba(15, 23, 42, 0.55);
-  --glass-bg-strong: rgba(15, 23, 42, 0.9);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-highlight: rgba(255, 255, 255, 0.06);
-  --glass-highlight-soft: rgba(255, 255, 255, 0.07);
-  --glass-inner-top: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-bg: var(--card, #161a21);
+  --glass-bg-soft: var(--card, #161a21);
+  --glass-bg-strong: var(--card, #161a21);
+  --glass-border: var(--border, rgba(255, 255, 255, 0.08));
+  --glass-highlight: transparent;
+  --glass-highlight-soft: transparent;
+  --glass-inner-top: none;
 
   --field-bg: rgba(255, 255, 255, 0.04);
-  --table-row-bg: rgba(15, 23, 42, 0.6);
+  --table-row-bg: transparent;
   --table-row-hover: rgba(255, 255, 255, 0.04);
-  --table-head-bg: rgba(255, 255, 255, 0.03);
+  --table-head-bg: rgba(255, 255, 255, 0.04);
 
-  --sidebar-surface: #111c31;
-  --sidebar-surface-border: rgba(255, 255, 255, 0.16);
-  --sidebar-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --sidebar-glow-primary: rgba(37, 99, 235, 0.3);
-  --sidebar-glow-accent: rgba(124, 58, 237, 0.16);
-  --sidebar-sheen: rgba(255, 255, 255, 0.06);
+  --sidebar-surface: #12161c;
+  --sidebar-fg: #f3f5f8;
+  --sidebar-muted: #9aa3af;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(110, 168, 254, 0.16);
+  --sidebar-active-fg: #9ec5ff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-surface-border: rgba(255, 255, 255, 0.08);
+  --sidebar-shadow: none;
+  --sidebar-glow-primary: transparent;
+  --sidebar-glow-accent: transparent;
+  --sidebar-sheen: transparent;
 
-  --body-glow:
-    radial-gradient(ellipse 80% 50% at 0% -20%, rgba(37, 99, 235, 0.12), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(96, 165, 250, 0.06), transparent 45%);
+  --body-glow: none;
 }
 
 html {
@@ -88,23 +95,10 @@ body {
 }
 
 .liquid-glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-soft);
-  border-radius: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
   position: relative;
-}
-
-.liquid-glass::before {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, var(--glass-highlight) 0%, transparent 40%);
-  opacity: 0.7;
 }
 
 .hover-lift {
