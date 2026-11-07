@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, Package } from 'lucide-react'
+import { FileJson, Plus, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassPanel } from '@/components/ui/glass-panel'
 import type { Sprint } from './CreateSprintDialog'
@@ -11,6 +11,7 @@ interface SprintSelectorProps {
   onSelect: (sprintId: string | null) => void
   canManage: boolean
   onNewSprint: () => void
+  onImportPlan?: () => void
 }
 
 const statusLabel: Record<string, string> = {
@@ -19,7 +20,7 @@ const statusLabel: Record<string, string> = {
   completed: 'Hecho',
 }
 
-export function SprintSelector({ sprints, selectedSprintId, onSelect, canManage, onNewSprint }: SprintSelectorProps) {
+export function SprintSelector({ sprints, selectedSprintId, onSelect, canManage, onNewSprint, onImportPlan }: SprintSelectorProps) {
   return (
     <GlassPanel padding={1} sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
       <button
@@ -57,14 +58,26 @@ export function SprintSelector({ sprints, selectedSprintId, onSelect, canManage,
       })}
 
       {canManage && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onNewSprint}
-          className="h-8 gap-1.5 text-[13px] rounded-full ml-auto"
-        >
-          <Plus className="w-3.5 h-3.5" /> Nuevo Sprint
-        </Button>
+        <div className="flex items-center gap-1 ml-auto">
+          {onImportPlan && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onImportPlan}
+              className="h-8 gap-1.5 text-[13px] rounded-full"
+            >
+              <FileJson className="w-3.5 h-3.5" /> Importar plan
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNewSprint}
+            className="h-8 gap-1.5 text-[13px] rounded-full"
+          >
+            <Plus className="w-3.5 h-3.5" /> Nuevo Sprint
+          </Button>
+        </div>
       )}
     </GlassPanel>
   )
