@@ -68,7 +68,7 @@ export function DeleteUserDialog({ user, onSuccess }: DeleteUserDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-600">
+          <DialogTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
             <AlertTriangle className="w-5 h-5" />
             Eliminar Usuario
           </DialogTitle>

@@ -55,17 +55,17 @@ const entityLabels: Record<string, string> = {
 }
 
 const actionColors: Record<string, string> = {
-  created: 'text-green-600 dark:text-green-400',
-  updated: 'text-blue-600 dark:text-blue-400',
-  deleted: 'text-red-600 dark:text-red-400',
-  assigned: 'text-purple-600 dark:text-purple-400',
-  unassigned: 'text-orange-600 dark:text-orange-400',
-  commented: 'text-amber-600 dark:text-amber-400',
-  completed: 'text-green-600 dark:text-green-400',
-  invited: 'text-indigo-600 dark:text-indigo-400',
-  status_changed: 'text-amber-600 dark:text-amber-400',
-  reviewer_assigned: 'text-violet-600 dark:text-violet-400',
-  reviewer_removed: 'text-red-500 dark:text-red-400',
+  created: 'text-green-700 dark:text-green-300',
+  updated: 'text-blue-700 dark:text-blue-300',
+  deleted: 'text-red-700 dark:text-red-300',
+  assigned: 'text-purple-700 dark:text-purple-300',
+  unassigned: 'text-orange-700 dark:text-orange-300',
+  commented: 'text-amber-700 dark:text-amber-300',
+  completed: 'text-green-700 dark:text-green-300',
+  invited: 'text-indigo-700 dark:text-indigo-300',
+  status_changed: 'text-amber-700 dark:text-amber-300',
+  reviewer_assigned: 'text-violet-700 dark:text-violet-300',
+  reviewer_removed: 'text-red-600 dark:text-red-300',
 }
 
 export default async function AdminDashboard() {

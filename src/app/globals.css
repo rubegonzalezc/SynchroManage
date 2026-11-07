@@ -150,7 +150,7 @@
   --secondary: rgba(255, 255, 255, 0.06);
   --secondary-foreground: #f3f5f8;
   --muted: rgba(255, 255, 255, 0.06);
-  --muted-foreground: #9aa3af;
+  --muted-foreground: #c5ced8;
   --accent: rgba(110, 168, 254, 0.16);
   --accent-foreground: #c5dbff;
   --destructive: #f87171;
@@ -183,3 +183,4 @@
     @apply text-foreground antialiased;
   }
 }
+

@@ -37,6 +37,7 @@ export function createAppTheme(mode: ThemeMode) {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
+            color: 'var(--foreground)',
             backgroundColor: 'var(--background)',
             backgroundImage: 'var(--body-glow)',
             backgroundAttachment: 'fixed',
@@ -146,6 +147,7 @@ export function createAppTheme(mode: ThemeMode) {
         styleOverrides: {
           root: {
             borderColor: 'var(--border)',
+            color: 'var(--foreground)',
           },
           head: {
             fontWeight: 600,
@@ -195,6 +197,39 @@ export function createAppTheme(mode: ThemeMode) {
             borderRadius: 0,
             width: tokens.sidebarWidth,
             overflow: 'visible',
+          },
+        },
+      },
+      MuiTypography: {
+        styleOverrides: {
+          root: {
+            '&.MuiTypography-colorTextSecondary': {
+              color: 'var(--muted-foreground)',
+            },
+          },
+        },
+      },
+      MuiInputLabel: {
+        styleOverrides: {
+          root: {
+            color: 'var(--foreground)',
+            '&.Mui-focused': {
+              color: 'var(--primary)',
+            },
+          },
+        },
+      },
+      MuiFormLabel: {
+        styleOverrides: {
+          root: {
+            color: 'var(--foreground)',
+          },
+        },
+      },
+      MuiInputBase: {
+        styleOverrides: {
+          root: {
+            color: 'var(--foreground)',
           },
         },
       },

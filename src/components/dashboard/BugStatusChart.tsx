@@ -76,14 +76,14 @@ export function BugStatusChart({ open, inProgress, resolved, closed }: Props) {
           <Typography sx={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1 }}>
             {total}
           </Typography>
-          <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.25 }}>bugs</Typography>
+          <Typography sx={{ fontSize: 11, color: 'var(--muted-foreground)', mt: 0.25 }}>bugs</Typography>
         </Box>
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1.25, mt: 0.5 }}>
         {data.map((d, i) => (
           <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: COLORS[i % COLORS.length] }} />
-            <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{d.name}</Typography>
+            <Typography sx={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{d.name}</Typography>
           </Box>
         ))}
       </Box>

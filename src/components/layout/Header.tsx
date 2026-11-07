@@ -28,14 +28,14 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
     <AppBar
       position="sticky"
       elevation={0}
-      sx={{ top: 0, bgcolor: 'transparent', color: 'text.primary' }}
+      sx={{ top: 0, bgcolor: 'transparent', color: 'var(--foreground)' }}
     >
       <Toolbar sx={{ minHeight: { xs: 52, md: 60 }, px: 0, gap: 1.25 }} className="animate-fade-in">
         <IconButton
           onClick={onMenuClick}
           sx={{
             display: { md: 'none' },
-            color: 'text.primary',
+            color: 'var(--foreground)',
             width: 40,
             height: 40,
             borderRadius: '10px',
@@ -65,7 +65,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
           }}
           aria-label="Abrir búsqueda rápida"
         >
-          <SearchRounded sx={{ fontSize: 18, color: 'text.secondary', mr: 1 }} />
+          <SearchRounded sx={{ fontSize: 18, color: 'var(--muted-foreground)', mr: 1 }} />
           <InputBase
             readOnly
             placeholder="Buscar"
@@ -77,7 +77,7 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             sx={{
               display: { xs: 'none', sm: 'inline' },
               fontSize: 11,
-              color: 'text.secondary',
+              color: 'var(--muted-foreground)',
               border: '1px solid',
               borderColor: 'divider',
               borderRadius: 1,

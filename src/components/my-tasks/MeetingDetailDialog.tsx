@@ -427,7 +427,7 @@ export function MeetingDetailDialog({ meetingId, open, onOpenChange, onUpdated }
                       <Pencil className="w-4 h-4 mr-1" />
                       Editar
                     </Button>
-                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => setShowDeleteDialog(true)}>
+                    <Button variant="outline" size="sm" className="text-red-700 hover:text-red-800 hover:bg-red-50 dark:text-red-300 dark:hover:text-red-200 dark:hover:bg-red-900/20" onClick={() => setShowDeleteDialog(true)}>
                       <Trash2 className="w-4 h-4 mr-1" />
                       Eliminar
                     </Button>
