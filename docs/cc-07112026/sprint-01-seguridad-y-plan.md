@@ -1,16 +1,16 @@
 # Sprint 1 — Seguridad y plan de ida y vuelta
 
 **Control de cambios:** CC-07112026  
-**Proyecto:** SynchroManage  
+**Proyecto:** SynchroManaha - Security  
 **Duración sugerida:** 2 semanas  
 **Equipo:** 3 desarrolladores  
 **Depende de:** el importador de sprint ya en `main` ([importar-sprint.md](../importar-sprint.md))
 
 | Desarrollador | Perfil | Rol en el sprint |
 |---------------|--------|------------------|
-| **Rubén González** | Senior | Funciones sensibles, reimportación que actualiza, revisión |
-| **José** | Frontend | Descargar el plan, vista previa de lo que va a cambiar |
-| **Sebastián** | Fullstack | RLS de categorías, políticas abiertas, pruebas de roles |
+| **Rubén González** | Fullstack | Funciones sensibles, reimportación que actualiza, revisión |
+| **Sebastián Mardones** | Fullstack | RLS de categorías, políticas abiertas, pruebas de roles |
+| **José Huerta** | Frontend | Descargar el plan, vista previa de lo que va a cambiar |
 
 ## Objetivo del sprint
 
@@ -35,8 +35,8 @@ Dejar la base cerrada en los puntos que el asesor de Supabase ya marcó, y que e
 | Desarrollador | Puntos asignados |
 |---------------|------------------|
 | Rubén González | ~13 pts |
-| José | ~8 pts |
-| Sebastián | ~8 pts |
+| José Huerta | ~8 pts |
+| Sebastián Mardones | ~8 pts |
 | **Total** | **~29 pts** |
 
 ---
@@ -57,9 +57,9 @@ Dejar la base cerrada en los puntos que el asesor de Supabase ya marcó, y que e
 | HU-01 | RLS en `task_categories` | **P0** | 3 | Sebastián |
 | HU-02 | Quitar ejecución pública de funciones sensibles | **P0** | 5 | Rubén González |
 | HU-03 | Cerrar políticas abiertas de sprints, bugs y perfiles | **P1** | 5 | Sebastián |
-| HU-04 | Descargar el sprint como JSON | **P0** | 5 | José |
+| HU-04 | Descargar el sprint como JSON | **P0** | 5 | José Huerta |
 | HU-05 | Reimportar actualiza la tarea, no la duplica | **P0** | 8 | Rubén González |
-| HU-06 | Bugs dentro del mismo JSON | **P3** | 5 | José |
+| HU-06 | Bugs dentro del mismo JSON | **P3** | 5 | José Huerta |
 
 El núcleo del sprint son HU-01 a HU-05 (~29 pts). HU-06 solo entra si el núcleo ya está cerrado.
 
@@ -93,10 +93,10 @@ El núcleo del sprint son HU-01 a HU-05 (~29 pts). HU-06 solo entra si el núcle
 
 **Criterios de aceptación:**
 
-- `REVOKE EXECUTE` a `anon` y `PUBLIC` sobre `public.is_admin()`, `public.get_user_role()` y `public.handle_new_user()`.
-- `is_admin()` y `get_user_role()` siguen ejecutables por `authenticated`, porque las políticas RLS las llaman. Si una política deja de funcionar, se documenta y se corrige en la misma HU.
-- `handle_new_user()` solo la dispara el trigger. No queda llamable por `anon` ni por `authenticated`.
-- Se fija `search_path` en esas tres funciones.
+- `public.is_admin()` y `public.get_user_role()` dejan de estar en el esquema expuesto por PostgREST. Pasan a `private`, con `search_path` fijo, y las políticas que las usaban llaman `private.is_admin()`.
+- `anon` y `authenticated` no pueden llamar `/rest/v1/rpc/is_admin` ni `/rest/v1/rpc/get_user_role`.
+- `handle_new_user()` ya se eliminó en la migración 010. No se vuelve a crear.
+- Se fija `search_path` en las funciones de `private`.
 - Se anota en el PR el aviso de contraseñas filtradas de Supabase Auth: el login ya es Better Auth. No se reactiva Supabase Auth para “cumplir” ese aviso.
 
 **Hecho cuando:** `GET /rest/v1/rpc/is_admin` sin JWT responde 401 o permiso denegado, y un PM autenticado sigue pasando las políticas que usan `is_admin()`.

@@ -7,8 +7,10 @@ import { syncTaskDependencies } from '@/lib/utils/task-dependency'
 import {
   buildSprintPlanTemplate,
   fillMissingSprintOrders,
+  matchPlanTasks,
   prepareSprintPlan,
   type ImportPerson,
+  type PlanImportAction,
   type ResolvedPlanTask,
   type ResolvedSprintPlan,
 } from '@/lib/utils/sprint-plan-import'
@@ -20,6 +22,7 @@ interface PersonRow extends ImportPerson {
 interface ExistingTask {
   id: string
   title: string
+  plan_key: string | null
   sprint_order: number | null
 }
 
@@ -173,7 +176,7 @@ export async function POST(
 
 interface TaskMatch {
   planIndex: number
-  action: 'create' | 'skip'
+  action: PlanImportAction
   existingId: string | null
 }
 
@@ -206,46 +209,28 @@ async function buildPreview(
     warnings.push('El sprint ya existe. Se reutiliza y no se cambian sus fechas ni su objetivo.')
     const { data, error } = await admin
       .from('tasks')
-      .select('id, title, sprint_order')
+      .select('id, title, plan_key, sprint_order')
       .eq('sprint_id', existingSprint.id)
     if (error) throw new Error(error.message)
     existingTasks = data || []
   }
 
-  const matches: TaskMatch[] = []
-  const usedExistingIds = new Set<string>()
-
-  plan.tasks.forEach((task, planIndex) => {
-    const sameTitle = existingTasks.filter((existing) => normalizeLabel(existing.title) === normalizeLabel(task.title))
-    if (sameTitle.length > 1) {
-      errors.push({
-        path: `tasks[${planIndex}].title`,
-        message: `Hay más de una tarea llamada «${task.title}» en el sprint. No se puede reimportar con seguridad.`,
-      })
-      matches.push({ planIndex, action: 'create', existingId: null })
-      return
-    }
-    if (sameTitle.length === 1) {
-      usedExistingIds.add(sameTitle[0].id)
-      matches.push({ planIndex, action: 'skip', existingId: sameTitle[0].id })
-      return
-    }
-    matches.push({ planIndex, action: 'create', existingId: null })
-  })
+  const matched = matchPlanTasks(
+    plan.tasks.map((task) => ({ key: task.key, title: task.title })),
+    existingTasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      planKey: task.plan_key,
+      sprintOrder: task.sprint_order,
+    }))
+  )
+  errors.push(...matched.errors)
+  const matches: TaskMatch[] = matched.matches.map((match, planIndex) => ({ ...match, planIndex }))
+  const usedExistingIds = new Set(matches.map((match) => match.existingId).filter((id): id is string => !!id))
 
   const occupiedOrders = existingTasks
     .filter((task) => !usedExistingIds.has(task.id) && task.sprint_order != null)
     .map((task) => task.sprint_order as number)
-
-  plan.tasks.forEach((task, planIndex) => {
-    if (matches[planIndex]?.action !== 'create' || task.sprintOrder == null) return
-    if (occupiedOrders.includes(task.sprintOrder)) {
-      errors.push({
-        path: `tasks[${planIndex}].sprint_order`,
-        message: `El orden HU-${task.sprintOrder} ya lo usa otra tarea del sprint`,
-      })
-    }
-  })
 
   const reservedOrders = [
     ...occupiedOrders,
@@ -261,11 +246,21 @@ async function buildPreview(
   const tasks = plan.tasks.map((task, planIndex) => {
     if (matches[planIndex]?.action !== 'create') {
       const existing = existingTasks.find((item) => item.id === matches[planIndex]?.existingId)
-      return { ...task, sprintOrder: existing?.sprint_order ?? null }
+      return { ...task, sprintOrder: task.sprintOrder ?? existing?.sprint_order ?? null }
     }
     const filled = filledCreates[createCursor]
     createCursor += 1
     return filled
+  })
+
+  tasks.forEach((task, planIndex) => {
+    if (task.sprintOrder == null) return
+    if (occupiedOrders.includes(task.sprintOrder)) {
+      errors.push({
+        path: `tasks[${planIndex}].sprint_order`,
+        message: `El orden HU-${task.sprintOrder} ya lo usa otra tarea del sprint`,
+      })
+    }
   })
 
   return {
@@ -283,23 +278,29 @@ async function buildPreview(
         status: existingSprint?.status ?? plan.sprint.status,
         action: existingSprint ? 'reuse' as const : 'create' as const,
       },
-      tasks: tasks.map((task, index) => ({
-        key: task.key,
-        title: task.title,
-        description: task.description,
-        action: matches[index]?.action ?? 'create',
-        assignees: task.assigneeNames,
-        reviewer: task.reviewerName,
-        sprint_order: task.sprintOrder,
-        depends_on: task.dependsOnKeys,
-        category: task.category,
-        priority: task.priority,
-        status: task.status,
-        complexity: task.complexity,
-      })),
+      tasks: tasks.map((task, index) => {
+        const existing = existingTasks.find((item) => item.id === matches[index]?.existingId)
+        const titleChanged = !!existing && normalizeLabel(existing.title) !== normalizeLabel(task.title)
+        return {
+          key: task.key,
+          title: task.title,
+          previous_title: titleChanged ? existing?.title ?? null : null,
+          description: task.description,
+          action: matches[index]?.action ?? 'create',
+          assignees: task.assigneeNames,
+          reviewer: task.reviewerName,
+          sprint_order: task.sprintOrder,
+          depends_on: task.dependsOnKeys,
+          category: task.category,
+          priority: task.priority,
+          status: task.status,
+          complexity: task.complexity,
+        }
+      }),
       summary: {
         to_create: matches.filter((match) => match.action === 'create').length,
-        to_skip: matches.filter((match) => match.action === 'skip').length,
+        to_update: matches.filter((match) => match.action === 'update').length,
+        to_skip: 0,
       },
     },
   }
@@ -347,14 +348,73 @@ async function applyPlan(
 
   const idsByKey = new Map<string, string>()
   let created = 0
-  let skipped = 0
+  let updated = 0
 
   for (let index = 0; index < tasks.length; index += 1) {
     const task = tasks[index]
     const match = matches[index]
-    if (match?.action === 'skip' && match.existingId) {
-      idsByKey.set(task.key, match.existingId)
-      skipped += 1
+    if (match?.action === 'update' && match.existingId) {
+      const { data: current, error: currentError } = await admin
+        .from('tasks')
+        .select('id, title, category, task_number, branch_name')
+        .eq('id', match.existingId)
+        .maybeSingle()
+      if (currentError || !current) throw new Error(currentError?.message || `No se encontró «${task.title}»`)
+
+      let branchName: string | null = current.branch_name || null
+      if (!branchName && task.branchName) branchName = task.branchName
+      if (!branchName && task.autoBranch && current.task_number) {
+        branchName = getBranchName({ ...current, title: task.title, category: task.category })
+      }
+
+      const patch: Record<string, unknown> = {
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        category: task.category,
+        assignee_id: task.assigneeIds[0] ?? null,
+        reviewer_id: task.reviewerId,
+        due_date: task.dueDate,
+        sprint_order: task.sprintOrder,
+        complexity: task.complexity,
+        plan_key: task.key,
+      }
+      if (!current.branch_name && branchName) patch.branch_name = branchName
+
+      const { error: updateError } = await admin.from('tasks').update(patch).eq('id', current.id)
+      if (updateError) throw new Error(updateError.message)
+
+      const { data: currentAssignees, error: assigneesReadError } = await admin
+        .from('task_assignees')
+        .select('user_id')
+        .eq('task_id', current.id)
+      if (assigneesReadError) throw new Error(assigneesReadError.message)
+
+      const keep = new Set(task.assigneeIds)
+      const remove = (currentAssignees || [])
+        .map((row: { user_id: string }) => row.user_id)
+        .filter((assigneeId: string) => !keep.has(assigneeId))
+      if (remove.length > 0) {
+        const { error: removeError } = await admin
+          .from('task_assignees')
+          .delete()
+          .eq('task_id', current.id)
+          .in('user_id', remove)
+        if (removeError) throw new Error(removeError.message)
+      }
+      if (task.assigneeIds.length > 0) {
+        const { error: assigneesError } = await admin
+          .from('task_assignees')
+          .upsert(
+            task.assigneeIds.map((assigneeId) => ({ task_id: current.id, user_id: assigneeId })),
+            { onConflict: 'task_id,user_id', ignoreDuplicates: true }
+          )
+        if (assigneesError) throw new Error(assigneesError.message)
+      }
+
+      idsByKey.set(task.key, current.id)
+      updated += 1
       continue
     }
 
@@ -383,6 +443,7 @@ async function applyPlan(
         position: (maxPosData?.position ?? -1) + 1,
         sprint_order: task.sprintOrder,
         complexity: task.complexity,
+        plan_key: task.key,
         branch_name: task.branchName,
         depends_on_task_id: null,
       })
@@ -413,9 +474,9 @@ async function applyPlan(
   for (let index = 0; index < tasks.length; index += 1) {
     const task = tasks[index]
     const match = matches[index]
-    if (match?.action === 'skip' || task.dependsOnKeys.length === 0) continue
     const taskId = idsByKey.get(task.key)
-    if (!taskId) continue
+    if (!taskId || (match?.action !== 'create' && match?.action !== 'update')) continue
+    if (match.action === 'create' && task.dependsOnKeys.length === 0) continue
     const dependencyIds = task.dependsOnKeys
       .map((key) => idsByKey.get(key))
       .filter((dependencyId): dependencyId is string => !!dependencyId)
@@ -429,8 +490,8 @@ async function applyPlan(
     entity_type: 'sprint',
     entity_id: sprintId,
     entity_name: plan.sprint.name,
-    details: { created_tasks: created, skipped_tasks: skipped, project_id: projectId },
+    details: { created_tasks: created, updated_tasks: updated, project_id: projectId },
   })
 
-  return { sprint_id: sprintId, created, skipped }
+  return { sprint_id: sprintId, created, updated, skipped: 0 }
 }

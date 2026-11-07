@@ -465,6 +465,178 @@ export function fillMissingSprintOrders<T extends { sprintOrder: number | null }
   })
 }
 
+export type PlanImportAction = 'create' | 'update'
+
+export interface StoredPlanTask {
+  id: string
+  title: string
+  planKey: string | null
+  sprintOrder: number | null
+}
+
+export function matchPlanTasks(
+  tasks: { key: string; title: string }[],
+  existing: StoredPlanTask[]
+): { matches: { action: PlanImportAction; existingId: string | null }[]; errors: PlanIssue[] } {
+  const errors: PlanIssue[] = []
+  const used = new Set<string>()
+  const byKey = new Map<string, StoredPlanTask[]>()
+
+  for (const row of existing) {
+    if (!row.planKey) continue
+    const list = byKey.get(row.planKey) ?? []
+    list.push(row)
+    byKey.set(row.planKey, list)
+  }
+
+  const matches = tasks.map((task, index) => {
+    const keyed = byKey.get(task.key) ?? []
+    if (keyed.length > 1) {
+      errors.push({
+        path: `tasks[${index}].key`,
+        message: `Hay más de una tarea con la clave «${task.key}» en el sprint.`,
+      })
+      return { action: 'create' as const, existingId: null }
+    }
+    if (keyed.length === 1) {
+      used.add(keyed[0].id)
+      return { action: 'update' as const, existingId: keyed[0].id }
+    }
+
+    const byTitle = existing.filter(
+      (row) => !row.planKey && !used.has(row.id) && normalizeName(row.title) === normalizeName(task.title)
+    )
+    if (byTitle.length > 1) {
+      errors.push({
+        path: `tasks[${index}].title`,
+        message: `Hay más de una tarea sin clave llamada «${task.title}». No se puede reimportar con seguridad.`,
+      })
+      return { action: 'create' as const, existingId: null }
+    }
+    if (byTitle.length === 1) {
+      used.add(byTitle[0].id)
+      return { action: 'update' as const, existingId: byTitle[0].id }
+    }
+
+    return { action: 'create' as const, existingId: null }
+  })
+
+  return { matches, errors }
+}
+
+const PLAN_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,40}$/
+
+export function exportPlanKey(task: {
+  planKey: string | null
+  sprintOrder: number | null
+  taskNumber: number | null
+  id: string
+}): string {
+  if (task.planKey && PLAN_KEY_PATTERN.test(task.planKey)) return task.planKey
+  if (task.sprintOrder != null) return `HU-${task.sprintOrder}`
+  if (task.taskNumber != null) return `T-${task.taskNumber}`
+  return `T-${task.id.replace(/-/g, '').slice(0, 8)}`
+}
+
+export interface SprintPlanExportTask {
+  id: string
+  title: string
+  description: string | null
+  category: string
+  priority: string
+  status: string
+  complexity: number | null
+  sprintOrder: number | null
+  taskNumber: number | null
+  planKey: string | null
+  dueDate: string | null
+  branchName: string | null
+  assigneeIds: string[]
+  reviewerId: string | null
+  dependencyIds: string[]
+}
+
+function personLabel(person: ImportPerson, referenced: ImportPerson[]): string {
+  const first = normalizeName(person.full_name).split(' ')[0]
+  const collision = referenced.filter((other) => normalizeName(other.full_name).split(' ')[0] === first).length > 1
+  if (collision && person.email) return person.email
+  return person.full_name
+}
+
+function isoDateOrNull(value: string | null): string | null {
+  if (!value) return null
+  const date = value.slice(0, 10)
+  return isIsoDate(date) ? date : null
+}
+
+export function buildSprintPlanExport(input: {
+  projectName: string
+  sprint: {
+    name: string
+    goal: string | null
+    startDate: string
+    endDate: string
+    status: string
+  }
+  tasks: SprintPlanExportTask[]
+  people: ImportPerson[]
+}): Record<string, unknown> {
+  const peopleById = new Map(input.people.map((person) => [person.id, person]))
+  const ordered = [...input.tasks].sort((left, right) => {
+    const leftOrder = left.sprintOrder ?? Number.MAX_SAFE_INTEGER
+    const rightOrder = right.sprintOrder ?? Number.MAX_SAFE_INTEGER
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder
+    return left.title.localeCompare(right.title, 'es')
+  })
+  const keyById = new Map(ordered.map((task) => [task.id, exportPlanKey(task)]))
+  const referencedIds = new Set<string>()
+  for (const task of ordered) {
+    task.assigneeIds.forEach((id) => referencedIds.add(id))
+    if (task.reviewerId) referencedIds.add(task.reviewerId)
+  }
+  const referenced = input.people.filter((person) => referencedIds.has(person.id))
+
+  return {
+    project: input.projectName,
+    sprint: {
+      name: input.sprint.name,
+      goal: input.sprint.goal,
+      start_date: isoDateOrNull(input.sprint.startDate),
+      end_date: isoDateOrNull(input.sprint.endDate),
+      status: input.sprint.status,
+    },
+    tasks: ordered.map((task) => {
+      const assignees = task.assigneeIds
+        .map((id) => peopleById.get(id))
+        .filter((person): person is ImportPerson => !!person)
+        .map((person) => personLabel(person, referenced))
+      const reviewer = task.reviewerId ? peopleById.get(task.reviewerId) : null
+      const dependsOn = task.dependencyIds
+        .map((id) => keyById.get(id))
+        .filter((key): key is string => !!key)
+
+      const row: Record<string, unknown> = {
+        key: keyById.get(task.id),
+        title: task.title,
+        description: task.description ?? '',
+        category: task.category,
+        priority: task.priority,
+        status: task.status,
+        sprint_order: task.sprintOrder,
+        assignees,
+        reviewer: reviewer ? personLabel(reviewer, referenced) : null,
+        due_date: isoDateOrNull(task.dueDate),
+        depends_on: dependsOn,
+      }
+      if (task.complexity != null && task.complexity >= 1 && task.complexity <= 10) {
+        row.complexity = task.complexity
+      }
+      if (task.branchName) row.branch_name = task.branchName
+      return row
+    }),
+  }
+}
+
 export function buildSprintPlanTemplate(projectName: string, people: ImportPerson[]): string {
   const assignee = people[0]?.full_name ?? 'Nombre Apellido'
   const reviewer = people[1]?.full_name ?? assignee

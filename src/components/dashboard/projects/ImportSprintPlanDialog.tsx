@@ -18,8 +18,9 @@ interface Person {
 interface PreviewTask {
   key: string
   title: string
+  previous_title?: string | null
   description: string | null
-  action: 'create' | 'skip'
+  action: 'create' | 'update' | 'skip'
   assignees: string[]
   reviewer: string | null
   sprint_order: number | null
@@ -35,7 +36,7 @@ interface Preview {
     status: string
   }
   tasks: PreviewTask[]
-  summary: { to_create: number; to_skip: number }
+  summary: { to_create: number; to_update?: number; to_skip: number }
 }
 
 interface ImportResponse {
@@ -44,7 +45,7 @@ interface ImportResponse {
   warnings?: string[]
   people?: Person[]
   preview?: Preview
-  applied?: { sprint_id: string; created: number; skipped: number }
+  applied?: { sprint_id: string; created: number; updated?: number; skipped: number }
 }
 
 interface ImportSprintPlanDialogProps {
@@ -203,7 +204,7 @@ export function ImportSprintPlanDialog({
                   {result.preview.sprint.action === 'create' ? 'Sprint nuevo' : 'Sprint existente'}: {result.preview.sprint.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {result.preview.summary.to_create} por crear · {result.preview.summary.to_skip} ya existían
+                  {result.preview.summary.to_create} por crear · {result.preview.summary.to_update ?? 0} por actualizar
                 </p>
                 <ul className="space-y-1">
                   {result.preview.tasks.map((task) => (
@@ -215,7 +216,11 @@ export function ImportSprintPlanDialog({
                       >
                         <span className="font-medium">{task.key}</span> {task.title}
                         <span className="block text-xs text-muted-foreground">
-                          {task.action === 'create' ? 'Se creará' : 'Ya existe, se omite'}
+                          {task.action === 'create'
+                            ? 'Se creará'
+                            : task.action === 'update'
+                              ? `Se actualizará${task.previous_title ? ` (antes «${task.previous_title}»)` : ''}`
+                              : 'Ya existe, se omite'}
                           {task.assignees.length > 0 ? ` · ${task.assignees.join(', ')}` : ''}
                         </span>
                       </button>
@@ -238,7 +243,7 @@ export function ImportSprintPlanDialog({
             <div className="bg-green-50 border border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
               Sprint importado: {result.applied.created} tareas nuevas
-              {result.applied.skipped > 0 ? `, ${result.applied.skipped} omitidas` : ''}.
+              {(result.applied.updated ?? 0) > 0 ? `, ${result.applied.updated} actualizadas` : ''}.
             </div>
           )}
         </div>

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { fillMissingSprintOrders, prepareSprintPlan, resolvePerson, type ImportPerson } from '../sprint-plan-import'
+import {
+  buildSprintPlanExport,
+  fillMissingSprintOrders,
+  matchPlanTasks,
+  prepareSprintPlan,
+  resolvePerson,
+  type ImportPerson,
+} from '../sprint-plan-import'
 
 const people: ImportPerson[] = [
   { id: '1', full_name: 'José Huerta', email: 'jose@example.com' },
@@ -101,5 +108,97 @@ describe('prepareSprintPlan', () => {
 
     expect(result.errors.some((issue) => issue.path === 'sprint.end_date')).toBe(true)
     expect(result.errors.some((issue) => issue.message.includes('orden 1'))).toBe(true)
+  })
+})
+
+describe('matchPlanTasks', () => {
+  it('actualiza por plan_key aunque cambie el título', () => {
+    const result = matchPlanTasks(
+      [{ key: 'HU-01', title: 'Login nuevo' }],
+      [{ id: 'task-1', title: 'Login viejo', planKey: 'HU-01', sprintOrder: 1 }]
+    )
+
+    expect(result.errors).toEqual([])
+    expect(result.matches[0]).toEqual({ action: 'update', existingId: 'task-1' })
+  })
+
+  it('usa el título solo cuando la tarea vieja no tiene clave', () => {
+    const result = matchPlanTasks(
+      [{ key: 'HU-04', title: 'Descargar plan' }],
+      [{ id: 'task-4', title: 'Descargar plan', planKey: null, sprintOrder: 4 }]
+    )
+
+    expect(result.matches[0]).toEqual({ action: 'update', existingId: 'task-4' })
+  })
+
+  it('crea la tarea si la clave no está en el sprint', () => {
+    const result = matchPlanTasks(
+      [{ key: 'HU-05', title: 'Reimportar' }],
+      [{ id: 'task-1', title: 'Otra', planKey: 'HU-01', sprintOrder: 1 }]
+    )
+
+    expect(result.matches[0]).toEqual({ action: 'create', existingId: null })
+  })
+})
+
+describe('buildSprintPlanExport', () => {
+  it('devuelve un JSON que el importador acepta y conserva el markdown', () => {
+    const description = '**Objetivo**\nCerrar el acceso.\n\n*Nota:* sin HTML.'
+    const document = buildSprintPlanExport({
+      projectName: 'SynchroManaha - Security',
+      sprint: {
+        name: 'Seguridad y plan',
+        goal: 'Dejar la base cerrada',
+        startDate: '2026-11-09',
+        endDate: '2026-11-20',
+        status: 'planning',
+      },
+      people,
+      tasks: [
+        {
+          id: 'a',
+          title: 'RLS de categorías',
+          description,
+          category: 'feature',
+          priority: 'high',
+          status: 'todo',
+          complexity: 3,
+          sprintOrder: 1,
+          taskNumber: 10,
+          planKey: null,
+          dueDate: '2026-11-13',
+          branchName: null,
+          assigneeIds: ['2'],
+          reviewerId: '3',
+          dependencyIds: [],
+        },
+        {
+          id: 'b',
+          title: 'Reimportar',
+          description: 'Actualiza por clave.',
+          category: 'feature',
+          priority: 'high',
+          status: 'todo',
+          complexity: 8,
+          sprintOrder: 2,
+          taskNumber: 11,
+          planKey: 'HU-05',
+          dueDate: null,
+          branchName: 'feature/reimportar',
+          assigneeIds: ['3'],
+          reviewerId: '1',
+          dependencyIds: ['a'],
+        },
+      ],
+    })
+
+    const prepared = prepareSprintPlan(document, people)
+    expect(prepared.errors).toEqual([])
+    expect(prepared.plan?.projectName).toBe('SynchroManaha - Security')
+    expect(prepared.plan?.tasks[0]?.description).toBe(description)
+    expect(prepared.plan?.tasks[0]?.key).toBe('HU-1')
+    expect(prepared.plan?.tasks[1]?.key).toBe('HU-05')
+    expect(prepared.plan?.tasks[1]?.dependsOnKeys).toEqual(['HU-1'])
+    expect(prepared.plan?.tasks[1]?.branchName).toBe('feature/reimportar')
   })
 })

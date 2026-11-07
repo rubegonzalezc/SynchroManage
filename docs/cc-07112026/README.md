@@ -1,11 +1,11 @@
 # CC-07112026 — Base sólida
 
-**Proyecto:** SynchroManage  
+**Proyecto:** SynchroManaha - Security  
 **Control de cambios:** CC-07112026  
 **Fecha de apertura:** 07/11/2026  
 **Versión objetivo del producto:** `0.2.6`  
-**Equipo:** Rubén González, José, Sebastián  
-**Estado:** Planificado
+**Equipo:** Rubén González (fullstack), Sebastián Mardones (fullstack), José Huerta (frontend)  
+**Estado:** En curso
 
 ## Épica
 
