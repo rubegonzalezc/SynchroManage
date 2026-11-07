@@ -142,7 +142,7 @@ export function TaskActivityHistory({ taskId, refreshKey = 0 }: TaskActivityHist
               <p className="text-sm text-foreground">
                 <span className="font-medium">{activity.user?.full_name || 'Usuario'}</span>
                 {' '}
-                <span className="text-muted-foreground">{getTaskActivityDescription(activity)}</span>
+                <span className="text-foreground/85">{getTaskActivityDescription(activity)}</span>
               </p>
             </div>
             <p className="text-xs text-muted-foreground mt-1 ml-6">

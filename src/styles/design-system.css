@@ -66,7 +66,7 @@
 
   --sidebar-surface: #12161c;
   --sidebar-fg: #f3f5f8;
-  --sidebar-muted: #9aa3af;
+  --sidebar-muted: #c5ced8;
   --sidebar-hover: rgba(255, 255, 255, 0.06);
   --sidebar-active: rgba(110, 168, 254, 0.16);
   --sidebar-active-fg: #9ec5ff;
@@ -90,6 +90,15 @@ html,
 body {
   max-width: 100%;
   overflow-x: clip;
+}
+
+/*
+ * MUI pinta `body { color: #0F172A }` fuera de las capas de Tailwind, así que
+ * gana sobre `text-foreground` y el texto heredado se queda oscuro en modo
+ * oscuro. Esta regla es más específica y sigue la variable del tema.
+ */
+html body {
+  color: var(--foreground);
 }
 
 body {
