@@ -34,7 +34,7 @@ import { SprintTaskReferenceBadge } from '@/components/ui/sprint-task-reference-
 import { formatSprintTaskReferenceLabel } from '@/lib/utils/task-sprint-order'
 import { FormattedText } from '@/components/ui/formatted-text'
 import { resolveDependencyTasks, formatDependencyLabel, getPendingDependencies, isAdvancedTaskStatus } from '@/lib/utils/task-dependency'
-import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems, TASK_STATUS_OPTIONS } from '@/components/dashboard/tasks/task-status-select'
+import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems, TASK_STATUS_OPTIONS, TASK_STATUS_PILL, TASK_STATUS_WASH } from '@/components/dashboard/tasks/task-status-select'
 import type { BlockingBugRef } from '@/lib/utils/task-open-bugs'
 import { TaskActivityHistory } from '@/components/dashboard/tasks/TaskActivityHistory'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
@@ -503,7 +503,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl bg-[#f3f6fb] dark:bg-[#10141b]">
           <DialogHeader className="flex flex-row items-start justify-between gap-3 pr-8">
             <DialogTitle className="flex-1 min-w-0">
               {mode === 'edit'
@@ -542,21 +542,29 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
             <div className="space-y-6">
               {mode === 'view' ? (
                 <div className="space-y-5">
-                  <div className="space-y-2">
+                  <div className={`space-y-2 rounded-2xl border px-4 py-4 ${TASK_STATUS_WASH[task.status] || TASK_STATUS_WASH.todo}`}>
                     <h2 className="text-xl font-semibold tracking-tight leading-snug">{task.title}</h2>
                     <div className="flex flex-wrap items-center gap-2">
                       {task.task_number != null && (
-                        <Badge variant="secondary" className="font-mono font-normal">#{task.task_number}</Badge>
+                        <span className="rounded-full bg-white/80 px-2.5 py-0.5 font-mono text-[12px] text-foreground dark:bg-white/10">#{task.task_number}</span>
                       )}
                       {sprintReferenceLabel && <SprintTaskReferenceBadge label={sprintReferenceLabel} />}
-                      <Badge variant="secondary" className="font-normal">
+                      <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-[12px] font-medium text-violet-800 dark:bg-violet-900/50 dark:text-violet-100">
                         {categoryIcons[task.category || 'task']} {categoryLabels[task.category || 'task'] || 'Tarea'}
-                      </Badge>
-                      <Badge variant="outline" className="font-normal">{priorityLabels[task.priority] || task.priority}</Badge>
+                      </span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[12px] font-medium ${
+                        task.priority === 'urgent'
+                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-100'
+                          : task.priority === 'high'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-100'
+                            : task.priority === 'low'
+                              ? 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                              : 'bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-100'
+                      }`}>{priorityLabels[task.priority] || task.priority}</span>
                     </div>
                   </div>
 
-                  <div className="space-y-2 rounded-2xl border border-sky-200 bg-sky-50/80 p-4 dark:border-sky-800 dark:bg-sky-950/30">
+                  <div className={`space-y-2 rounded-2xl border p-4 ${TASK_STATUS_WASH[task.status] || TASK_STATUS_WASH.todo}`}>
                     <p className="text-[13px] font-medium text-muted-foreground">Estado</p>
                     <DependencyBlockedWarning dependencyTasks={dependencyTasks} />
                     <OpenBugsBlockedWarning
@@ -577,8 +585,8 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                             onClick={() => handleStatusChange(option.value)}
                             className={`rounded-full px-3 py-1 text-[12px] font-semibold ${
                               selected
-                                ? 'bg-primary text-primary-foreground'
-                                : 'border border-border bg-card text-muted-foreground'
+                                ? TASK_STATUS_PILL[option.value]
+                                : 'border border-current/15 bg-white/70 text-foreground dark:bg-white/10'
                             } ${blocked ? 'cursor-not-allowed opacity-40' : ''}`}
                           >
                             {option.label}
@@ -592,7 +600,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     {task.project && (
-                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                      <div className="space-y-1 rounded-2xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950/35">
                         <p className="text-[13px] font-medium text-muted-foreground">Proyecto</p>
                         <Link href={`/projects/${task.project.id}`} className="inline-flex items-center gap-1 hover:underline">
                           {task.project.name}
@@ -601,28 +609,28 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                       </div>
                     )}
                     {dueLabel && (
-                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                      <div className={`space-y-1 rounded-2xl border p-4 ${overdue ? 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/35' : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30'}`}>
                         <p className="text-[13px] font-medium text-muted-foreground">Fecha límite</p>
-                        <p className={`flex items-center gap-1.5 ${overdue ? 'font-medium text-red-600 dark:text-red-400' : ''}`}>
+                        <p className={`flex items-center gap-1.5 ${overdue ? 'font-medium text-rose-700 dark:text-rose-200' : ''}`}>
                           <Calendar className="w-3.5 h-3.5" />
                           {dueLabel}{overdue ? ' · Vencida' : ''}
                         </p>
                       </div>
                     )}
                     {sprintName && (
-                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                      <div className="space-y-1 rounded-2xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-800 dark:bg-violet-950/35">
                         <p className="text-[13px] font-medium text-muted-foreground">Sprint</p>
                         <p>{sprintName}</p>
                       </div>
                     )}
                     {assignees.length > 0 && (
-                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                      <div className="space-y-1 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-950/35">
                         <p className="text-[13px] font-medium text-muted-foreground">Asignados</p>
                         <p>{assignees.map((person) => person.full_name).join(', ')}</p>
                       </div>
                     )}
                     {task.reviewer && (
-                      <div className="space-y-1 rounded-2xl border border-border bg-muted/40 p-4">
+                      <div className="space-y-1 rounded-2xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950/35">
                         <p className="text-[13px] font-medium text-muted-foreground">Revisor</p>
                         <p className="flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5 text-muted-foreground" />
@@ -646,7 +654,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                   )}
 
                   {task.description && (
-                    <div className="space-y-1.5 rounded-2xl border border-border bg-muted/40 p-4">
+                    <div className="space-y-1.5 rounded-2xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-800 dark:bg-violet-950/30">
                       <p className="text-[13px] font-medium text-muted-foreground">Descripción</p>
                       <div className="text-sm text-muted-foreground leading-relaxed">
                         <FormattedText>{task.description}</FormattedText>
@@ -656,7 +664,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
 
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground text-sm">Rama</span>
-                    <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 flex-1 min-w-0 dark:border-emerald-800 dark:bg-emerald-950/35">
                       <GitBranch className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                       <span className="font-mono text-xs truncate">{getBranchName(task)}</span>
                       <button
@@ -823,22 +831,19 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
               </div>
               )}
 
-              {/* Attachments */}
-              <div className="border-t border-border pt-4">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
                 <FileAttachments
                   taskId={taskId}
                   currentUserId={currentUserId}
                 />
               </div>
 
-              {/* History */}
-              <div className="border-t border-border pt-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/40">
                 <h4 className="font-medium text-foreground mb-3">Historial</h4>
                 <TaskActivityHistory taskId={taskId} refreshKey={activityRefreshKey} />
               </div>
 
-              {/* Comments */}
-              <div className="border-t border-border pt-4">
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-800 dark:bg-rose-950/30">
                 <h4 className="font-medium text-foreground mb-3">Comentarios</h4>
                 
                 {hasNewComments && (
@@ -856,7 +861,7 @@ export function TaskDetailDialogStandalone({ taskId, open, onOpenChange, onTaskU
                     <p className="text-sm text-muted-foreground text-center py-4">Sin comentarios</p>
                   ) : (
                     task.comments.map((comment) => (
-                      <div key={comment.id} className="flex gap-2 p-2 rounded-lg bg-muted/50 group">
+                      <div key={comment.id} className="flex gap-2 rounded-xl bg-white/75 p-2 group dark:bg-black/20">
                         <Avatar className="w-8 h-8 flex-shrink-0">
                           <AvatarImage src={comment.user.avatar_url || undefined} />
                           <AvatarFallback className="text-xs">{getInitials(comment.user.full_name)}</AvatarFallback>
