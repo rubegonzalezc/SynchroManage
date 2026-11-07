@@ -347,7 +347,7 @@ export default function ProfilePage() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Mi perfil</h1>
+          <h1 className="text-[28px] font-semibold tracking-tight">Mi perfil</h1>
           <p className="text-[15px] text-muted-foreground mt-1">Administra tu información personal</p>
         </div>
         <Button onClick={handleSaveProfile} disabled={saving}>

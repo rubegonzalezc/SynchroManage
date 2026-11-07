@@ -17,12 +17,11 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
 
   // Variables CSS en lugar de `resolvedTheme`: el cristal queda correcto en el
   // primer pintado, sin esperar a que React hidrate.
-  const glass = {
-    bgcolor: 'var(--glass-bg)',
-    backdropFilter: 'blur(28px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-    border: '1px solid var(--glass-border)',
-    boxShadow: 'var(--shadow-glass)',
+  const bar = {
+    bgcolor: 'var(--card)',
+    border: '1px solid var(--border)',
+    boxShadow: 'none',
+    backdropFilter: 'none',
   }
 
   return (
@@ -39,8 +38,8 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             color: 'text.primary',
             width: 40,
             height: 40,
-            borderRadius: '12px',
-            ...glass,
+            borderRadius: '10px',
+            ...bar,
           }}
           aria-label="Abrir menú"
         >
@@ -59,10 +58,10 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             width: { md: 420 },
             height: 40,
             px: 1.75,
-            borderRadius: 999,
+            borderRadius: '10px',
             cursor: 'pointer',
             textAlign: 'left',
-            ...glass,
+            ...bar,
           }}
           aria-label="Abrir búsqueda rápida"
         >
@@ -100,8 +99,8 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             alignItems: 'center',
             height: 40,
             px: 0.4,
-            borderRadius: 999,
-            ...glass,
+            borderRadius: '10px',
+            ...bar,
           }}
         >
           <ThemeToggle />

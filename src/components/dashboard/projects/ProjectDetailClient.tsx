@@ -356,7 +356,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             <Link href={backHref} className="inline-flex items-center gap-1 text-[15px] font-medium text-primary mb-2">
               <ArrowLeft className="w-4 h-4" /> {backLabel}
             </Link>
-            <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-[1.15]">{project.name}</h1>
+            <h1 className="text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">{project.name}</h1>
             {project.description && (
               <p className="text-[15px] text-muted-foreground mt-1.5 max-w-2xl">
                 <FormattedText>{project.description}</FormattedText>
@@ -492,7 +492,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
           <Link href={backHref} className="inline-flex items-center gap-1 text-[15px] font-medium text-primary mb-2">
             <ArrowLeft className="w-4 h-4" /> {backLabel}
           </Link>
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-[1.15]">{project.name}</h1>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">{project.name}</h1>
           {project.description && (
             <p className="text-[15px] text-muted-foreground mt-1.5 max-w-2xl">
               <FormattedText>{project.description}</FormattedText>

@@ -143,10 +143,10 @@ const taskPriorityColors: Record<string, string> = {
 function SheetSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground px-0.5">
+      <p className="text-[13px] font-medium text-muted-foreground px-0.5">
         {title}
       </p>
-      <div className="rounded-[18px] bg-white/55 dark:bg-white/[0.04] border border-white/70 dark:border-white/10 p-4 space-y-4 min-w-0 w-full">
+      <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-4 min-w-0 w-full">
         {children}
       </div>
     </div>
@@ -759,7 +759,7 @@ export function TaskDetailDialog({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   {task.due_date && (
                     <div className="space-y-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Fecha límite</p>
+                      <p className="text-[13px] font-medium text-muted-foreground">Fecha límite</p>
                       <p className={`flex items-center gap-1.5 ${isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-foreground'}`}>
                         <Calendar className="w-3.5 h-3.5" />
                         {formatDate(task.due_date)}
@@ -769,13 +769,13 @@ export function TaskDetailDialog({
                   )}
                   {task.sprint && (
                     <div className="space-y-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sprint</p>
+                      <p className="text-[13px] font-medium text-muted-foreground">Sprint</p>
                       <p className="text-foreground">{task.sprint.name}</p>
                     </div>
                   )}
                   {dependencyTasks.length > 0 && (
                     <div className="space-y-1 sm:col-span-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Dependencias</p>
+                      <p className="text-[13px] font-medium text-muted-foreground">Dependencias</p>
                       <div className="flex flex-wrap gap-1.5">
                         {dependencyTasks.map((dep) => (
                           <Badge
@@ -791,13 +791,13 @@ export function TaskDetailDialog({
                   )}
                   {task.assignees.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Asignados</p>
+                      <p className="text-[13px] font-medium text-muted-foreground">Asignados</p>
                       <AvatarStack assignees={task.assignees} maxVisible={5} />
                     </div>
                   )}
                   {task.reviewer && (
                     <div className="space-y-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Revisor (QA)</p>
+                      <p className="text-[13px] font-medium text-muted-foreground">Revisor (QA)</p>
                       <p className="flex items-center gap-1.5 text-foreground">
                         <User className="w-3.5 h-3.5 text-muted-foreground" />
                         {task.reviewer.full_name}

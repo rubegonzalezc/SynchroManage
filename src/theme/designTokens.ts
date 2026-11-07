@@ -16,7 +16,7 @@ export const tokens = {
   error: '#EF4444',
   info: '#2563EB',
   ease: 'cubic-bezier(0.22, 1, 0.36, 1)',
-  sidebarWidth: 276,
+  sidebarWidth: 248,
 } as const
 
 export type ThemeMode = 'light' | 'dark'

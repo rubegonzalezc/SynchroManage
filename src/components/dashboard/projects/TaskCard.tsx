@@ -122,10 +122,9 @@ function TaskCardView({
         cursor: isOverlay ? 'grabbing' : 'pointer',
         opacity: isSortableDragging ? 0 : 1,
         pointerEvents: isSortableDragging ? 'none' : 'auto',
-        bgcolor: isDark ? 'rgba(15, 23, 42, 0.72)' : 'rgba(255, 255, 255, 0.82)',
-        backdropFilter: 'blur(16px) saturate(160%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-        border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.8)',
+        bgcolor: 'var(--card)',
+        border: '1px solid var(--border)',
+        borderLeft: `3px solid ${priority.color}`,
         boxShadow: isOverlay
           ? (isDark
             ? '0 20px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.12)'
@@ -133,14 +132,11 @@ function TaskCardView({
           : (isDark
             ? '0 6px 18px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06)'
             : '0 6px 18px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255,255,255,0.9)'),
-        transition: isSortableDragging ? 'none' : `box-shadow 280ms ${tokens.ease}`,
+        transition: 'none',
         '&:hover': isOverlay || isSortableDragging
           ? undefined
           : {
-              transform: 'translateY(-1px)',
-              boxShadow: isDark
-                ? '0 12px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08)'
-                : '0 14px 32px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255,255,255,1)',
+              borderColor: 'var(--primary)',
             },
         '& .task-card-edit-btn': {
           opacity: 0.7,
@@ -301,7 +297,6 @@ function TaskCardView({
                     bgcolor: isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
                     color: 'text.primary',
                     border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(15,23,42,0.08)',
-                    backdropFilter: 'blur(12px)',
                     boxShadow: isDark
                       ? '0 12px 32px rgba(0,0,0,0.35)'
                       : '0 12px 32px rgba(15,23,42,0.12)',
