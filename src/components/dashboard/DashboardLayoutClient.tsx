@@ -49,6 +49,8 @@ export function DashboardLayoutClient({ user, children }: DashboardLayoutClientP
               flexGrow: 1,
               width: { md: `calc(100% - ${SIDEBAR_WIDTH}px)` },
               minWidth: 0,
+              maxWidth: '100%',
+              overflowX: 'clip',
               px: { xs: 2, md: 4 },
               py: { xs: 1, md: 3 },
               pb: { xs: 'calc(88px + env(safe-area-inset-bottom))', md: 4 },

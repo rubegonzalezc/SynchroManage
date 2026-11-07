@@ -398,7 +398,7 @@ export function KanbanBoard({
       }}
     >
       <div className="space-y-2">
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex w-full min-w-0 max-w-full gap-3 overflow-x-auto overscroll-x-contain pb-4">
           {columns.map((column) => {
             const columnTasks = getTasksByStatus(column.id)
             const dropBlockedMessage = activeTask

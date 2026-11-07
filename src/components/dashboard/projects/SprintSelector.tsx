@@ -2,7 +2,6 @@
 
 import { FileJson, Plus, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { GlassPanel } from '@/components/ui/glass-panel'
 import type { Sprint } from './CreateSprintDialog'
 
 interface SprintSelectorProps {
@@ -22,7 +21,7 @@ const statusLabel: Record<string, string> = {
 
 export function SprintSelector({ sprints, selectedSprintId, onSelect, canManage, onNewSprint, onImportPlan }: SprintSelectorProps) {
   return (
-    <GlassPanel padding={1} sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
       <button
         type="button"
         onClick={() => onSelect(null)}
@@ -79,6 +78,6 @@ export function SprintSelector({ sprints, selectedSprintId, onSelect, canManage,
           </Button>
         </div>
       )}
-    </GlassPanel>
+    </div>
   )
 }
