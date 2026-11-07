@@ -180,6 +180,104 @@ function MultiSelectFilter({
   )
 }
 
+const MOBILE_STATUSES = [
+  { id: 'all', label: 'Todas' },
+  { id: 'todo', label: 'Por hacer' },
+  { id: 'in_progress', label: 'En curso' },
+  { id: 'review', label: 'Revisión' },
+  { id: 'done', label: 'Listas' },
+] as const
+
+function MobileMyTasks({
+  tasks,
+  filteredTasks,
+  search,
+  onSearch,
+  statusFilter,
+  onStatus,
+  onOpen,
+  showProject,
+}: {
+  tasks: Task[]
+  filteredTasks: Task[]
+  search: string
+  onSearch: (value: string) => void
+  statusFilter: Set<string>
+  onStatus: (status: string) => void
+  onOpen: (id: string) => void
+  showProject: boolean
+}) {
+  const activeStatus = statusFilter.size === 1 ? [...statusFilter][0] : 'all'
+
+  return (
+    <div className="md:hidden flex flex-col gap-3">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        {MOBILE_STATUSES.map((status) => {
+          const count = status.id === 'all'
+            ? tasks.filter((task) => task.status !== 'done').length
+            : tasks.filter((task) => task.status === status.id).length
+          const selected = activeStatus === status.id
+          return (
+            <button
+              key={status.id}
+              type="button"
+              onClick={() => onStatus(status.id)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium ${
+                selected ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground border border-border'
+              }`}
+            >
+              {status.label}
+              <span className="ml-1.5 tabular-nums opacity-80">{count}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar tarea"
+          value={search}
+          onChange={(event) => onSearch(event.target.value)}
+          className="pl-9 h-11 rounded-2xl bg-card"
+        />
+      </div>
+
+      {filteredTasks.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+          {tasks.length === 0 ? 'No tienes tareas asignadas' : 'Nada coincide con esa búsqueda'}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {filteredTasks.map((task) => {
+            const overdue = task.due_date && task.status !== 'done' && new Date(task.due_date + 'T00:00:00') < new Date()
+            return (
+              <button
+                key={task.id}
+                type="button"
+                onClick={() => onOpen(task.id)}
+                className="mobile-task-card w-full text-left rounded-2xl border border-border bg-card px-3 py-3 flex gap-3"
+              >
+                <span className={`mt-1 w-1 self-stretch rounded-full ${priorityDot[task.priority] || 'bg-slate-400'}`} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold leading-snug text-foreground">{task.title}</span>
+                  <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
+                    <span>#{task.task_number ?? '—'}</span>
+                    {formatSprintHuLabel(task.sprint_order) && <span>{formatSprintHuLabel(task.sprint_order)}</span>}
+                    <span className={`rounded-full px-2 py-0.5 ${statusColors[task.status]}`}>{statusLabels[task.status]}</span>
+                    {overdue && <span className="text-red-600 dark:text-red-400">Vencida</span>}
+                    {showProject && task.project && <span className="truncate max-w-[140px]">{task.project.name}</span>}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }: TasksListProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set())
@@ -259,7 +357,13 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
 
   if (loading) {
     return (
-      <GlassPanel padding={2.25} className="h-full" sx={listPanelSx}>
+      <>
+        <div className="md:hidden space-y-2">
+          {[1, 2, 3, 4].map((item) => (
+            <Skeleton key={item} className="h-[72px] w-full rounded-2xl" />
+          ))}
+        </div>
+        <GlassPanel padding={2.25} className="h-full" sx={{ ...listPanelSx, display: { xs: 'none', md: 'flex' } }}>
         <div className="grid grid-cols-4 gap-3 pb-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i}>
@@ -283,11 +387,23 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
           ))}
         </div>
       </GlassPanel>
+      </>
     )
   }
 
   return (
-    <GlassPanel padding={2.25} className="h-full" sx={listPanelSx}>
+    <>
+      <MobileMyTasks
+        tasks={tasks}
+        filteredTasks={filteredTasks}
+        search={search}
+        onSearch={setSearch}
+        statusFilter={statusFilter}
+        onStatus={(status) => setStatusFilter(status === 'all' ? new Set() : new Set([status]))}
+        onOpen={setSelectedTaskId}
+        showProject={showProject}
+      />
+      <GlassPanel padding={2.25} className="h-full" sx={{ ...listPanelSx, display: { xs: 'none', md: 'flex' } }}>
       <div className="grid grid-cols-4 gap-3 pb-4 flex-shrink-0">
         <div>
           <p className="text-[12px] font-medium text-muted-foreground tracking-tight">Pendientes</p>
@@ -546,5 +662,6 @@ export function TasksList({ tasks, loading, onTaskUpdated, showProject = true }:
         />
       )}
     </GlassPanel>
+    </>
   )
 }

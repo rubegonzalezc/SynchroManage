@@ -8,6 +8,7 @@ import {
   IconButton,
   Box,
   Grow,
+  useMediaQuery,
 } from '@mui/material'
 import CloseRounded from '@mui/icons-material/CloseRounded'
 import { cn } from '@/lib/utils'
@@ -103,25 +104,28 @@ function DialogContent({
   const { open, setOpen } = useDialog()
   const innerClass = innerDialogClass(className)
   const noPadding = innerClass.includes('p-0')
+  const phone = useMediaQuery('(max-width:767px)')
 
   return (
     <MuiDialog
       open={open}
       onClose={() => setOpen(false)}
+      fullScreen={phone}
       fullWidth
       maxWidth={dialogMaxWidth(className)}
       scroll="paper"
       slots={{ transition: Grow }}
-      transitionDuration={{ enter: 320, exit: 220 }}
+      transitionDuration={phone ? { enter: 160, exit: 120 } : { enter: 320, exit: 220 }}
       slotProps={{
         paper: {
           sx: {
             width: '100%',
-            maxHeight: '90dvh',
+            maxHeight: phone ? '100dvh' : '90dvh',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            m: 2,
+            m: phone ? 0 : 2,
+            borderRadius: phone ? 0 : undefined,
           },
         },
       }}
@@ -142,7 +146,7 @@ function DialogContent({
           flex: '1 1 auto',
           minHeight: 0,
           width: '100%',
-          maxHeight: '90dvh',
+          maxHeight: phone ? '100dvh' : '90dvh',
           overflow: 'hidden',
         }}
       >
