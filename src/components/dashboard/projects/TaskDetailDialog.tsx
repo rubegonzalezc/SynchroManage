@@ -33,7 +33,7 @@ import {
   formatDependencyLabel,
   resolveDependencyTasks,
 } from '@/lib/utils/task-dependency'
-import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems } from '@/components/dashboard/tasks/task-status-select'
+import { DependencyBlockedWarning, OpenBugsBlockedWarning, renderTaskStatusSelectItems, TASK_STATUS_WASH } from '@/components/dashboard/tasks/task-status-select'
 import type { BlockingBugRef } from '@/lib/utils/task-open-bugs'
 import { TaskActivityHistory } from '@/components/dashboard/tasks/TaskActivityHistory'
 import { useProjectTaskStatusRealtime } from '@/hooks/useProjectTaskStatusRealtime'
@@ -133,20 +133,13 @@ const taskPriorityLabels: Record<string, string> = {
   urgent: 'Urgente',
 }
 
-const taskPriorityColors: Record<string, string> = {
-  low: '#8E8E93',
-  medium: '#0A84FF',
-  high: '#FF9F0A',
-  urgent: '#FF453A',
-}
-
-function SheetSection({ title, children }: { title: string; children: ReactNode }) {
+function SheetSection({ title, children, tone }: { title: string; children: ReactNode; tone?: string }) {
   return (
     <div className="space-y-2">
       <p className="text-[13px] font-medium text-muted-foreground px-0.5">
         {title}
       </p>
-      <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-4 min-w-0 w-full">
+      <div className={`rounded-2xl border p-4 space-y-4 min-w-0 w-full ${tone || 'border-border bg-muted/40'}`}>
         {children}
       </div>
     </div>
@@ -610,7 +603,7 @@ export function TaskDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-2xl"
+        className="sm:max-w-2xl bg-[#f3f6fb] dark:bg-[#10141b]"
         footer={task && !loading ? (
           mode === 'view' ? (
             <div className="flex justify-end">
@@ -678,31 +671,35 @@ export function TaskDetailDialog({
         ) : task ? (
           mode === 'view' ? (
             <div className="space-y-5">
-              <div className="space-y-2">
+              <div className={`space-y-2 rounded-2xl border px-4 py-4 ${TASK_STATUS_WASH[task.status] || TASK_STATUS_WASH.todo}`}>
                 <h2 className="text-xl font-semibold tracking-tight text-foreground leading-snug">
                   {task.title}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
                   {task.task_number != null && (
-                    <Badge variant="secondary" className="font-mono font-normal">
+                    <span className="rounded-full bg-white/80 px-2.5 py-0.5 font-mono text-[12px] dark:bg-white/10">
                       #{task.task_number}
-                    </Badge>
+                    </span>
                   )}
                   {sprintReferenceLabel && (
-                    <Badge variant="outline" className="font-mono font-normal text-blue-700 border-blue-300 dark:text-blue-300 dark:border-blue-800">
+                    <span className="rounded-full bg-sky-100 px-2.5 py-0.5 font-mono text-[12px] text-sky-800 dark:bg-sky-900/50 dark:text-sky-100">
                       {sprintReferenceLabel}
-                    </Badge>
+                    </span>
                   )}
-                  <Badge variant="secondary" className="font-normal">
+                  <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-[12px] font-medium text-violet-800 dark:bg-violet-900/50 dark:text-violet-100">
                     {categoryIcons[task.category || 'task']} {categoryLabels[task.category || 'task'] || 'Tarea'}
-                  </Badge>
-                  <Badge variant="outline" className="font-normal gap-1.5">
-                    <span
-                      className="inline-block w-2 h-2 rounded-full"
-                      style={{ backgroundColor: taskPriorityColors[task.priority] || taskPriorityColors.medium }}
-                    />
+                  </span>
+                  <span className={`rounded-full px-2.5 py-0.5 text-[12px] font-medium ${
+                    task.priority === 'urgent'
+                      ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-100'
+                      : task.priority === 'high'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-100'
+                        : task.priority === 'low'
+                          ? 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                          : 'bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-100'
+                  }`}>
                     {taskPriorityLabels[task.priority] || 'Media'}
-                  </Badge>
+                  </span>
                   {task.complexity != null && (
                     <Badge variant="outline" className="font-mono font-normal">
                       {task.complexity} pts
@@ -725,7 +722,7 @@ export function TaskDetailDialog({
                 </div>
               </div>
 
-              <SheetSection title="Estado">
+              <SheetSection title="Estado" tone={TASK_STATUS_WASH[task.status] || TASK_STATUS_WASH.todo}>
                 <DependencyBlockedWarning dependencyTasks={dependencyTasks} className="mb-3" />
                 <OpenBugsBlockedWarning
                   blockingBugs={blockingBugs}
@@ -755,7 +752,7 @@ export function TaskDetailDialog({
                 )}
               </SheetSection>
 
-              <SheetSection title="Detalles">
+              <SheetSection title="Detalles" tone="border-violet-200 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/35">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   {task.due_date && (
                     <div className="space-y-1">
@@ -808,7 +805,7 @@ export function TaskDetailDialog({
               </SheetSection>
 
               {task.description && (
-                <SheetSection title="Descripción">
+                <SheetSection title="Descripción" tone="border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/35">
                   <div className="text-sm text-muted-foreground leading-relaxed">
                     <FormattedText>{task.description}</FormattedText>
                   </div>
@@ -816,7 +813,7 @@ export function TaskDetailDialog({
               )}
 
               {task.branch_name && (
-                <SheetSection title="Desarrollo">
+                <SheetSection title="Desarrollo" tone="border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/35">
                   <div className="flex items-center gap-2">
                     <GitBranch className="w-4 h-4 text-muted-foreground shrink-0" />
                     <code className="text-sm bg-muted/60 px-2 py-1 rounded-md flex-1 min-w-0 truncate">
@@ -827,15 +824,15 @@ export function TaskDetailDialog({
                 </SheetSection>
               )}
 
-              <SheetSection title="Archivos">
+              <SheetSection title="Archivos" tone="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
                 <FileAttachments taskId={taskId} currentUserId={currentUserId} />
               </SheetSection>
 
-              <SheetSection title="Historial">
+              <SheetSection title="Historial" tone="border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40">
                 <TaskActivityHistory taskId={taskId} refreshKey={activityRefreshKey} />
               </SheetSection>
 
-              <SheetSection title="Comentarios">
+              <SheetSection title="Comentarios" tone="border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30">
                 {hasNewComments && (
                   <button
                     onClick={fetchTask}
@@ -851,7 +848,7 @@ export function TaskDetailDialog({
                     <p className="text-sm text-muted-foreground text-center py-3">No hay comentarios</p>
                   ) : (
                     task.comments.map((comment) => (
-                      <div key={comment.id} className="flex gap-3 group">
+                      <div key={comment.id} className="flex gap-3 group rounded-xl bg-white/75 px-3 py-2 dark:bg-black/20">
                         <Avatar className="w-8 h-8 flex-shrink-0">
                           <AvatarImage src={comment.user.avatar_url || undefined} />
                           <AvatarFallback className="bg-muted text-muted-foreground text-xs">

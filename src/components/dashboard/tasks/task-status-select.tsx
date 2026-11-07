@@ -20,6 +20,22 @@ export const TASK_STATUS_OPTIONS = [
   { value: 'done', label: 'Completado' },
 ] as const
 
+export const TASK_STATUS_WASH: Record<string, string> = {
+  backlog: 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50',
+  todo: 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/40',
+  in_progress: 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/35',
+  review: 'border-violet-200 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/40',
+  done: 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/35',
+}
+
+export const TASK_STATUS_PILL: Record<string, string> = {
+  backlog: 'bg-slate-600 text-white',
+  todo: 'bg-sky-600 text-white',
+  in_progress: 'bg-amber-500 text-white',
+  review: 'bg-violet-600 text-white',
+  done: 'bg-emerald-600 text-white',
+}
+
 const OPEN_BUGS_DONE_TOOLTIP =
   'Cierra o resuelve los bugs vinculados antes de marcar la tarea como completada'
 
