@@ -150,7 +150,7 @@ export function WorkCatalog({
       </div>
 
       {error ? (
-        <p className="mt-6 border border-rose-600/40 px-4 py-6 text-[14px] text-rose-600">{error}</p>
+        <p className="mt-6 border border-rose-600/40 px-4 py-6 text-[14px] text-rose-700 dark:text-rose-300">{error}</p>
       ) : loading ? (
         <div className="mt-6 space-y-3">
           {[1, 2, 3, 4, 5].map((item) => (

@@ -92,7 +92,7 @@ export const KanbanColumn = memo(function KanbanColumn({
           {title}
         </Typography>
         {subColCount > 1 && (
-          <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
+          <Typography sx={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
             ({subColCount} columnas)
           </Typography>
         )}
@@ -107,7 +107,7 @@ export const KanbanColumn = memo(function KanbanColumn({
             placeItems: 'center',
             fontSize: 11,
             fontWeight: 650,
-            color: 'text.secondary',
+            color: 'var(--muted-foreground)',
             bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15, 23, 42, 0.06)',
           }}
         >

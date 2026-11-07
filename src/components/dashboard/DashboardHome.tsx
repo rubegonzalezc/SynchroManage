@@ -231,11 +231,11 @@ export function DashboardHome({
                         <AvatarFallback className="text-[10px]">{item.initials}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[14px] leading-snug break-words">
-                          <span className="font-medium">{item.name}</span>{' '}
+                        <p className="text-[14px] leading-snug break-words text-foreground">
+                          <span className="font-semibold">{item.name}</span>{' '}
                           <span className={item.actionClass}>{item.action}</span>{' '}
-                          {item.entity}
-                          {item.entityName && <span className="font-medium"> “{item.entityName}”</span>}
+                          <span className="text-foreground/85">{item.entity}</span>
+                          {item.entityName && <span className="font-semibold"> “{item.entityName}”</span>}
                         </p>
                         <p className="mt-1 text-[12px] text-muted-foreground">{item.when}</p>
                       </div>

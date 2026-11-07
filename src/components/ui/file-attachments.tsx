@@ -55,7 +55,7 @@ function formatFileSize(bytes: number) {
 function getFileIcon(fileType: string) {
   if (isImage(fileType)) return <ImageIcon className="w-4 h-4" />
   if (isPdf(fileType)) return <FileText className="w-4 h-4 text-red-500" />
-  if (isExcel(fileType)) return <FileSpreadsheet className="w-4 h-4 text-green-600" />
+  if (isExcel(fileType)) return <FileSpreadsheet className="w-4 h-4 text-green-700 dark:text-green-300" />
   return <File className="w-4 h-4 text-blue-500" />
 }
 

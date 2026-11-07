@@ -34,7 +34,7 @@ export const darkTokens = {
   surfaceMuted: '#151F35',
   text: '#F8FAFC',
   textSecondary: '#CBD5E1',
-  textMuted: '#94A3B8',
+  textMuted: '#C5CED8',
   border: 'rgba(255, 255, 255, 0.12)',
   success: '#34D399',
   warning: '#FBBF24',

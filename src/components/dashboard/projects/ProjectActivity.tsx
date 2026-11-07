@@ -106,7 +106,7 @@ export function ProjectActivity({ projectId }: ProjectActivityProps) {
   const getActivityDescriptionForProject = (activity: Activity) => getActivityDescription(activity)
 
   return (
-    <div className="rounded-[24px] bg-white/55 dark:bg-white/[0.04] border border-white/70 dark:border-white/10 p-6 backdrop-blur-xl">
+    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
       <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
         <History className="w-5 h-5" /> Historial de Actividad
       </h3>
@@ -150,7 +150,7 @@ export function ProjectActivity({ projectId }: ProjectActivityProps) {
                   <p className="text-sm text-foreground">
                     <span className="font-medium">{activity.user?.full_name || 'Usuario'}</span>
                     {' '}
-                    <span className="text-muted-foreground">{getActivityDescriptionForProject(activity)}</span>
+                    <span className="text-foreground/85">{getActivityDescriptionForProject(activity)}</span>
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">

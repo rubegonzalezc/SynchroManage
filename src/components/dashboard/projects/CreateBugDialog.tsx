@@ -58,10 +58,10 @@ interface CreateBugDialogProps {
 }
 
 const severityOptions = [
-  { value: 'low', label: 'Baja', color: 'text-green-600' },
-  { value: 'medium', label: 'Media', color: 'text-yellow-600' },
-  { value: 'high', label: 'Alta', color: 'text-orange-600' },
-  { value: 'critical', label: 'Crítica', color: 'text-red-600' },
+  { value: 'low', label: 'Baja', color: 'text-green-700 dark:text-green-300' },
+  { value: 'medium', label: 'Media', color: 'text-yellow-700 dark:text-yellow-300' },
+  { value: 'high', label: 'Alta', color: 'text-orange-700 dark:text-orange-300' },
+  { value: 'critical', label: 'Crítica', color: 'text-red-700 dark:text-red-300' },
 ]
 
 export function CreateBugDialog({ projectId, members, sprints = [], tasks = [], initialSprintId, onBugCreated }: CreateBugDialogProps) {

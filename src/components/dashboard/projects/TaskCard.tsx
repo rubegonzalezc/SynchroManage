@@ -170,7 +170,7 @@ function TaskCardView({
             border: 0,
             borderRadius: '8px',
             cursor: 'pointer',
-            color: 'text.secondary',
+            color: 'var(--muted-foreground)',
             bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.92)',
             boxShadow: isDark
               ? '0 2px 8px rgba(0,0,0,0.25)'
@@ -197,7 +197,7 @@ function TaskCardView({
             p: 0,
             border: 0,
             bgcolor: 'transparent',
-            color: 'text.secondary',
+            color: 'var(--muted-foreground)',
             cursor: isOverlay ? 'grabbing' : 'grab',
             touchAction: 'none',
             '&:active': { cursor: 'grabbing' },
@@ -213,7 +213,7 @@ function TaskCardView({
                   sx={{
                     fontSize: 11,
                     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                    color: 'text.secondary',
+                    color: 'var(--muted-foreground)',
                     bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.05)',
                     px: 0.75,
                     py: 0.15,
@@ -269,7 +269,7 @@ function TaskCardView({
               component="div"
               sx={{
                 fontSize: 12,
-                color: 'text.secondary',
+                color: 'var(--muted-foreground)',
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
@@ -295,7 +295,7 @@ function TaskCardView({
                   sx: {
                     maxWidth: 280,
                     bgcolor: isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
-                    color: 'text.primary',
+                    color: 'var(--foreground)',
                     border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(15,23,42,0.08)',
                     boxShadow: isDark
                       ? '0 12px 32px rgba(0,0,0,0.35)'
@@ -360,25 +360,25 @@ function TaskCardView({
               </Tooltip>
             )}
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: 11, color: 'text.secondary' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: 11, color: 'var(--muted-foreground)' }}>
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: priority.color }} />
               {priority.label}
             </Box>
 
             {task.category && (
-              <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>
+              <Typography sx={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
                 {categoryIcons[task.category]} {categoryLabels[task.category] || 'Tarea'}
               </Typography>
             )}
 
             {task.complexity != null ? (
-              <Typography sx={{ fontSize: 11, color: 'text.secondary', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+              <Typography sx={{ fontSize: 11, color: 'var(--muted-foreground)', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
                 {task.complexity} pts
               </Typography>
             ) : null}
 
             {task.due_date && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, fontSize: 11, color: isOverdue ? '#FF453A' : 'text.secondary', fontWeight: isOverdue ? 600 : 400 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, fontSize: 11, color: isOverdue ? '#FF453A' : 'var(--muted-foreground)', fontWeight: isOverdue ? 600 : 400 }}>
                 <Calendar className="w-3 h-3" />
                 {formatDate(task.due_date)}
               </Box>
