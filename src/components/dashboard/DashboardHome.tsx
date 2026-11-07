@@ -61,6 +61,7 @@ interface DashboardHomeProps {
   meetings: ReactNode
   aside: ReactNode
   charts: ReactNode
+  shortcuts?: { href: string; title: string; description: string; tint: string }[]
 }
 
 const priorityLabel: Record<string, string> = {
@@ -101,6 +102,7 @@ export function DashboardHome({
   meetings,
   aside,
   charts,
+  shortcuts,
 }: DashboardHomeProps) {
   const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0
   const statTints = [
@@ -145,6 +147,17 @@ export function DashboardHome({
           </Link>
         ))}
       </div>
+
+      {shortcuts && shortcuts.length > 0 && (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {shortcuts.map((item) => (
+            <Link key={item.href} href={item.href} className={`pressable rounded-2xl border px-4 py-4 ${item.tint}`}>
+              <p className="text-[16px] font-semibold tracking-tight">{item.title}</p>
+              <p className="mt-1 text-[13px] text-muted-foreground">{item.description}</p>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className={`mt-8 grid gap-8 ${tasks ? 'xl:grid-cols-5' : ''}`}>
         {tasks && (

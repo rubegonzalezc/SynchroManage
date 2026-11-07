@@ -636,6 +636,12 @@ export default async function AdminDashboard() {
           <OpenBugsList bugs={((reportsResult as any).openBugs ?? []) as any} />
         </>
       ) : null}
+      shortcuts={isAdmin ? [
+        { href: '/dashboard/users', title: 'Usuarios', description: 'Roles, accesos e invitaciones', tint: 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/40' },
+        { href: '/dashboard/companies', title: 'Empresas', description: 'Clientes que agrupan proyectos', tint: 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40' },
+        { href: '/dashboard/reports', title: 'Reporte', description: 'Carga del equipo y bugs', tint: 'border-violet-200 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/40' },
+        { href: '/dashboard/settings', title: 'Configuración', description: 'Organización y valores base', tint: 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40' },
+      ] : undefined}
       charts={!isStakeholder ? (
         <DashboardCharts
           variant={isAdmin ? 'admin' : isDeveloper ? 'developer' : isPM ? 'pm' : 'other'}

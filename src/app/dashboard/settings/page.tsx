@@ -10,7 +10,7 @@ import {
 import { Mail, Globe, CheckCircle, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
-import { GlassPanel } from '@/components/ui/glass-panel'
+import { RegistroTitle } from '@/components/dashboard/catalog/RegistroTitle'
 
 interface SystemSettings {
   id: string
@@ -114,57 +114,55 @@ export default function SettingsPage() {
   }
 
   const systemTiles = stats ? [
-    { title: 'Usuarios', value: stats.total_users, accent: '#0A84FF' },
-    { title: 'Proyectos', value: stats.total_projects, accent: '#BF5AF2' },
-    { title: 'Tareas', value: stats.total_tasks, accent: '#30D158' },
-    { title: 'Empresas', value: stats.total_companies, accent: '#FF9F0A' },
-    { title: 'Notificaciones', value: stats.total_notifications, accent: '#FF453A' },
+    { title: 'Usuarios', value: stats.total_users, tint: 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100' },
+    { title: 'Proyectos', value: stats.total_projects, tint: 'border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-100' },
+    { title: 'Tareas', value: stats.total_tasks, tint: 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-100' },
+    { title: 'Empresas', value: stats.total_companies, tint: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100' },
+    { title: 'Notificaciones', value: stats.total_notifications, tint: 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-100' },
   ] : []
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-tight">Configuración</h1>
-          <p className="text-[15px] text-muted-foreground mt-1">Administra la configuración del sistema</p>
-        </div>
-        <Button onClick={saveSettings} disabled={saving}>
-          {saving ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
-          ) : saved ? (
-            <><CheckCircle className="w-4 h-4" /> Guardado</>
-          ) : (
-            'Guardar'
-          )}
-        </Button>
-      </div>
+      <RegistroTitle
+        title="Configuración"
+        subtitle="Organización, valores por defecto y seguridad."
+        action={
+          <Button onClick={saveSettings} disabled={saving} className="rounded-xl">
+            {saving ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+            ) : saved ? (
+              <><CheckCircle className="w-4 h-4" /> Guardado</>
+            ) : (
+              'Guardar'
+            )}
+          </Button>
+        }
+      />
 
       {error && (
-        <GlassPanel padding={2}>
-          <p className="text-[13px] text-red-600 dark:text-red-400">{error}</p>
-        </GlassPanel>
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">{error}</p>
       )}
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => (
-            <GlassPanel key={i} padding={2.25}>
-              <Skeleton className="h-3 w-16 mb-2" />
+            <div key={i} className="rounded-2xl border border-border bg-card px-4 py-4">
+              <Skeleton className="mb-2 h-3 w-16" />
               <Skeleton className="h-7 w-10" />
-            </GlassPanel>
+            </div>
           ))
         ) : (
           systemTiles.map((tile) => (
-            <GlassPanel key={tile.title} padding={2.25}>
-              <p className="text-[12px] font-medium text-muted-foreground tracking-tight">{tile.title}</p>
-              <p className="text-[28px] font-semibold tracking-tight leading-none mt-2" style={{ color: tile.accent }}>{tile.value}</p>
-            </GlassPanel>
+            <div key={tile.title} className={`rounded-2xl border px-4 py-4 ${tile.tint}`}>
+              <p className="text-[12px] font-medium opacity-80">{tile.title}</p>
+              <p className="mt-2 text-[28px] font-semibold leading-none">{tile.value}</p>
+            </div>
           ))
         )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <GlassPanel>
+        <section className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 dark:border-sky-800 dark:bg-sky-950/20 sm:p-5">
           <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Organización</h3>
           <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Información general de la organización</p>
           <div className="space-y-4">
@@ -205,9 +203,9 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        </GlassPanel>
+        </section>
 
-        <GlassPanel>
+        <section className="rounded-2xl border border-violet-200 bg-violet-50/70 p-4 dark:border-violet-800 dark:bg-violet-950/20 sm:p-5">
           <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Valores por defecto</h3>
           <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Configuración predeterminada para nuevos elementos</p>
           <div className="space-y-4">
@@ -244,9 +242,9 @@ export default function SettingsPage() {
               </Select>
             </div>
           </div>
-        </GlassPanel>
+        </section>
 
-        <GlassPanel>
+        <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-800 dark:bg-amber-950/20 sm:p-5">
           <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Notificaciones</h3>
           <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Retención y tiempo real</p>
           <div className="space-y-4">
@@ -270,9 +268,9 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-        </GlassPanel>
+        </section>
 
-        <GlassPanel>
+        <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-800 dark:bg-emerald-950/20 sm:p-5">
           <h3 className="text-[17px] font-semibold tracking-tight text-foreground">Seguridad</h3>
           <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Acceso y políticas del sistema</p>
           <div className="space-y-1">
@@ -296,7 +294,7 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
-        </GlassPanel>
+        </section>
       </div>
     </div>
   )
