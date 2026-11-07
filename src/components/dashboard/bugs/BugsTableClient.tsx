@@ -473,6 +473,7 @@ export function BugsTableClient({ currentUserId }: BugsTableClientProps) {
                   }
                 }}
                 className="cursor-pointer rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
+                style={{ borderLeft: `3px solid ${sev.accent}` }}
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex items-center gap-2 text-[12px] font-medium text-muted-foreground">

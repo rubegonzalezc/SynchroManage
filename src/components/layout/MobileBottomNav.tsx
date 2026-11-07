@@ -53,8 +53,8 @@ export function MobileBottomNav({ role, onMore }: MobileBottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`mx-1 my-2 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium ${
-                active ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
+              className={`pressable mx-1 my-2 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium ${
+                active ? 'bg-primary/15 text-primary' : 'text-muted-foreground'
               }`}
             >
               <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 1.8} />
@@ -65,7 +65,7 @@ export function MobileBottomNav({ role, onMore }: MobileBottomNavProps) {
         <button
           type="button"
           onClick={onMore}
-          className="mx-1 my-2 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium text-muted-foreground"
+          className="pressable mx-1 my-2 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium text-muted-foreground"
         >
           <MoreHorizontal className="h-5 w-5" />
           <span>Más</span>

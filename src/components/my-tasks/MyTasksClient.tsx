@@ -45,6 +45,7 @@ export function MyTasksClient() {
   const [mobileView, setMobileView] = useState<'list' | 'calendar'>('list')
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [orderDialogOpen, setOrderDialogOpen] = useState(false)
+  const [focusTask, setFocusTask] = useState<{ id: string; nonce: number } | null>(null)
   const [customOrderIds, setCustomOrderIds] = useState<string[] | null>(null)
 
   // Cargar orden personalizado desde localStorage
@@ -184,11 +185,11 @@ export function MyTasksClient() {
         subtitle="Tus tareas asignadas y las reuniones agendadas."
         action={
           <div className="flex items-center gap-2">
-            <div className="flex border border-foreground/20 md:hidden">
+            <div className="flex overflow-hidden rounded-xl border border-border md:hidden">
               <button
                 type="button"
                 onClick={() => setMobileView('list')}
-                className={`p-2 ${mobileView === 'list' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}
+                className={`pressable p-2 ${mobileView === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
                 aria-label="Ver lista"
               >
                 <ListTodo className="w-4 h-4" />
@@ -196,13 +197,13 @@ export function MyTasksClient() {
               <button
                 type="button"
                 onClick={() => setMobileView('calendar')}
-                className={`p-2 ${mobileView === 'calendar' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}
+                className={`pressable p-2 ${mobileView === 'calendar' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
                 aria-label="Ver calendario"
               >
                 <CalendarDays className="w-4 h-4" />
               </button>
             </div>
-            <Button onClick={() => { setSelectedDate(null); setCreateMeetingOpen(true) }} className="h-10 rounded-none px-3 md:px-4">
+            <Button onClick={() => { setSelectedDate(null); setCreateMeetingOpen(true) }} className="h-10 rounded-xl px-3 md:px-4">
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Agendar reunión</span>
             </Button>
@@ -251,6 +252,7 @@ export function MyTasksClient() {
             loading={tasksLoading}
             onTaskUpdated={handleTaskUpdated}
             showProject={selectedProjectId === null}
+            focusTask={focusTask}
           />
         </div>
 
@@ -260,6 +262,7 @@ export function MyTasksClient() {
             tasks={calendarTasks}
             meetings={meetings}
             onMeetingClick={(id) => setSelectedMeetingId(id)}
+            onTaskClick={(id) => setFocusTask({ id, nonce: Date.now() })}
             onDateClick={(date) => {
               setSelectedDate(date)
               setCreateMeetingOpen(true)
@@ -272,6 +275,7 @@ export function MyTasksClient() {
               tasks={calendarTasks}
               meetings={meetings}
               onMeetingClick={(id) => setSelectedMeetingId(id)}
+              onTaskClick={(id) => setFocusTask({ id, nonce: Date.now() })}
               onDateClick={(date) => {
                 setSelectedDate(date)
                 setCreateMeetingOpen(true)
