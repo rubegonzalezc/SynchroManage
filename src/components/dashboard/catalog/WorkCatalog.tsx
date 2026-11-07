@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { registroHeadingStyle } from './RegistroTitle'
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -100,10 +101,7 @@ export function WorkCatalog({
       <header className="flex flex-col gap-4 border-b border-foreground/20 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">Registro</p>
-          <h1
-            className="mt-1 text-[34px] leading-none tracking-tight text-foreground sm:text-[44px]"
-            style={{ fontFamily: 'Georgia, "Iowan Old Style", Palatino, serif' }}
-          >
+          <h1 className="mt-1 text-[34px] leading-none tracking-tight text-foreground sm:text-[44px]" style={registroHeadingStyle}>
             {title}
           </h1>
           <p className="mt-2 max-w-lg text-[14px] text-muted-foreground">{subtitle}</p>

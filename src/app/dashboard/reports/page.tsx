@@ -170,7 +170,7 @@ export default function ReportsPage() {
     <div className="space-y-5">
       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
         <div className="flex-1">
-          <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Reporte</h1>
+          <h1 className="text-[34px] leading-none tracking-tight sm:text-[42px]" style={{ fontFamily: 'Georgia, "Iowan Old Style", Palatino, serif' }}>Reporte</h1>
           <p className="text-[15px] text-muted-foreground mt-1">
             {isPM
               ? 'Estadísticas de tus proyectos y equipo asignado'

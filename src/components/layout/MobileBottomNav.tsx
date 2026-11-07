@@ -50,8 +50,8 @@ export function MobileBottomNav({ role, onMore }: MobileBottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
-                active ? 'text-primary' : 'text-muted-foreground'
+              className={`flex flex-col items-center justify-center gap-0.5 text-[11px] uppercase tracking-[0.08em] ${
+                active ? 'text-foreground' : 'text-muted-foreground'
               }`}
             >
               <Icon className="w-5 h-5" strokeWidth={active ? 2.4 : 1.8} />

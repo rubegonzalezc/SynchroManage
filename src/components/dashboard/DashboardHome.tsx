@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { DashboardStatTile } from './DashboardStatTile'
+import { RegistroTitle } from './catalog/RegistroTitle'
 
 export interface DashboardStat {
   title: string
@@ -68,6 +68,20 @@ const priorityLabel: Record<string, string> = {
   high: 'Alta',
 }
 
+function LedgerHead({ title, description, href, hrefLabel }: { title: string; description: string; href: string; hrefLabel: string }) {
+  return (
+    <div className="mb-1 flex items-end justify-between gap-3 border-b border-foreground/20 pb-2">
+      <div>
+        <h2 className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">{title}</h2>
+        <p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
+      </div>
+      <Link href={href} className="text-[12px] uppercase tracking-[0.12em] underline-offset-4 hover:underline">
+        {hrefLabel}
+      </Link>
+    </div>
+  )
+}
+
 export function DashboardHome({
   greeting,
   dateLabel,
@@ -91,157 +105,118 @@ export function DashboardHome({
   const percent = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0
 
   return (
-    <div className="space-y-5 w-full overflow-x-hidden">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-[13px] font-medium text-muted-foreground">{dateLabel}</p>
-          <h1 className="mt-1 text-[32px] font-semibold tracking-tight leading-none text-foreground sm:text-[40px]">
-            {greeting}
-          </h1>
-          <p className="mt-3 max-w-xl text-[15px] text-muted-foreground">{subtitle}</p>
-        </div>
-        <Link
-          href={primaryHref}
-          className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground"
-        >
-          {primaryLabel}
-        </Link>
-      </header>
+    <div className="w-full overflow-x-hidden">
+      <RegistroTitle
+        eyebrow={dateLabel}
+        title={greeting}
+        subtitle={subtitle}
+        action={
+          <Link
+            href={primaryHref}
+            className="inline-flex h-10 items-center justify-center bg-foreground px-4 text-[12px] font-medium uppercase tracking-[0.14em] text-background"
+          >
+            {primaryLabel}
+          </Link>
+        }
+      />
 
-      <section className="rounded-[28px] border border-border bg-card p-4 sm:p-5">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[13px] text-muted-foreground">Avance de tareas</p>
-            <p className="mt-1 text-[32px] font-semibold tracking-tight leading-none">{percent}%</p>
-          </div>
-          <p className="text-[13px] text-muted-foreground">
-            {progress.done} de {progress.total}
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="border border-foreground/15 px-3 py-3">
+          <p className="text-[26px] font-semibold tabular-nums leading-none">{percent}%</p>
+          <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            Avance · {progress.done} de {progress.total}
           </p>
         </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
-        </div>
-        <div
-          className="mt-5 flex gap-2 overflow-x-auto pb-1 snap-x lg:grid lg:overflow-visible"
-          style={{ gridTemplateColumns: `repeat(${Math.max(stats.length, 1)}, minmax(0, 1fr))` }}
-        >
-          {stats.map((stat) => (
-            <DashboardStatTile key={stat.title} {...stat} />
-          ))}
-        </div>
-      </section>
+        {stats.map((stat) => (
+          <Link key={stat.title} href={stat.href} className="border border-foreground/15 px-3 py-3 hover:bg-foreground/[0.04]">
+            <p className="text-[26px] font-semibold tabular-nums leading-none">{stat.value}</p>
+            <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{stat.title}</p>
+            {stat.description && <p className="mt-1 truncate text-[12px] text-muted-foreground">{stat.description}</p>}
+          </Link>
+        ))}
+      </div>
 
-      <div className={`grid gap-4 ${tasks ? 'xl:grid-cols-5' : ''}`}>
+      <div className={`mt-8 grid gap-8 ${tasks ? 'xl:grid-cols-5' : ''}`}>
         {tasks && (
-          <section className="rounded-[28px] border border-border bg-card p-4 sm:p-5 xl:col-span-3">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-[16px] font-semibold tracking-tight">{tasksTitle}</h2>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">{tasksDescription}</p>
-              </div>
-              <Link href={tasksHref} className="text-[13px] font-semibold text-primary">
-                Ver todas
-              </Link>
-            </div>
+          <section className="xl:col-span-3">
+            <LedgerHead title={tasksTitle} description={tasksDescription} href={tasksHref} hrefLabel="Ver todas" />
             {tasks.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No hay tareas urgentes pendientes</p>
+              <p className="py-8 text-[14px] text-muted-foreground">No hay tareas urgentes pendientes</p>
             ) : (
-              <div className="flex flex-col gap-2">
+              <ul>
                 {tasks.map((task) => (
-                  <Link
-                    key={task.id}
-                    href={task.href}
-                    className="flex gap-3 rounded-2xl border border-border bg-background px-3 py-3"
-                  >
-                    <span className={`mt-1 w-1 self-stretch rounded-full ${task.priority === 'urgent' ? 'bg-red-500' : 'bg-orange-500'}`} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-semibold">{task.title}</span>
-                      <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
-                        <span>#{task.number ?? '—'}</span>
-                        <span className="truncate">{task.projectName}</span>
-                        {task.dueLabel && (
-                          <span className={task.overdue ? 'font-semibold text-red-600 dark:text-red-400' : ''}>
-                            {task.dueLabel}
-                          </span>
-                        )}
+                  <li key={task.id} className="border-b border-foreground/10">
+                    <Link href={task.href} className="flex items-start gap-3 py-3">
+                      <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 ${task.priority === 'urgent' ? 'bg-rose-600' : 'bg-amber-500'}`} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[16px] font-medium leading-snug">{task.title}</span>
+                        <span className="mt-1 block text-[13px] text-muted-foreground">
+                          #{task.number ?? '—'} · {task.projectName}
+                          {task.dueLabel ? ` · ${task.dueLabel}` : ''}
+                          {task.overdue ? ' · Vencida' : ''}
+                        </span>
                       </span>
-                    </span>
-                    <span className={`h-fit rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                      task.priority === 'urgent'
-                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                    }`}>
-                      {priorityLabel[task.priority] || task.priority}
-                    </span>
-                  </Link>
+                      <span className="text-[11px] uppercase tracking-[0.12em]">
+                        {priorityLabel[task.priority] || task.priority}
+                      </span>
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </section>
         )}
 
-        <section className={`rounded-[28px] border border-border bg-card p-4 sm:p-5 ${tasks ? 'xl:col-span-2' : ''}`}>
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-[16px] font-semibold tracking-tight">Proyectos</h2>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">{projectsDescription}</p>
-            </div>
-            <Link href="/projects" className="text-[13px] font-semibold text-primary">
-              Ver todos
-            </Link>
-          </div>
+        <section className={tasks ? 'xl:col-span-2' : ''}>
+          <LedgerHead title="Proyectos" description={projectsDescription} href="/projects" hrefLabel="Ver todos" />
           {projects.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">No hay proyectos registrados</p>
+            <p className="py-8 text-[14px] text-muted-foreground">No hay proyectos registrados</p>
           ) : (
-            <div className="flex flex-col gap-2">
+            <ul>
               {projects.map((project) => (
-                <Link
-                  key={project.id}
-                  href={project.href}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-background px-3 py-3"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-semibold">{project.name}</span>
-                    <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">{project.company}</span>
-                  </span>
-                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${project.statusClass}`}>
-                    {project.statusLabel}
-                  </span>
-                </Link>
+                <li key={project.id} className="border-b border-foreground/10">
+                  <Link href={project.href} className="flex items-start justify-between gap-3 py-3">
+                    <span className="min-w-0">
+                      <span className="block text-[16px] font-medium leading-snug">{project.name}</span>
+                      <span className="mt-1 block text-[13px] text-muted-foreground">{project.company}</span>
+                    </span>
+                    <span className="text-[11px] uppercase tracking-[0.12em]">{project.statusLabel}</span>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </section>
       </div>
 
-      {meetings}
+      <div className="mt-8">{meetings}</div>
 
       {(activity || aside) && (
-        <div className={`grid gap-4 ${aside ? 'lg:grid-cols-2' : ''}`}>
+        <div className={`mt-8 grid gap-8 ${aside ? 'lg:grid-cols-2' : ''}`}>
           {activity && (
-            <section className="rounded-[28px] border border-border bg-card p-4 sm:p-5">
-              <h2 className="text-[16px] font-semibold tracking-tight">Actividad</h2>
-              <p className="mt-0.5 mb-4 text-[13px] text-muted-foreground">{activityDescription}</p>
+            <section>
+              <h2 className="border-b border-foreground/20 pb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                Actividad
+              </h2>
+              <p className="mt-2 mb-3 text-[13px] text-muted-foreground">{activityDescription}</p>
               {activity.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">No hay actividad reciente</p>
+                <p className="py-6 text-[14px] text-muted-foreground">No hay actividad reciente</p>
               ) : (
-                <ol className="space-y-3">
+                <ol>
                   {activity.map((item) => (
-                    <li key={item.id} className="flex gap-3">
-                      <Avatar className="mt-0.5 h-8 w-8 shrink-0">
+                    <li key={item.id} className="flex gap-3 border-b border-foreground/10 py-3">
+                      <Avatar className="mt-0.5 h-8 w-8 shrink-0 rounded-none">
                         <AvatarImage src={item.avatarUrl || undefined} />
-                        <AvatarFallback className="text-[10px]">{item.initials}</AvatarFallback>
+                        <AvatarFallback className="rounded-none text-[10px]">{item.initials}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <p className="text-[13px] leading-snug text-foreground">
-                          <span className="font-semibold">{item.name}</span>
-                          {' '}
-                          <span className={item.actionClass}>{item.action}</span>
-                          {' '}
+                        <p className="text-[14px] leading-snug">
+                          <span className="font-medium">{item.name}</span>{' '}
+                          <span className={item.actionClass}>{item.action}</span>{' '}
                           {item.entity}
                           {item.entityName && <span className="font-medium"> “{item.entityName}”</span>}
                         </p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">{item.when}</p>
+                        <p className="mt-1 text-[12px] text-muted-foreground">{item.when}</p>
                       </div>
                     </li>
                   ))}
@@ -249,11 +224,11 @@ export function DashboardHome({
               )}
             </section>
           )}
-          {aside && <div className="flex flex-col gap-4">{aside}</div>}
+          {aside && <div className="flex flex-col gap-8">{aside}</div>}
         </div>
       )}
 
-      {charts}
+      {charts && <div className="mt-8">{charts}</div>}
     </div>
   )
 }
