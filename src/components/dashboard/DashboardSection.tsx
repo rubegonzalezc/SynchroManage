@@ -1,7 +1,4 @@
-'use client'
-
 import type { ReactNode } from 'react'
-import { GlassPanel } from '@/components/ui/glass-panel'
 
 export function DashboardSection({
   title,
@@ -15,17 +12,17 @@ export function DashboardSection({
   children: ReactNode
 }) {
   return (
-    <GlassPanel sx={{ height: '100%' }}>
-      <div className="flex items-start justify-between gap-3 mb-4">
+    <section className="h-full rounded-[28px] border border-border bg-card p-4 sm:p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[17px] font-semibold tracking-tight text-foreground">{title}</h3>
+          <h2 className="text-[16px] font-semibold tracking-tight text-foreground">{title}</h2>
           {description && (
-            <p className="text-[13px] text-muted-foreground mt-0.5">{description}</p>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">{description}</p>
           )}
         </div>
         {action}
       </div>
       {children}
-    </GlassPanel>
+    </section>
   )
 }
