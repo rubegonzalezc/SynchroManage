@@ -79,7 +79,13 @@ export function SprintHeader({ sprint, projectId, nextSprint, canManage, onSprin
 
   return (
     <>
-      <div className="rounded-[20px] bg-white/55 dark:bg-white/[0.04] border border-white/70 dark:border-white/10 p-4 space-y-3 backdrop-blur-xl">
+      <div className={`space-y-3 rounded-2xl border p-4 ${
+        sprint.status === 'active'
+          ? 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/35'
+          : sprint.status === 'completed'
+            ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/35'
+            : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30'
+      }`}>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

@@ -55,7 +55,7 @@ export const KanbanColumn = memo(function KanbanColumn({
       sx={{
         width: totalWidth,
         flexShrink: 0,
-        borderRadius: '24px',
+        borderRadius: '20px',
         overflow: 'hidden',
         bgcolor: forbiddenActive
           ? (isDark ? 'rgba(239, 68, 68, 0.18)' : 'rgba(239, 68, 68, 0.1)')
@@ -63,7 +63,7 @@ export const KanbanColumn = memo(function KanbanColumn({
             ? (isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.05)')
             : highlighted
               ? (isDark ? 'rgba(37, 99, 235, 0.16)' : 'rgba(37, 99, 235, 0.08)')
-              : 'var(--card)',
+              : (isDark ? `${color}22` : `${color}18`),
         border: forbiddenActive
           ? '1px solid rgba(239, 68, 68, 0.55)'
           : isDropForbidden
@@ -72,17 +72,8 @@ export const KanbanColumn = memo(function KanbanColumn({
               ? '1px solid rgba(37, 99, 235, 0.4)'
               : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(15, 23, 42, 0.08)'),
         borderTop: `3px solid ${color}`,
-        boxShadow: forbiddenActive
-          ? '0 16px 40px rgba(239, 68, 68, 0.18), inset 0 1px 0 rgba(255,255,255,0.12)'
-          : highlighted
-            ? '0 16px 40px rgba(37, 99, 235, 0.16), inset 0 1px 0 rgba(255,255,255,0.2)'
-            : (isDark
-              ? '0 12px 36px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08)'
-              : '0 12px 36px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255,255,255,0.7)'),
+        boxShadow: 'none',
         opacity: isDropForbidden && !forbiddenActive ? 0.82 : 1,
-        backgroundImage: isDark
-          ? 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 36%)'
-          : 'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, transparent 36%)',
         transition: `border-color 160ms ${tokens.ease}, background-color 160ms ${tokens.ease}`,
       }}
     >
