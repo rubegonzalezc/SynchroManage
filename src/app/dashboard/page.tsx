@@ -2,14 +2,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveVisibleProjectScope } from '@/lib/utils/project-visibility'
 import { redirect } from 'next/navigation'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import Link from 'next/link'
 import { UpcomingMeetings } from '@/components/dashboard/UpcomingMeetings'
-import { DashboardSection } from '@/components/dashboard/DashboardSection'
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts'
+import { DashboardHome } from '@/components/dashboard/DashboardHome'
 import { UnassignedTasks } from '@/components/dashboard/UnassignedTasks'
 import { OpenBugsList } from '@/components/dashboard/OpenBugsList'
-import { DashboardStatTile } from '@/components/dashboard/DashboardStatTile'
 
 const roleLabels: Record<string, string> = {
   admin: 'Administradores',
@@ -80,7 +77,7 @@ export default async function AdminDashboard() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role:roles(name)')
+    .select('full_name, role:roles(name)')
     .eq('id', userId)
     .single()
   
@@ -525,176 +522,121 @@ export default async function AdminDashboard() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
-  const statAccents = ['#0A84FF', '#BF5AF2', '#30D158', '#FF9F0A', '#FF453A']
+  const fullName = (profile as { full_name?: string | null } | null)?.full_name || session.user.name || ''
+  const firstName = fullName.trim().split(' ')[0]
+  const hour = Number(new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    hourCycle: 'h23',
+    timeZone: 'America/Santiago',
+  }).format(new Date()))
+  const greeting = `${hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches'}${firstName ? `, ${firstName}` : ''}`
+  const dateLabelRaw = new Intl.DateTimeFormat('es-CL', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'America/Santiago',
+  }).format(new Date())
+  const dateLabel = dateLabelRaw.charAt(0).toUpperCase() + dateLabelRaw.slice(1)
+
+  const progressDone = isDeveloper ? (myTasksCompletedCount || 0) : (tasksCompletedCount || 0)
+  const progressTotal = isDeveloper
+    ? (myTasksCount || 0) + (myTasksCompletedCount || 0)
+    : (tasksTotalCount || 0)
+
+  const taskItems = isStakeholder ? null : (urgentTasks || []).map((task) => {
+    const projectData = task.project as { id: string; name: string } | { id: string; name: string }[] | null
+    const project = Array.isArray(projectData) ? projectData[0] : projectData
+    return {
+      id: task.id,
+      number: task.task_number,
+      title: task.title,
+      projectName: project?.name || 'Sin proyecto',
+      href: project?.id ? `/projects/${project.id}` : '/projects',
+      dueLabel: task.due_date ? formatDate(task.due_date) : null,
+      overdue: isOverdue(task.due_date),
+      priority: task.priority,
+    }
+  })
+
+  const projectItems = (recentProjects || []).map((project) => {
+    const companyData = project.company as { name: string } | { name: string }[] | null
+    const company = Array.isArray(companyData) ? companyData[0]?.name : companyData?.name
+    return {
+      id: project.id,
+      name: project.name,
+      company: company || 'Sin empresa',
+      statusLabel: statusLabels[project.status] || project.status,
+      statusClass: statusColors[project.status] || statusColors.planning,
+      href: `/projects/${project.id}`,
+    }
+  })
+
+  const activityItems = isStakeholder ? null : (recentActivity || []).map((activity) => {
+    const userData = activity.user as { avatar_url: string | null; full_name: string | null } | { avatar_url: string | null; full_name: string | null }[] | null
+    const user = Array.isArray(userData) ? userData[0] : userData
+    return {
+      id: activity.id,
+      name: user?.full_name || 'Usuario',
+      avatarUrl: user?.avatar_url || null,
+      initials: getInitials(user?.full_name || null),
+      action: actionLabels[activity.action] || activity.action,
+      actionClass: actionColors[activity.action] || 'text-muted-foreground',
+      entity: entityLabels[activity.entity_type] || activity.entity_type,
+      entityName: activity.entity_name,
+      when: formatTimeAgo(activity.created_at),
+    }
+  })
 
   return (
-    <div className="space-y-6 w-full overflow-x-hidden">
-      <div>
-        <h1 className="text-[28px] font-semibold tracking-tight text-foreground leading-tight">Dashboard</h1>
-        <p className="text-[15px] text-muted-foreground mt-1">
-          {isAdmin
-            ? 'Vista general de usuarios, proyectos, tareas y bugs'
-            : isScopedDashboard
-              ? isPM
-                ? 'Tus proyectos, tareas del equipo y actividad relacionada'
-                : 'Tus tareas, proyectos asignados y actividad relacionada'
-              : 'Resumen de tu operación y actividad reciente'}
-        </p>
-      </div>
-
-      <div className={`grid gap-3 grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : isStakeholder ? 'lg:grid-cols-2' : 'md:grid-cols-3'}`}>
-        {stats.map((stat, i) => (
-          <DashboardStatTile
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            description={stat.description}
-            href={stat.href}
-            accent={statAccents[i % statAccents.length]}
-          />
-        ))}
-      </div>
-
-      <div className={`grid gap-3 ${isStakeholder ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
-        {!isStakeholder && (
-          <DashboardSection
-            title="Actividad"
-            description={
-              isScopedDashboard
-                ? isPM
-                  ? 'Acciones en tus proyectos'
-                  : 'Acciones en tus proyectos y tareas'
-                : 'Últimas acciones en el sistema'
-            }
-          >
-            {!recentActivity || recentActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No hay actividad reciente</p>
-            ) : (
-              <div className="space-y-1">
-                {recentActivity.map((activity) => {
-                  const userData = activity.user as { avatar_url: string | null; full_name: string | null } | { avatar_url: string | null; full_name: string | null }[] | null
-                  const user = Array.isArray(userData) ? userData[0] : userData
-                  return (
-                    <div key={activity.id} className="flex items-start gap-2.5 rounded-2xl px-2 py-2 min-w-0">
-                      <Avatar className="w-7 h-7 flex-shrink-0 mt-0.5">
-                        <AvatarImage src={user?.avatar_url || undefined} />
-                        <AvatarFallback className="text-[10px]">
-                          {getInitials(user?.full_name || null)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] text-foreground leading-snug break-words">
-                          <span className="font-semibold">{user?.full_name || 'Usuario'}</span>
-                          {' '}
-                          <span className={actionColors[activity.action] || 'text-muted-foreground'}>
-                            {actionLabels[activity.action] || activity.action}
-                          </span>
-                          {' '}
-                          {entityLabels[activity.entity_type] || activity.entity_type}
-                          {activity.entity_name && (
-                            <span className="font-medium"> &quot;{activity.entity_name}&quot;</span>
-                          )}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{formatTimeAgo(activity.created_at)}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </DashboardSection>
-        )}
-
-        <DashboardSection
-          title="Proyectos"
-          description={
-            usesProjectScope ? 'Tus proyectos asignados' : 'Últimos proyectos creados'
-          }
-          action={
-            <Link href="/projects" className="text-[13px] font-semibold text-primary hover:opacity-80 transition-opacity">
-              Ver todos
-            </Link>
-          }
-        >
-          {!recentProjects || recentProjects.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No hay proyectos registrados</p>
-          ) : (
-            <div className="space-y-1">
-              {recentProjects.map((project) => (
-                <Link
-                  key={project.id}
-                  href={`/projects/${project.id}`}
-                  className="flex items-center gap-3 rounded-2xl px-2 py-2.5 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-medium text-foreground truncate">{project.name}</p>
-                    <p className="text-[12px] text-muted-foreground truncate">{(() => {
-                      const companyData = project.company as { name: string } | { name: string }[] | null
-                      return Array.isArray(companyData) ? companyData[0]?.name : companyData?.name || 'Sin empresa'
-                    })()}</p>
-                  </div>
-                  <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 flex-shrink-0 ${statusColors[project.status]}`}>
-                    {statusLabels[project.status]}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </DashboardSection>
-
-        {!isStakeholder && (
-          <DashboardSection
-            title={isDeveloper ? 'Mis Tareas' : 'Prioritarias'}
-            description={
-              isDeveloper
-                ? 'Tareas asignadas a ti'
-                : isPM
-                  ? 'Urgentes en tus proyectos'
-                  : 'Urgentes o de alta prioridad'
-            }
-          >
-            {!urgentTasks || urgentTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No hay tareas urgentes pendientes</p>
-            ) : (
-              <div className="space-y-1">
-                {urgentTasks.map((task) => {
-                  const projectData = task.project as { id: string; name: string } | { id: string; name: string }[] | null
-                  const project = Array.isArray(projectData) ? projectData[0] : projectData
-                  return (
-                    <Link
-                      key={task.id}
-                      href={`/projects/${project?.id}`}
-                      className="block rounded-2xl px-2 py-2.5 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-                    >
-                      <div className="flex items-center justify-between gap-2 min-w-0">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-[11px] text-muted-foreground flex-shrink-0">#{task.task_number}</span>
-                            <p className="text-[14px] font-medium text-foreground truncate">{task.title}</p>
-                          </div>
-                          <p className="text-[12px] text-muted-foreground truncate mt-0.5">{project?.name}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          {task.due_date && (
-                            <span className={`text-[11px] ${isOverdue(task.due_date) ? 'text-red-500 font-semibold' : 'text-muted-foreground'}`}>
-                              {formatDate(task.due_date)}
-                            </span>
-                          )}
-                          <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${task.priority === 'urgent' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}>
-                            {task.priority === 'urgent' ? 'Urgente' : 'Alta'}
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
-            )}
-          </DashboardSection>
-        )}
-      </div>
-
-      {!isStakeholder && (
+    <DashboardHome
+      greeting={greeting}
+      dateLabel={dateLabel}
+      subtitle={
+        isAdmin
+          ? 'Usuarios, proyectos, tareas y bugs en un solo vistazo.'
+          : isScopedDashboard
+            ? isPM
+              ? 'Tus proyectos, el equipo y lo que hay que mover hoy.'
+              : 'Tus tareas, tus proyectos y lo que pasó recién.'
+            : 'El estado de la operación y la actividad reciente.'
+      }
+      primaryHref={isStakeholder ? '/projects' : '/my-tasks'}
+      primaryLabel={isStakeholder ? 'Ver proyectos' : 'Ir a mis tareas'}
+      progress={{ done: progressDone, total: progressTotal }}
+      stats={stats}
+      tasksTitle={isDeveloper ? 'Mis tareas' : 'Prioritarias'}
+      tasksDescription={
+        isDeveloper
+          ? 'Asignadas a ti y todavía abiertas'
+          : isPM
+            ? 'Urgentes en tus proyectos'
+            : 'Urgentes o de alta prioridad'
+      }
+      tasksHref={isDeveloper ? '/my-tasks' : '/projects'}
+      tasks={taskItems}
+      projectsDescription={usesProjectScope ? 'Los que tienes asignados' : 'Los últimos creados'}
+      projects={projectItems}
+      activityDescription={
+        isScopedDashboard
+          ? isPM
+            ? 'Acciones en tus proyectos'
+            : 'Acciones en tus proyectos y tareas'
+          : 'Últimas acciones en el sistema'
+      }
+      activity={activityItems}
+      meetings={!isStakeholder ? (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <UpcomingMeetings initialMeetings={((meetingsResult as any).data ?? []) as any} />
+      ) : null}
+      aside={(isAdmin || isPM) ? (
+        <>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <UnassignedTasks tasks={((reportsResult as any).unassigned ?? []) as any} />
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <OpenBugsList bugs={((reportsResult as any).openBugs ?? []) as any} />
+        </>
+      ) : null}
+      charts={!isStakeholder ? (
         <DashboardCharts
           variant={isAdmin ? 'admin' : isDeveloper ? 'developer' : isPM ? 'pm' : 'other'}
           tasksDone={tasksDone}
@@ -714,22 +656,7 @@ export default async function AdminDashboard() {
             count,
           }))}
         />
-      )}
-
-      {!isStakeholder && (
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        <UpcomingMeetings initialMeetings={((meetingsResult as any).data ?? []) as any} />
-      )}
-
-      {(isAdmin || isPM) && (
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        <UnassignedTasks tasks={((reportsResult as any).unassigned ?? []) as any} />
-      )}
-
-      {(isAdmin || isPM) && (
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        <OpenBugsList bugs={((reportsResult as any).openBugs ?? []) as any} />
-      )}
-    </div>
+      ) : null}
+    />
   )
 }

@@ -41,36 +41,8 @@ export function DashboardCharts({
   roleCounts,
 }: DashboardChartsProps) {
   const layout = useLayoutMode()
-  const projectCount = projectStatusData.reduce((sum, item) => sum + item.count, 0)
 
-  if (layout === 'unknown') {
-    return <div className="h-24" />
-  }
-
-  if (layout !== 'desktop') {
-    return (
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-border bg-card px-3 py-3">
-          <p className="text-[12px] text-muted-foreground">Tareas abiertas</p>
-          <p className="text-[22px] font-semibold tracking-tight">{tasksInProgress + tasksReview + tasksTodo + tasksBacklog}</p>
-        </div>
-        <div className="rounded-2xl border border-border bg-card px-3 py-3">
-          <p className="text-[12px] text-muted-foreground">Proyectos</p>
-          <p className="text-[22px] font-semibold tracking-tight">{projectCount}</p>
-        </div>
-        {variant !== 'developer' && (
-          <div className="rounded-2xl border border-border bg-card px-3 py-3">
-            <p className="text-[12px] text-muted-foreground">Bugs activos</p>
-            <p className="text-[22px] font-semibold tracking-tight">{bugsOpen + bugsInProgress}</p>
-          </div>
-        )}
-        <div className="rounded-2xl border border-border bg-card px-3 py-3">
-          <p className="text-[12px] text-muted-foreground">Completadas</p>
-          <p className="text-[22px] font-semibold tracking-tight">{tasksDone}</p>
-        </div>
-      </div>
-    )
-  }
+  if (layout !== 'desktop') return null
 
   return (
     <div className={`grid gap-3 ${variant === 'admin' ? 'md:grid-cols-4' : variant === 'developer' ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
