@@ -23,6 +23,7 @@ import { PendingTasksWithCCDialog, PendingTasksNoCCDialog, CreateCCPromptDialog 
 import { SprintSelector } from './SprintSelector'
 import { SprintHeader } from './SprintHeader'
 import { CreateSprintDialog } from './CreateSprintDialog'
+import { ImportSprintPlanDialog } from './ImportSprintPlanDialog'
 import type { Sprint } from './CreateSprintDialog'
 import type { ProjectTask } from '@/lib/types/task'
 import { groupBlockingBugsByTaskId, type BlockingBugRef } from '@/lib/utils/task-open-bugs'
@@ -144,6 +145,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
   // Sprint state
   const [selectedSprintId, setSelectedSprintId] = useState<string | null | 'auto'>('auto')
   const [createSprintOpen, setCreateSprintOpen] = useState(false)
+  const [importPlanOpen, setImportPlanOpen] = useState(false)
 
   // View mode and filters
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban')
@@ -656,6 +658,7 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
             onSelect={(id) => setSelectedSprintId(id)}
             canManage={['admin', 'pm'].includes(currentUserRole)}
             onNewSprint={() => setCreateSprintOpen(true)}
+            onImportPlan={() => setImportPlanOpen(true)}
           />
 
           {resolvedSprintId !== null && (() => {
@@ -899,6 +902,16 @@ export function ProjectDetailClient({ projectId, backHref = '/projects', backLab
         onCreated={(sprint) => {
           mutateProject()
           setSelectedSprintId(sprint.id)
+        }}
+      />
+
+      <ImportSprintPlanDialog
+        open={importPlanOpen}
+        onOpenChange={setImportPlanOpen}
+        projectId={project.id}
+        onImported={(sprintId) => {
+          mutateProject()
+          setSelectedSprintId(sprintId)
         }}
       />
     </div>
